@@ -85,8 +85,6 @@ def createdatastream():
         f.create_dataset("tripstrain", data=eps_tr)
 
 def adjustdatastream(dataname,data,type):
-    import h5py
-    data = read_input()
     # Adding data to xdmf file
     if type == "nodes":
         meshstream = meshio.read("Resultfiles/Datastream.xdmf")
@@ -115,3 +113,23 @@ def readdatastream(dataname):
         return data
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file")
+
+
+
+def saveresult(filename, dataname,data):
+    import h5py
+    with h5py.File("Resultfiles/"+filename, "r+") as f:
+        try:
+            del f[dataname]
+        except:
+            pass
+        f.create_dataset(dataname, data=data)
+
+def readresultfile(filename, dataname):
+    import h5py
+    try:
+        with h5py.File("Resultfiles/"+filename, "r") as f:
+            data = np.array(f.get(dataname))
+        return data
+    except:
+        raise KeyError("Result "+str(dataname)+" doesn't exist in result file")

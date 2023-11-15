@@ -168,46 +168,44 @@ def calculateCCT():
                        .calculate()  # Aktiverar beräkningen
                        )
         return
-def calculatePerlite():
+def calculatePerlite(temperatures, composition):
+    print("Bainite model")
     from HelpFile import read_input
-    print("Perlite model")
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
     dependentmat = data['Material']["Dependentmat"]
-    composition = data['Material']["Composition"]
+    # composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
-    temperatures = [400,500,600,700,800]
-    #phases = ["FCC_A1", "FCC_A1#2", "GAS", "GRAPHITE_A9"]
-    #dormantphases = ["GAS", "GRAPHITE_A9"]
-    #referencestates = {"C": "Graphite_A9", "N": "GAS"}
-
 
     with TCPython() as start:
-        # create and configure a single equilibrium calculation
         calculation = (
             start
-            .select_thermodynamic_and_kinetic_databases_with_elements(database,kindatabase,[dependentmat] + list(composition))
+            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
+                                                                      [dependentmat] + list(composition))
             .deselect_phase("*")
             .select_phase("FCC_A1")
             .select_phase("BCC_A2")
             .select_phase("CEMENTITE")
             .get_system()
-            .with_property_model_calculation("Pearlite").set_temperature(1000).set_composition_unit(CompositionUnit.MASS_PERCENT)
-            #.set_argument()
+            .with_property_model_calculation("Pearlite").set_temperature(1000).set_composition_unit(
+                CompositionUnit.MASS_PERCENT)
+            # .set_argument()
         )
         for element in composition:
-            calculation.set_composition(element, composition[element]/100)
-        print("Available arguments: {}".format(calculation.get_arguments()))
-        startvalue = list()
+            calculation.set_composition(element, composition[element])
+
+        # print("Available arguments: {}".format(calculation.get_arguments()))
+        starttime, halftime, finishtime = list(), list(), list()
         for x in temperatures:
-            calculation.set_temperature(x)
-            calc_result = (calculation
+            calc_result = (calculation.set_temperature(x)
                            .calculate()  # Aktiverar beräkningen
                            )
-            startvalue.append(calc_result.get_value_of("Start"))
-        print("Available result quantities: {}".format(calc_result.get_result_quantities()))
-        print(startvalue)
+            starttime.append(calc_result.get_value_of("Start time (2% bainite)"))
+            halftime.append(calc_result.get_value_of("Half time (50% bainite)"))
+            finishtime.append(calc_result.get_value_of("Finish time (98% bainite)"))
+        # print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+    return starttime, halftime, finishtime
         #'GrainSize', 'Criterion', 'PearliteMode', 'Austenite composition from', 'Austenitizing temperature'
         #for phase in phases:
         #    calculation.set_phase_to_entered(phase)
@@ -215,15 +213,15 @@ def calculatePerlite():
         #    calculation.set_phase_to_dormant(phase)
         #for element in referencestates:
         #    calculation.with_reference_state(element,referencestates[element])
-        return
-def calculateBainite(temperatures):
+
+def calculateBainite(temperatures, composition):
     print("Bainite model")
     from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
     dependentmat = data['Material']["Dependentmat"]
-    composition = data['Material']["Composition"]
+    #composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
 
     with TCPython() as start:
