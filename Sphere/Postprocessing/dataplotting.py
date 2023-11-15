@@ -12,4 +12,3 @@ def plotJMAK(phasename):
     ypoints = T
     plt.plot(xpoints, ypoints)
     plt.xscale("log")
-    #plt.show()

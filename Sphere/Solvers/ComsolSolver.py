@@ -1,6 +1,19 @@
 import mph
 import os
 
+def runComsol():
+    directory = os.getcwd()
+    meshdirec = directory + '\\Resultfiles\\Mesh.nas'
+    savedirec = directory + '\\Resultfiles'
+    client = mph.start()
+    pymodel = client.load("Resultfiles/Comsolmodel.mph")
+    model = pymodel.java
+    model.func().create("int1", "Interpolation");
+    model.func().create("int2", "Interpolation");
+    model.func("int1").setIndex("table", 100., 0, 0)
+    model.func("int1").setIndex("table", 100., 1, 0)
+
+    model.save('Resultfiles/Comsolmodel')
 def setupComsol():
     directory = os.getcwd()
     meshdirec = directory + '\\Resultfiles\\Mesh.nas'

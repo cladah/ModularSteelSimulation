@@ -1,4 +1,4 @@
-from Solvers.ComsolSolver import setupComsol
+from Solvers.ComsolSolver import setupComsol, runComsol
 from HelpFile import read_input, checkinput, adjustinputcache
 import os
 def runquenchingmodule():
@@ -16,7 +16,7 @@ def runquenchingmodule():
             setupComsol()
         else:
             print("comsolmodel exists")
-            pass
+            runComsol()
     else:
         raise KeyError('Program not implemented')
     adjustinputcache('Mesh')

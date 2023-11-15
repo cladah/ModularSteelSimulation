@@ -22,7 +22,6 @@ def start():
     runcarbonitridingmodule()
     runTTTmodule()
     runTTTfitmodule()
-    plotTTTdiagram()
     runquenchingmodule()
     #x,y = getaxisvalues('C', 0)
     #plt.plot(x,y)
