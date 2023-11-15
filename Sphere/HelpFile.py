@@ -1,4 +1,5 @@
 import numpy as np
+import meshio
 def read_input():
     import json
     f = open('Cachefiles/Input.json', 'r')
@@ -83,21 +84,34 @@ def createdatastream():
         f.create_dataset("plasticstrain", data=eps_pl)
         f.create_dataset("tripstrain", data=eps_tr)
 
-def adjustdatastream(dataname,data):
+def adjustdatastream(dataname,data,type):
     import h5py
     data = read_input()
-    with h5py.File("Datastream.hdf5", "r+") as f:
-        try:
-            del f[dataname]
-        except:
-            pass
-        f.create_dataset(dataname, data=data)
-
+    # Adding data to xdmf file
+    if type == "nodes":
+        meshstream = meshio.read("Resultfiles/Datastream.xdmf")
+        meshstream.point_data[dataname] = data
+        meshio.write("Resultfiles/Datastream.xdmf", meshstream)
+    elif type == "elements":
+        meshstream = meshio.read("Resultfiles/Datastream.xdmf")
+        meshstream.cell_data[dataname] = data
+        meshio.write("Resultfiles/Datastream.xdmf", meshstream)
+    else:
+        raise KeyError("datastream missing nodes or elements")
 def readdatastream(dataname):
     import h5py
     try:
-        with h5py.File("Datastream.hdf5", "r") as f:
-            data = np.array(f.get(dataname))
+        meshstream = meshio.read("Resultfiles/Datastream.xdmf")
+        if dataname in meshstream.point_data.keys():
+            data = meshstream.point_data[dataname]
+        elif dataname in meshstream.cell_data.keys():
+            data = meshstream.cell_data[dataname]
+        elif dataname == "nodes":
+            data = meshstream.points
+        elif dataname == "elements":
+            data = meshstream.cells
+        else:
+            raise KeyError()
         return data
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file")

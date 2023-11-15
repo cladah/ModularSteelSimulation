@@ -52,6 +52,9 @@ def gmshmodule():
     gmsh.write("Resultfiles/Mesh.nas")
     gmsh.finalize()
     meshdata = meshio.read("Resultfiles/Mesh.msh")
-    meshio.write("Resultfiles/Result.xdmf",
+    meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
-                             cells={"triangle": meshdata.get_cells_type("triangle")}))
+                             cells={"triangle": meshdata.get_cells_type("triangle")},
+                             point_data={"T": 0.*np.arange(len(meshdata.points)),"C": 0.*np.arange(len(meshdata.points))},
+                             cell_data={"phiM": [0.*np.arange(len(meshdata.cells[3]))]}))
+    data = meshio.read("Resultfiles/Datastream.xdmf")
