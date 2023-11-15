@@ -24,15 +24,20 @@ def runTTTmodule():
     composition = data['Material']['Composition']
     #composition['C'] = a['C'][-1]
     #composition['N'] = a['N'][-1]
-    Tsteps = np.linspace(300,1000,10)
+    Tsteps = np.linspace(500,1000,10)
+
+    start, half, finish = calculatePerlite(Tsteps, composition)
+    saveresult("TTT.hdf5","Perlite/Tsteps",Tsteps)
+    saveresult("TTT.hdf5", "Perlite/start", start)
+    saveresult("TTT.hdf5", "Perlite/half", half)
+    saveresult("TTT.hdf5", "Perlite/finish", finish)
 
     start, half, finish = calculateBainite(Tsteps, composition)
+    saveresult("TTT.hdf5", "Bainite/Tsteps", Tsteps)
+    saveresult("TTT.hdf5", "Bainite/start", start)
+    saveresult("TTT.hdf5", "Bainite/half", half)
+    saveresult("TTT.hdf5", "Bainite/finish", finish)
 
-    with h5py.File("Resultfiles/TTT.hdf5", "w") as f:
-        f.create_dataset("Bainite/Tsteps", data=Tsteps)
-        f.create_dataset("Bainite/start", data=start)
-        f.create_dataset("Bainite/half", data=half)
-        f.create_dataset("Bainite/finish", data=finish)
 
     return
     #saveresult("TTT/Surface/Bainite/Start", start)
@@ -65,26 +70,18 @@ def runTTTmodule():
     #Perlite = modelfitting(data['Material']['Perlite']['model'], [1, 1], [1, 1])
     #Bainite = modelfitting(data['Material']['Bainite']['model'], [1, 1], [1, 1])
 
-    with h5py.File("Resultfiles/ThermoResult.hdf5", "r+") as f:
-        try:
-            f.create_dataset('JMAK/Tau', data=1)
-            f.create_dataset('JMAK/n', data=1)
-        except ValueError:
-            del f['JMAK/Tau']
-            del f['JMAK/n']
-            f.create_dataset('JMAK/Tau', data=1)
-            f.create_dataset('JMAK/n', data=1)
 def runTTTfitmodule():
     import h5py
-    with h5py.File("Resultfiles/TTT.hdf5", "r") as f:
-        Tsteps = np.array(f.get("Bainite/Tsteps"))
-        start = np.array(f.get("Bainite/start"))
-        half = np.array(f.get("Bainite/half"))
-        finish = np.array(f.get("Bainite/finish"))
-    b_Tlist, b_n, b_tau = JMAKfit([start,Tsteps], [half,Tsteps], [finish,Tsteps])
+    Tlist, n, tau = JMAKfit("Perlite")
+    saveresult("TTT.hdf5", "Perlite/JMAK/T", Tlist)
+    saveresult("TTT.hdf5", "Perlite/JMAK/n", n)
+    saveresult("TTT.hdf5", "Perlite/JMAK/tau", tau)
+
+    b_Tlist, b_n, b_tau = JMAKfit("Bainite")
     saveresult("TTT.hdf5","Bainite/JMAK/T",b_Tlist)
     saveresult("TTT.hdf5", "Bainite/JMAK/n",b_n)
     saveresult("TTT.hdf5", "Bainite/JMAK/tau",b_tau)
+
     #with h5py.File("Resultfiles/TTT.hdf5", "r+") as f:
     #    f.create_dataset('Bainite/JMAK/Tau', data=b_Tlist)
     #   f.create_dataset('Bainite/JMAK/Tau', data=b_n)

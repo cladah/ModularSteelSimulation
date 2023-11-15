@@ -169,13 +169,12 @@ def calculateCCT():
                        )
         return
 def calculatePerlite(temperatures, composition):
-    print("Bainite model")
+    print("Perlite model")
     from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
     dependentmat = data['Material']["Dependentmat"]
-    # composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
 
     with TCPython() as start:
@@ -197,14 +196,17 @@ def calculatePerlite(temperatures, composition):
 
         # print("Available arguments: {}".format(calculation.get_arguments()))
         starttime, halftime, finishtime = list(), list(), list()
+        calc_result = (calculation.set_temperature(temperatures[0])
+                       .calculate()  # Aktiverar beräkningen
+                       )
         for x in temperatures:
             calc_result = (calculation.set_temperature(x)
                            .calculate()  # Aktiverar beräkningen
                            )
-            starttime.append(calc_result.get_value_of("Start time (2% bainite)"))
-            halftime.append(calc_result.get_value_of("Half time (50% bainite)"))
-            finishtime.append(calc_result.get_value_of("Finish time (98% bainite)"))
-        # print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+            starttime.append(calc_result.get_value_of("Start"))
+            halftime.append(calc_result.get_value_of("Half"))
+            finishtime.append(calc_result.get_value_of("Finish"))
+        print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return starttime, halftime, finishtime
         #'GrainSize', 'Criterion', 'PearliteMode', 'Austenite composition from', 'Austenitizing temperature'
         #for phase in phases:

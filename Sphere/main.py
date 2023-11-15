@@ -9,6 +9,7 @@ from Meshmodule import createMesh
 from Carbonitridingmodule import runcarbonitridingmodule
 from TTTmodule import runTTTmodule, runTTTfitmodule
 from Postmodule import *
+from Quenchingmodule import runquenchingmodule
 
 
 
@@ -22,6 +23,7 @@ def start():
     runTTTmodule()
     runTTTfitmodule()
     plotTTTdiagram()
+    runquenchingmodule()
     #x,y = getaxisvalues('C', 0)
     #plt.plot(x,y)
     #plt.show()

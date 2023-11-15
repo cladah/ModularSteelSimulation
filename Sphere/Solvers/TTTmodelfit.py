@@ -1,4 +1,14 @@
-def JMAKfit(data1,data2,data3):
+from HelpFile import *
+def JMAKfit(phasename):
+    import numpy as np
+    Tsteps = readresultfile("TTT.hdf5", phasename + "/Tsteps")
+    start = readresultfile("TTT.hdf5", phasename + "/start")
+    half = readresultfile("TTT.hdf5", phasename + "/half")
+    finish = readresultfile("TTT.hdf5", phasename + "/finish")
+
+    data1 = [start, Tsteps]
+    data2 = [half, Tsteps]
+    data3 = [finish, Tsteps]
     import numpy as np
     tau = np.array([])
     n = np.array([])

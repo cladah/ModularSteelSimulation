@@ -4,7 +4,7 @@
     "Carbonitriding": 0,
     "TTT": 0,
     "ThermoFit": 0,
-    "Quench": 0,
+    "Quenching": 1,
     "Temp": 0,
     "Fatigue": 0
   },
