@@ -12,6 +12,8 @@ def runquenchingmodule():
         #rundocker()
     elif data['Programs']['FEM'] == 'Comsol':
         print('Using COMSOL for FEM calculation')
+        setupComsol()
+        return
         if not os.path.exists('Resultfiles/Comsolmodel.mph'):
             setupComsol()
         else:

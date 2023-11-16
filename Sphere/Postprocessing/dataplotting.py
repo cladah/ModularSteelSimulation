@@ -12,27 +12,36 @@ def plotJMAK(phasename,filename):
     xpoints = -tau * (-np.log(0.02)) ** (1 / n)
     ypoints = T
     plt.plot(xpoints, ypoints, label =phasename + ' finish (98%)')
-    indx = np.logical_not(np.isnan(tau))
+    indx = xpoints<1E12*np.logical_not(np.isnan(tau))
     T = T[indx]
     tau = tau[indx]
-    n = n[indx]
 
+    print("adding point to " + phasename)
+    n = n[indx]
+    # Adding a point far to the right to avoid phasetransformation at high T
+
+    tau = np.append(tau, tau[-1]*1E12)
+    n = np.append(n, n[-1])
+    T = np.append(T, 2*T[-1]-T[-2])
+
+
+    testT = np.linspace(270, 1000, 74)
     # Polytest
-    testtau = np.polyfit(T,tau,5)
+    testtau = np.polyfit(T,tau,1)
     testn = np.polyfit(T, n, 1)
     taunew = np.poly1d(testtau)
     nnew = np.poly1d(testn)
-    #tauinter = taunew(T)
-    #ninter = nnew(T)
+    #tauinter = taunew(testT)
+    #ninter = nnew(testT)
 
     # Spline test
     taufunc = interpolate.splrep(T, tau, s=0)
     nfunc = interpolate.splrep(T, n, s=0)
-    tauinter = interpolate.splev(T, taufunc, der=0)
-    ninter = interpolate.splev(T, nfunc, der=0)
+    tauinter = interpolate.splev(testT, taufunc, der=0)
+    ninter = interpolate.splev(testT, nfunc, der=0)
     xpoints = -tauinter * (-np.log(0.50)) ** (1 / ninter)
-    ypoints = T
-
+    ypoints = testT
+    #print(xpoints)
     plt.plot(xpoints, ypoints, label=phasename + ' test (50%)')
 
     plt.xscale("log")
