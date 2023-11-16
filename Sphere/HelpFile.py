@@ -118,6 +118,13 @@ def readdatastream(dataname):
 
 def saveresult(filename, dataname,data):
     import h5py
+    try:
+        with h5py.File("Resultfiles/" + filename, "r+") as f:
+            pass
+    except:
+        with h5py.File("Resultfiles/" + filename, "w") as f:
+            pass
+
     with h5py.File("Resultfiles/"+filename, "r+") as f:
         try:
             del f[dataname]

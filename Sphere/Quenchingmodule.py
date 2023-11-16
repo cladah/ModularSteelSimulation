@@ -15,7 +15,7 @@ def runquenchingmodule():
         if not os.path.exists('Resultfiles/Comsolmodel.mph'):
             setupComsol()
         else:
-            print("comsolmodel exists")
+            print("Using previous setup model")
             runComsol()
     else:
         raise KeyError('Program not implemented')

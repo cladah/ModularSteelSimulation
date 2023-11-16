@@ -253,10 +253,42 @@ def calculateBainite(temperatures, composition):
             finishtime.append(calc_result.get_value_of("Finish time (98% bainite)"))
         #print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return starttime, halftime, finishtime
-def calculateMartensite():
+def calculateMartensite(composition):
     print("Martensite model")
-    # Martensite Temperatures
-    pass
+    from HelpFile import read_input
+    data = read_input()
+    database = "TCFE12"
+    kindatabase = "MOBFE7"
+    dependentmat = data['Material']["Dependentmat"]
+    # composition = data['Material']["Composition"]
+    phases = ["FCC_A1"]
+
+    with TCPython() as start:
+        calculation = (
+            start
+            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
+                                                                      [dependentmat] + list(composition))
+            .deselect_phase("*")
+            .select_phase("FCC_A1")
+            .select_phase("BCC_A2")
+            .select_phase("CEMENTITE")
+            .get_system()
+            .with_property_model_calculation("Martensite Temperatures").set_temperature(1000).set_composition_unit(
+                CompositionUnit.MASS_PERCENT)
+            # .set_argument()
+        )
+        for element in composition:
+            calculation.set_composition(element, composition[element])
+
+        print("Available arguments: {}".format(calculation.get_arguments()))
+        calc_result = (calculation.calculate()  # Aktiverar beräkningen
+                       )
+        print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+        start = calc_result.get_value_of("Ms")
+        half = calc_result.get_value_of("M50")
+        finish = calc_result.get_value_of("M99")
+        print([start, half, finish])
+    return start, half, finish
 def yieldStrength():
     # Yield Strength
     pass

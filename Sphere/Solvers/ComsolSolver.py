@@ -8,8 +8,7 @@ def runComsol():
     client = mph.start()
     pymodel = client.load("Resultfiles/Comsolmodel.mph")
     model = pymodel.java
-    model.func().create("int1", "Interpolation");
-    model.func().create("int2", "Interpolation");
+
     model.func("int1").setIndex("table", 100., 0, 0)
     model.func("int1").setIndex("table", 100., 1, 0)
 
@@ -33,6 +32,12 @@ def setupComsol():
     model.component("comp1").mesh("mesh1").feature("imp1").set("filename", meshdirec)
     model.component("comp1").mesh("mesh1").feature("imp1").importData()
     model.component("comp1").mesh("mesh1").run()
+
+    # --------------- Setting up parameters ------------------#
+    model.func().create("EM", "Interpolation");
+    model.func().create("EA", "Interpolation");
+    model.func().create("EP", "Interpolation");
+    model.func().create("EB", "Interpolation");
 
     # --------------- Setting up material ------------------#
     model.component("comp1").material().create("159", "Common")

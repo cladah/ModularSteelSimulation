@@ -1,10 +1,10 @@
 from HelpFile import *
-def JMAKfit(phasename):
+def JMAKfit(phasename, filename):
     import numpy as np
-    Tsteps = readresultfile("TTT.hdf5", phasename + "/Tsteps")
-    start = readresultfile("TTT.hdf5", phasename + "/start")
-    half = readresultfile("TTT.hdf5", phasename + "/half")
-    finish = readresultfile("TTT.hdf5", phasename + "/finish")
+    Tsteps = readresultfile(filename, phasename + "/Tsteps")
+    start = readresultfile(filename, phasename + "/start")
+    half = readresultfile(filename, phasename + "/half")
+    finish = readresultfile(filename, phasename + "/finish")
 
     data1 = [start, Tsteps]
     data2 = [half, Tsteps]
@@ -32,9 +32,16 @@ def JMAKfit(phasename):
             Tlist = np.append(Tlist, x)
     return Tlist, n, tau
 
-def KMfit(data1,data2,data3): # Koistinen marburger fitting process
+def KMfit(phasename,filename): # Koistinen marburger fitting process
     import numpy as np
-    def objective(x, Ms, beta):
-        return 1 - np.exp(-beta * (Ms - x))
-    # 0.02 = 1- exp(-beta * (Ms - data1))
-    pass
+    start = readresultfile(filename, phasename + "/start")
+    half = readresultfile(filename, phasename + "/half")
+    finish = readresultfile(filename, phasename + "/finish")
+
+    # 0.02 = 1- exp(-beta * (Ms - start))
+    # 0.98 = 1- exp(-beta * (Ms - finish))
+    #np.log(0.98)*(Ms-finish) = np.log(0.02)*(Ms-start)
+    Ms = (np.log(0.98)*finish-np.log(0.02)*start)/(np.log(0.98)-np.log(0.02))
+    beta = -np.log(0.98)/(Ms - start)
+
+    return Ms,beta

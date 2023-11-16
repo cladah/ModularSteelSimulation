@@ -16,13 +16,12 @@ from Quenchingmodule import runquenchingmodule
 def start():
     if not os.path.exists('Cachefiles/InputCache.json'):
         createinputcache()
-    if not os.path.exists('Resultfiles/Datastream.xdmf'):
-        createdatastream()
     createMesh()
     runcarbonitridingmodule()
     runTTTmodule()
     runTTTfitmodule()
     runquenchingmodule()
+    plotTTTdiagram()
     #x,y = getaxisvalues('C', 0)
     #plt.plot(x,y)
     #plt.show()
