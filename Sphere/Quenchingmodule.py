@@ -1,4 +1,4 @@
-from Solvers.ComsolSolver import setupComsol, runComsol
+from Solvers.ComsolSolver import setupComsol, runComsol, adjustComsol
 from HelpFile import read_input, checkinput, adjustinputcache
 import os
 def runquenchingmodule():
@@ -12,7 +12,7 @@ def runquenchingmodule():
         #rundocker()
     elif data['Programs']['FEM'] == 'Comsol':
         print('Using COMSOL for FEM calculation')
-        setupComsol()
+        runComsol()
         return
         if not os.path.exists('Resultfiles/Comsolmodel.mph'):
             setupComsol()

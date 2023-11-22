@@ -1,5 +1,6 @@
 import mph
 import os
+from HelpFile import read
 
 def setupComsol():
     directory = os.getcwd()

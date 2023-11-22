@@ -1,6 +1,8 @@
 from Sphere.Solvers.Thermocalc import *
 from Sphere.Solvers.TTTmodelfit import *
 from HelpFile import *
+from Postprocessing.dataextraction import getaxisvalues
+
 
 def runTTTmodule():
 
@@ -29,6 +31,8 @@ def runTTTmodule():
     return
 
 def runTTTcalc(filename,composition):
+    for element in composition:
+        saveresult(filename, "Composition/"+element,composition[element])
     Tsteps = np.linspace(270, 1000, 74)
     start, half, finish = calculateMartensite(composition)
     saveresult(filename, "Martensite/start", start)
@@ -51,9 +55,10 @@ def runTTTfitmodule():
         print('Using precalculated phase transformation models')
         return
     print('TTT module')
-
-    TTTfit("TTT_center.hdf5")
-    TTTfit("TTT_surface.hdf5")
+    files = ["TTT_center.hdf5", "TTT_surface.hdf5"]
+    for file in files:
+        TTTfit(file)
+    TTTinterpolatetonodes(files)
 def TTTfit(filename):
     Tlist, n, tau = JMAKfit("Perlite",filename)
     saveresult(filename, "Perlite/JMAK/T", Tlist)
@@ -69,8 +74,38 @@ def TTTfit(filename):
     saveresult(filename, "Martensite/KM/Ms", Ms)
     saveresult(filename, "Martensite/KM/beta", beta)
 
-
+def fitspline():
+    pass
     #with h5py.File("Resultfiles/TTT.hdf5", "r+") as f:
     #    f.create_dataset('Bainite/JMAK/Tau', data=b_Tlist)
     #   f.create_dataset('Bainite/JMAK/Tau', data=b_n)
     #    f.create_dataset('Bainite/JMAK/Tau', data=b_tau)
+def TTTinterpolatetonodes(files):
+    from scipy import interpolate
+    data = read_input()
+    composition = dict()
+    for element in data["Material"]["Composition"].keys():
+        composition[element] = getaxisvalues(element, 0)
+    phases = ["Bainite"]
+
+    for phase in phases:
+        phasepm = list()
+        for filename in files:
+            pm = getJMAK(phase, filename)
+            phasepm.append(pm)
+
+    # Testing data
+    print(phasepm)
+    testT = np.linspace(270, 1000, 74)
+    print(interpolate.splev(testT, phasepm[0][1], der=0))
+def getJMAK(phase, filename):
+    from scipy import interpolate
+    T = readresultfile(filename, phase + "/JMAK/T")
+    tau = readresultfile(filename, phase + "/JMAK/tau")
+    n = readresultfile(filename, phase + "/JMAK/n")
+    taufunc = interpolate.splrep(T, tau, s=0)
+    nfunc = interpolate.splrep(T, n, s=0)
+    return taufunc, nfunc
+
+def getKM():
+    pass

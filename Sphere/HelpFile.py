@@ -134,6 +134,7 @@ def saveresult(filename, dataname,data):
 
 def readresultfile(filename, dataname):
     import h5py
+    import numpy as np
     try:
         with h5py.File("Resultfiles/"+filename, "r") as f:
             data = np.array(f.get(dataname))
