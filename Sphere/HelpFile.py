@@ -1,5 +1,6 @@
 import numpy as np
 import meshio
+import sqlite3
 def read_input():
     import json
     f = open('Cachefiles/Input.json', 'r')
@@ -141,3 +142,38 @@ def readresultfile(filename, dataname):
         return data
     except:
         raise KeyError("Result "+str(dataname)+" doesn't exist in result file")
+def addTTTdata(compdata, data, type):
+    print(data['Martensite'].keys())
+    if type not in ["TTTdata","Modeldata"]:
+        raise KeyError("Type can't be added to TTT database")
+    from sqlitedict import SqliteDict
+    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    for oldkey in TTTdata.keys():
+        if compdata == TTTdata[oldkey]["Composition"]:
+            if type in TTTdata[oldkey].keys():
+                print(type + " for that composition is already stored in database")
+                return
+            print(type + " added to database for " + str(compdata))
+            tmpdict = TTTdata[oldkey]
+            tmpdict[type] = data
+            TTTdata[oldkey] = tmpdict
+            TTTdata.commit()
+            TTTdata.close()
+            return
+    print("Composition not in TTT database")
+    #TTTdata[str(len(TTTdata) + 1)] = dict()
+    TTTdata[str(len(TTTdata) + 1)] = {type:data,"Composition":compdata}
+    TTTdata.commit()
+    TTTdata.close()
+    print(type + " is now stored in TTT database for " + str(compdata))
+def getTTTdata(compdata, type):
+    from sqlitedict import SqliteDict
+    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    for key in TTTdata.keys():
+        if compdata == TTTdata[key]["Composition"]:
+            if type in TTTdata[key].keys():
+                return TTTdata[key][type]
+            else:
+                raise KeyError(type + ' not in database for composition ' + compdata)
+        else:
+            print("Composition not in database")

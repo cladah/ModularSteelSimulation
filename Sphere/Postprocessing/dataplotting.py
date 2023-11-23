@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from HelpFile import readresultfile
+from HelpFile import readresultfile, getTTTdata
 from scipy import interpolate
 def plotJMAK(phasename,filename):
     T = readresultfile(filename, phasename+"/JMAK/T")

@@ -289,6 +289,44 @@ def calculateMartensite(composition):
         finish = calc_result.get_value_of("M99")
         print([start, half, finish])
     return start, half, finish
+
+def calculateFerrite(temperatures, composition):
+    print("Ferrite model")
+    from HelpFile import read_input
+    data = read_input()
+    database = "TCFE12"
+    kindatabase = "MOBFE7"
+    dependentmat = data['Material']["Dependentmat"]
+    #composition = data['Material']["Composition"]
+    phases = ["FCC_A1"]
+
+    with TCPython() as start:
+        calculation = (
+            start
+            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
+                                                                      [dependentmat] + list(composition))
+            .deselect_phase("*")
+            .select_phase("FCC_A1")
+            .select_phase("BCC_A2")
+            .select_phase("CEMENTITE")
+            .get_system()
+            .with_property_model_calculation("Ferrite").set_temperature(1000).set_composition_unit(CompositionUnit.MASS_PERCENT)
+            # .set_argument()
+        )
+        for element in composition:
+            calculation.set_composition(element, composition[element])
+
+        #print("Available arguments: {}".format(calculation.get_arguments()))
+        starttime, halftime, finishtime = list(), list(), list()
+        for x in temperatures:
+            calc_result = (calculation.set_temperature(x)
+                           .calculate()  # Aktiverar beräkningen
+                           )
+            starttime.append(calc_result.get_value_of("Ferrite start"))
+            halftime.append(calc_result.get_value_of("Ferrite half"))
+            finishtime.append(calc_result.get_value_of("Ferrite finish"))
+        #print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+    return starttime, halftime, finishtime
 def yieldStrength():
     # Yield Strength
     pass

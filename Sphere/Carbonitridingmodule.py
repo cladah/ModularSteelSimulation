@@ -18,7 +18,7 @@ def runcarbonitridingmodule():
             for element in elements:
                 c_element = np.array(f.get("CNcurves/Elements/" + element))
                 elementvalues = interp(r, CN_xyz, c_element)
-                adjustdatastream(element, elementvalues, "nodes")
+                adjustdatastream("Composition/"+element, elementvalues, "nodes")
         return
     print('Carbonitriding module')
     data = read_input()
@@ -28,6 +28,8 @@ def runcarbonitridingmodule():
         CN = TCcarbonitriding(activityenv)
     else:
         raise KeyError(str(data["Programs"]["CNDiffusion"]) + ' not implemented for carbonitriding')
+
+    # Implement C
 
     with h5py.File("Resultfiles/Carbonitriding.hdf5", "w") as f:
         for element in CN[1].keys():

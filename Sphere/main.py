@@ -19,7 +19,7 @@ def start():
     createMesh()
     runcarbonitridingmodule()
     runTTTmodule()
-    runTTTfitmodule()
+    #runTTTfitmodule()
     #runquenchingmodule()
     #plotTTTdiagram()
     #x,y = getaxisvalues('C', 0)
