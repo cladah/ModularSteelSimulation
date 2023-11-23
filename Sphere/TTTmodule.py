@@ -69,29 +69,32 @@ def runTTTcalc(composition):
         TTTdata[ph] = phase
     addTTTdata(composition, TTTdata, "TTTdata")
 def runTTTfitmodule():
+    import h5py
     if checkinput('ThermoFit'):
         print('Using precalculated phase transformation models')
         return
     print('TTT fitting module')
-    getTTTdata(composition)
-    for file in files:
-        modelpm = TTTfit()
-    TTTinterpolatetonodes()
-def TTTfit(filename):
-    Tlist, n, tau = JMAKfit("Perlite",filename)
-    saveresult(filename, "Perlite/JMAK/T", Tlist)
-    saveresult(filename, "Perlite/JMAK/n", n)
-    saveresult(filename, "Perlite/JMAK/tau", tau)
+    data = read_input()
+    composition = data['Material']['Composition']
+    surfcomp = dict()
+    for element in composition.keys():
+        surfcomp[element] = getaxisvalues(element, 0)[-1]
 
-    b_Tlist, b_n, b_tau = JMAKfit("Bainite",filename)
-    saveresult(filename,"Bainite/JMAK/T",b_Tlist)
-    saveresult(filename, "Bainite/JMAK/n",b_n)
-    saveresult(filename, "Bainite/JMAK/tau",b_tau)
-
-    Ms, beta = KMfit("Martensite",filename)
-    saveresult(filename, "Martensite/KM/Ms", Ms)
-    saveresult(filename, "Martensite/KM/beta", beta)
-
+    TTTfit(composition)
+    TTTfit(surfcomp)
+    print("models fitted to data")
+    #TTTinterpolatetonodes()
+def TTTfit(composition):
+    phases = ["Ferrite","Perlite","Bainite","Martensite"]
+    modeldata = dict()
+    for phase in phases:
+        if phase in ["Ferrite","Perlite","Bainite"]:
+            T, n, tau = JMAKfit(composition, phase)
+            modeldata[phase] = [T, tau, n]
+        elif phase == "Martensite":
+            Ms, beta = KMfit(composition, phase)
+            modeldata[phase] = [Ms, beta]
+    addTTTdata(composition, modeldata, "Modeldata")
 def fitspline():
     pass
     #with h5py.File("Resultfiles/TTT.hdf5", "r+") as f:
@@ -122,7 +125,7 @@ def TTTinterpolatetonodes():
     #print(phasepm)
     testT = np.linspace(270, 1000, 74)
     print(interpolate.splev(testT, phasepm[0][1], der=0))
-def getJMAK(phase, filename):
+def getJMAK(composition, phase):
     from scipy import interpolate
     T = readresultfile(filename, phase + "/JMAK/T")
 

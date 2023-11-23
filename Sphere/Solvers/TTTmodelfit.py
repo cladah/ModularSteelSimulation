@@ -1,11 +1,9 @@
 from HelpFile import *
-def JMAKfit(phasename, filename):
+def JMAKfit(composition, phase):
     import numpy as np
-    Tsteps = readresultfile(filename, phasename + "/Tsteps")
-    start = readresultfile(filename, phasename + "/start")
-    half = readresultfile(filename, phasename + "/half")
-    finish = readresultfile(filename, phasename + "/finish")
-
+    TTTdata = getTTTdata(composition,"TTTdata")
+    print(TTTdata[phase]["start"])
+    input("Pause")
     data1 = [start, Tsteps]
     data2 = [half, Tsteps]
     data3 = [finish, Tsteps]
