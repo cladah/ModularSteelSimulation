@@ -115,7 +115,15 @@ def readdatastream(dataname):
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file")
 
+def getaxisvalues(dataname, axis):
 
+    node_y = readdatastream('nodes')[:, 1]
+    indx = np.where(node_y == 0)
+    y = readdatastream(dataname)[indx]
+    x = readdatastream('nodes')[:, 0][indx]
+    indx = np.argsort(x)
+    y = np.array(y)[indx]
+    return y
 
 def saveresult(filename, dataname,data):
     import h5py
@@ -175,5 +183,4 @@ def getTTTdata(compdata, type):
                 return TTTdata[key][type]
             else:
                 raise KeyError(type + ' not in database for composition ' + compdata)
-        else:
-            print("Composition not in database")
+    print("Composition not in database")

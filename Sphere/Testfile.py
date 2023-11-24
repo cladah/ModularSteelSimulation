@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import h5py
 import numpy as np
 
+test = readdatastream("N")
+print(test)
+
 data = read_input()
 with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
     x = np.array(f.get("CNcurves/Position"))
@@ -18,7 +21,7 @@ with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
         #plt.plot(x, 100 * np.array(f.get("CNcurves/"+element)))
         a[element] = round(100 * np.array(f.get("CNcurves/Elements/" + element))[-1], 2) # Composition curves at all points along x
 
-print(a)
+#print(a)
 
 filename = "TTT_center.hdf5"
 
@@ -50,10 +53,10 @@ for ph in phases:
     modeldata[ph] = model
 data = read_input()
 composition = data["Material"]["Composition"]
-addTTTdata(composition, TTTdata, "TTTdata")
-addTTTdata(composition, modeldata, "Modeldata")
-a = getTTTdata(composition,"TTTdata")
-print(a)
+#addTTTdata(composition, TTTdata, "TTTdata")
+#addTTTdata(composition, modeldata, "Modeldata")
+#e = getTTTdata(composition,"TTTdata")
+#print(e)
 #TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
 #TTTdata["1"] = {"TTTdata":1,"Composition":2}
 #print([i for i in TTTdata.keys()])

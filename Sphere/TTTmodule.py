@@ -16,17 +16,13 @@ def runTTTmodule():
         return
     print('TTT module')
     data = read_input()
-    with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
-        x = np.array(f.get("CNcurves/Position"))
-        a = dict()
-        for element in data['Material']['Composition'].keys():
-            #plt.plot(x, 100 * np.array(f.get("CNcurves/"+element)))
-            a[element] = 100 * np.array(f.get("CNcurves/Elements/" + element)) # Composition curves at all points along x
-
+    fullcomposition = dict()
+    for element in data['Material']['Composition'].keys():
+        fullcomposition[element] = getaxisvalues("N")[1]
     composition = data['Material']['Composition']
     surfcomp = dict()
     for element in data['Material']['Composition'].keys():
-        surfcomp[element] = round(a[element][-1], 2)
+        surfcomp[element] = round(fullcomposition[element][-1], 2)
     runTTTcalc(composition)
     runTTTcalc(surfcomp)
     return
@@ -78,8 +74,7 @@ def runTTTfitmodule():
     composition = data['Material']['Composition']
     surfcomp = dict()
     for element in composition.keys():
-        surfcomp[element] = getaxisvalues(element, 0)[-1]
-
+        surfcomp[element] = round(getaxisvalues(element, 0)[-1],2)
     TTTfit(composition)
     TTTfit(surfcomp)
     print("models fitted to data")
@@ -88,8 +83,8 @@ def TTTfit(composition):
     phases = ["Ferrite","Perlite","Bainite","Martensite"]
     modeldata = dict()
     for phase in phases:
-        if phase in ["Ferrite","Perlite","Bainite"]:
-            T, n, tau = JMAKfit(composition, phase)
+        if phase in ["Ferrite", "Perlite", "Bainite"]:
+            T, tau, n = JMAKfit(composition, phase)
             modeldata[phase] = [T, tau, n]
         elif phase == "Martensite":
             Ms, beta = KMfit(composition, phase)

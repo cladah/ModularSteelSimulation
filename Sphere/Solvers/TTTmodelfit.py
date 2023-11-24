@@ -1,45 +1,50 @@
 from HelpFile import *
 def JMAKfit(composition, phase):
     import numpy as np
+    print(composition)
     TTTdata = getTTTdata(composition,"TTTdata")
-    print(TTTdata[phase]["start"])
-    input("Pause")
-    data1 = [start, Tsteps]
-    data2 = [half, Tsteps]
-    data3 = [finish, Tsteps]
-    import numpy as np
+    print(TTTdata)
+    start = TTTdata[phase]["start"]
+    half = TTTdata[phase]["half"]
+    finish = TTTdata[phase]["finish"]
+    #print(start)
+    #print(half)
     tau = np.array([])
     n = np.array([])
     Tlist = np.array([])
-    for x in data1[1]:
-        i = np.where(data3[1] == x)[0]
-        k = np.where(data2[1] == x)[0]
-        j = np.where(data1[1] == x)[0]
+    for x in start[0]:
+        i = np.where(start[0] == x)[0][0]
+        j = np.where(half[0] == x)[0][0]
+        k = np.where(finish[0] == x)[0][0]
         if i.size==0 or j.size==0 or k.size==0:
             pass
-        elif data1[0][j[0]] == data3[0][i[0]]: # Take away data point with the same values
+        elif start[1][j] == finish[1][i]: # ignore data point with the same values
             pass
         else:
             # add if to take 98% or 50% lines as references.
-            i = i[0]
-            j = j[0]
-            tmpn = np.log(np.log(0.98)/np.log(0.02))/np.log(data1[0][j]/data3[0][i])
-            tmptau = - data1[0][j]/(-np.log(0.98))**(1/tmpn)
+            if np.isnan(finish[1][k]):
+                tmpn = np.log(np.log(0.98) / np.log(0.50)) / np.log(start[1][i] / half[1][j])
+                tmptau = - start[1][i] / (-np.log(0.98)) ** (1 / tmpn)
+            else:
+                tmpn = np.log(np.log(0.98) / np.log(0.02)) / np.log(start[1][i] / finish[1][k])
+                tmptau = - start[1][i] / (-np.log(0.98)) ** (1 / tmpn)
             n = np.append(n, tmpn)
             tau = np.append(tau, tmptau)
             Tlist = np.append(Tlist, x)
-    return Tlist, n, tau
 
-def KMfit(phasename,filename): # Koistinen marburger fitting process
+    return Tlist, tau, n
+
+def KMfit(composition, phase): # Koistinen marburger fitting process
     import numpy as np
-    start = readresultfile(filename, phasename + "/start")
-    half = readresultfile(filename, phasename + "/half")
-    finish = readresultfile(filename, phasename + "/finish")
+    TTTdata = getTTTdata(composition, "TTTdata")
 
+    start = TTTdata[phase]["start"][0][0]
+    half = TTTdata[phase]["half"][0][0]
+    finish = TTTdata[phase]["finish"][0][0]
     # 0.02 = 1- exp(-beta * (Ms - start))
     # 0.98 = 1- exp(-beta * (Ms - finish))
     #np.log(0.98)*(Ms-finish) = np.log(0.02)*(Ms-start)
     Ms = (np.log(0.98)*finish-np.log(0.02)*start)/(np.log(0.98)-np.log(0.02))
     beta = -np.log(0.98)/(Ms - start)
 
-    return Ms,beta
+    return Ms, beta

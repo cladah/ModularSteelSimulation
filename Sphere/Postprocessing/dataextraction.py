@@ -9,4 +9,4 @@ def getaxisvalues(dataname, axis):
     indx = np.argsort(x)
     x = np.array(x)[indx]
     y = np.array(y)[indx]
-    return x, y
+    return y
