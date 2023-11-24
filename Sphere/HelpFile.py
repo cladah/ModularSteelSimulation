@@ -151,7 +151,6 @@ def readresultfile(filename, dataname):
     except:
         raise KeyError("Result "+str(dataname)+" doesn't exist in result file")
 def addTTTdata(compdata, data, type):
-    print(data['Martensite'].keys())
     if type not in ["TTTdata","Modeldata"]:
         raise KeyError("Type can't be added to TTT database")
     from sqlitedict import SqliteDict
