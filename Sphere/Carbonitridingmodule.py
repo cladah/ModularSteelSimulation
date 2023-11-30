@@ -17,7 +17,7 @@ def runcarbonitridingmodule():
             elements = f.get("CNcurves/Elements").keys()
             for element in elements:
                 c_element = np.array(f.get("CNcurves/Elements/" + element))
-                elementvalues = interp(r, CN_xyz, c_element)
+                elementvalues = interp(r, CN_xyz, c_element)*100
                 adjustdatastream("Composition/"+element, elementvalues, "nodes")
         return
     print('Carbonitriding module')
@@ -25,16 +25,18 @@ def runcarbonitridingmodule():
     if data["Programs"]["CNDiffusion"] == "TC":
         print('Running carbon-nitriding module with ThermoCalc')
         activityenv = TCequalibrium("env")
-        CN = TCcarbonitriding(activityenv)
+        composition = TCcarbonitriding(activityenv)
+
     else:
         raise KeyError(str(data["Programs"]["CNDiffusion"]) + ' not implemented for carbonitriding')
 
     # Implement C
 
     with h5py.File("Resultfiles/Carbonitriding.hdf5", "w") as f:
-        for element in CN[1].keys():
-            f.create_dataset("CNcurves/Elements/"+element, data=np.array(CN[1][element]))
-        f.create_dataset("CNcurves/Position", data=np.array(CN[0]))
+        for element in composition[1].keys():
+            f.create_dataset("CNcurves/Elements/"+element, data=np.array(composition[1][element]))
+        f.create_dataset("CNcurves/Position", data=np.array(composition[0]))
+
 
 
 

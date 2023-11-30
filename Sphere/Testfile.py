@@ -10,8 +10,10 @@ import matplotlib.pyplot as plt
 import h5py
 import numpy as np
 
-test = readdatastream("N")
-print(test)
+analyseTTTdatabase()
+input("pause")
+
+
 
 data = read_input()
 with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:

@@ -115,8 +115,7 @@ def readdatastream(dataname):
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file")
 
-def getaxisvalues(dataname, axis):
-
+def getaxisvalues(dataname):
     node_y = readdatastream('nodes')[:, 1]
     indx = np.where(node_y == 0)
     y = readdatastream(dataname)[indx]
@@ -174,6 +173,10 @@ def addTTTdata(compdata, data, type):
     TTTdata.close()
     print(type + " is now stored in TTT database for " + str(compdata))
 def getTTTdata(compdata, type):
+    # Making sure the composition has the correct round value
+    for key in compdata:
+        if compdata[key] != round(compdata[key], 2):
+            compdata[key] = round(compdata[key], 2)
     from sqlitedict import SqliteDict
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
     for key in TTTdata.keys():
@@ -183,3 +186,9 @@ def getTTTdata(compdata, type):
             else:
                 raise KeyError(type + ' not in database for composition ' + compdata)
     print("Composition not in database")
+def analyseTTTdatabase():
+    from sqlitedict import SqliteDict
+    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    print("Compositions in database")
+    for key in TTTdata.keys():
+        print(TTTdata[key]["Composition"])

@@ -1,14 +1,16 @@
 from HelpFile import *
 def JMAKfit(composition, phase):
     import numpy as np
-    print(composition)
     TTTdata = getTTTdata(composition,"TTTdata")
-    print(TTTdata)
-    start = TTTdata[phase]["start"]
-    half = TTTdata[phase]["half"]
-    finish = TTTdata[phase]["finish"]
-    #print(start)
-    #print(half)
+    if TTTdata == None:
+        raise KeyError("Can't find " + str(composition) + " in database")
+    try:
+        start = TTTdata[phase]["start"]
+        half = TTTdata[phase]["half"]
+        finish = TTTdata[phase]["finish"]
+    except:
+        print("TTTdata for " + str(composition) + " doesn't exist for " + phase + " transformation")
+        return None, None, None
     tau = np.array([])
     n = np.array([])
     Tlist = np.array([])

@@ -280,14 +280,14 @@ def calculateMartensite(composition):
         for element in composition:
             calculation.set_composition(element, composition[element])
 
-        print("Available arguments: {}".format(calculation.get_arguments()))
+        #print("Available arguments: {}".format(calculation.get_arguments()))
         calc_result = (calculation.calculate()  # Aktiverar beräkningen
                        )
-        print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+        #print("Available result quantities: {}".format(calc_result.get_result_quantities()))
         start = calc_result.get_value_of("Ms")
         half = calc_result.get_value_of("M50")
         finish = calc_result.get_value_of("M99")
-        print([start, half, finish])
+        #print([start, half, finish])
     return start, half, finish
 
 def calculateFerrite(temperatures, composition):
