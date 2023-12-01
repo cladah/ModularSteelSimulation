@@ -10,6 +10,7 @@ from Carbonitridingmodule import runcarbonitridingmodule
 from TTTmodule import runTTTmodule, runTTTmodelmodule
 from Postmodule import *
 from Quenchingmodule import runquenchingmodule
+from Testfile import *
 
 
 
@@ -20,6 +21,7 @@ def start():
     runcarbonitridingmodule()
     runTTTmodule()
     runTTTmodelmodule()
+    modeldatatocsv()
     #runquenchingmodule()
     #plotTTTdiagram()
     #x,y = getaxisvalues('C', 0)

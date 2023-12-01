@@ -4,43 +4,45 @@ from Sphere.Solvers.Thermocalc import *
 from Sphere.Solvers.TTTmodelfit import *
 from HelpFile import *
 
+def getTTTcompositions():
+    roundingTTT = 2
+    data = read_input()
+    TTTcompositions = list()
+    fullcomposition = dict()
+    surfcomp = dict()
+    halfcomp = dict()
+    for element in data['Material']['Composition'].keys():
+        fullcomposition[element] = getaxisvalues("Composition/" + element)
+    composition = data['Material']['Composition']
+    for element in data['Material']['Composition'].keys():
+        surfcomp[element] = round(fullcomposition[element][-1], roundingTTT)
+        halfcomp[element] = round((fullcomposition[element][-1] + composition[element]) / 2, roundingTTT)
+        tmpcomp = composition.copy()
+        tmpcomp[element] = round(fullcomposition[element][-1], roundingTTT)
+        TTTcompositions.append(tmpcomp)
+    for element in data['Material']['Composition'].keys():
+        tmpcomp = surfcomp.copy()
+        tmpcomp[element] = round(composition[element], roundingTTT)
+        TTTcompositions.append(tmpcomp)
+    TTTcompositions.append(composition)
+    TTTcompositions.append(halfcomp)
+    TTTcompositions.append(surfcomp)
+    return TTTcompositions
 
 def runTTTmodule():
-
-    from Solvers.Thermocalc import calculateCCT
-    import h5py
-    import matplotlib.pyplot as plt
-    import numpy as np
     from HelpFile import read_input, checkinput
     if checkinput('TTT'):
         print('Using precalculated TTT simulation')
         return
     print('TTT module')
-    data = read_input()
-    fullcomposition = dict()
-    for element in data['Material']['Composition'].keys():
-        fullcomposition[element] = getaxisvalues("Composition/" + element)
-    composition = data['Material']['Composition']
-    surfcomp = dict()
-    halfcomp = dict()
-    TTTcompositions = list()
-    for element in data['Material']['Composition'].keys():
-        surfcomp[element] = round(fullcomposition[element][-1], 2)
-        halfcomp[element] = round((fullcomposition[element][-1]+composition[element])/2, 2)
-        tmpcomp = composition.copy()
-        tmpcomp[element] = round(fullcomposition[element][-1], 2)
-        TTTcompositions.append(tmpcomp)
-
-    runTTTcalc(composition)
-    runTTTcalc(halfcomp)
-    runTTTcalc(surfcomp)
+    TTTcompositions = getTTTcompositions()
     for tmpcomp in TTTcompositions:
         runTTTcalc(tmpcomp)
 
     return
 
 def runTTTcalc(composition):
-    if bool(getTTTdata(composition,"TTTdata")):
+    if bool(getTTTdata(composition, "TTTdata")):
         print("TTTdata exists in database for " + str(composition))
         return
     print("Running TTT calculation for " + str(composition))
@@ -77,18 +79,13 @@ def runTTTcalc(composition):
         TTTdata[ph] = phase
     addTTTdata(composition, TTTdata, "TTTdata")
 def runTTTmodelmodule():
-    import h5py
     if checkinput('ThermoFit'):
         print('Using precalculated phase transformation models')
         return
     print('TTT models module')
-    data = read_input()
-    composition = data['Material']['Composition']
-    surfcomp = dict()
-    for element in composition.keys():
-        surfcomp[element] = round(getaxisvalues("Composition/" + element)[-1], 2)
-    TTTfit(composition)
-    TTTfit(surfcomp)
+    TTTcompositions = getTTTcompositions()
+    for tmpcomp in TTTcompositions:
+        TTTfit(tmpcomp)
     print("Models fitted to data")
     TTTinterpolatetonodes()
 
@@ -114,51 +111,52 @@ def TTTinterpolatetonodes():
     from scipy import interpolate
     data = read_input()
     fullcomposition = dict()
-    fullcomposition = dict()
-    core = dict()
-    surface = dict()
-    complist = list()
-    phase = "Bainite"
-    for element in data["Material"]["Composition"].keys():
-        compaxis = getaxisvalues("Composition/"+element)
-        core[element] = compaxis[0]
-        surface[element] = compaxis[-1]
-        fullcomposition[element] = readdatastream("Composition/"+element)
-    coremodel = getTTTdata(core, "Modeldata")
-    surfacemodel = getTTTdata(surface, "Modeldata")
-    for phase in ["Bainite", "Perlite", "Martensite"]:
-        if phase in ["Ferrite","Bainite","Perlite"]:
-            indx = ~np.isnan(coremodel[phase][1])
-            T = coremodel[phase][0][indx]
-            tau = coremodel[phase][1][indx]
-            n = coremodel[phase][2][indx]
-            taufunc = interpolate.splrep(T, tau, s=0)
-            nfunc = interpolate.splrep(T, n, s=0)
-            indx = ~np.isnan(surfacemodel[phase][1])
-            T2 = surfacemodel[phase][0][indx]
-            tau2 = surfacemodel[phase][1][indx]
-            n2 = surfacemodel[phase][2][indx]
-            taufunc2 = interpolate.splrep(T2, tau2, s=0)
-            nfunc2 = interpolate.splrep(T2, n2, s=0)
-            complist =[list(core.values()),list(surface.values())]
 
-            # Creating grid for JMAK interpolation
+    compositions = getTTTcompositions()
+    for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        Z1 = list()
+        Z2 =list()
+        X = []
+        for comp in compositions:
             x = list()
-            grid = list()
-            x.append(np.append(T,T2))
-            for element in ["C"]:
-            #for element in data["Material"]["Composition"].keys():
-                tmpx = [core[element]]*len(T) + [surface[element]]*len(T2)
-                x.append(tmpx)
-                grid.append((min(tmpx) + max(tmpx))/2)
-            x = np.transpose(x)
+            print(comp)
+            TTTdata = getTTTdata(comp, "Modeldata")
+            # Get datapoints that aren't Nan
+            indx = ~np.isnan(TTTdata[phase][1])
+            if not indx.any():
+                continue
+            T = TTTdata[phase][0][indx]
+            modelpar1 = TTTdata[phase][1][indx]
+            modelpar2 = TTTdata[phase][2][indx]
+            print(T)
+            print(modelpar1)
+            m1func = interpolate.splrep(T, modelpar1, s=0)
+            m2func = interpolate.splrep(T, modelpar2, s=0)
 
+            # Creating grid for interpolation
+            x.append(list(T))
+            #for element in ["C"]:
+            for element in data["Material"]["Composition"].keys():
+                tmpx = [comp[element]]*len(T)
+                print(tmpx)
+                print(x)
+                x.append(tmpx)
+            x = np.transpose(x)
+            print(x)
+            input("t")
+            if len(X)!=0:
+                X = np.vstack([X,x])
+            else:
+                X = x.copy()
             # TTT data points
-            z = np.append(interpolate.splev(T, taufunc), interpolate.splev(T2, taufunc2))
-            interp1 = interpolate.LinearNDInterpolator(x, z)
-            z = np.append(interpolate.splev(T, nfunc), interpolate.splev(T2, nfunc2))
-            interp2 = interpolate.LinearNDInterpolator(x, z)
-            intermodels = [interp1, interp2]
+            z1 = interpolate.splev(T, m1func)
+            z2 = interpolate.splev(T, m2func)
+            print(z1)
+            Z1 = Z1 + list(z1)
+            Z2 = Z2 + list(z2)
+        interp1 = interpolate.LinearNDInterpolator(X, Z1)
+        interp2 = interpolate.LinearNDInterpolator(X, Z2)
+        intermodels = [interp1, interp2]
 
         Tgrid = T
         grid = np.array(fullcomposition["C"])
@@ -170,11 +168,13 @@ def TTTinterpolatetonodes():
             zdata.append(Z)
         zdata = np.asarray(zdata)
         if phase in ["Ferrite", "Bainite", "Perlite"]:
-            saveresult("Modeldata", phase + "/JMAK/tau",zdata)
-            saveresult("Modeldata", phase + "/JMAK/n", zdata)
+            saveresult("Modeldata", phase + "/JMAK/T", zdata[0])
+            saveresult("Modeldata", phase + "/JMAK/tau",zdata[1])
+            saveresult("Modeldata", phase + "/JMAK/n", zdata[2])
         else:
-            saveresult("Modeldata", phase + "/Ms", zdata)
-            saveresult("Modeldata", phase + "/beta", zdata)
+            saveresult("Modeldata", phase + "/T", zdata[0])
+            saveresult("Modeldata", phase + "/Ms", zdata[1])
+            saveresult("Modeldata", phase + "/beta", zdata[2])
     print("Modeldata interpolated to nodes")
 def getJMAK(composition, phase):
     from scipy import interpolate

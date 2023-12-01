@@ -7,78 +7,78 @@ import matplotlib.pyplot as plt
 #    print('Created the connection!')
 #composition = SqliteDict("Resultfiles/database.db", tablename="composition", outer_stack=False)
 
-import h5py
-import numpy as np
+def test1():
+    import h5py
+    import numpy as np
 
-analyseTTTdatabase()
-input("pause")
-
-
-
-data = read_input()
-with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
-    x = np.array(f.get("CNcurves/Position"))
-    a = dict()
-    for element in data['Material']['Composition'].keys():
-        #plt.plot(x, 100 * np.array(f.get("CNcurves/"+element)))
-        a[element] = round(100 * np.array(f.get("CNcurves/Elements/" + element))[-1], 2) # Composition curves at all points along x
-
-#print(a)
-
-filename = "TTT_center.hdf5"
-
-phases = ["Ferrite","Bainite","Perlite","Martensite"]
-TTTdata = dict()
-modeldata = dict()
-for ph in phases:
-    phase = dict()
-    model = dict()
-    if ph in ["Ferrite", "Bainite", "Perlite"]:
-        Tsteps = readresultfile(filename, ph + "/Tsteps")
-        phase["start"] = [Tsteps, readresultfile(filename, ph + "/start")]
-        phase["half"] = [Tsteps, readresultfile(filename, ph + "/half")]
-        phase["finish"] = [Tsteps, readresultfile(filename, ph + "/finish")]
-        model["JMAK"] = [readresultfile(filename,ph + "/JMAK/T"),
-                         readresultfile(filename,ph +"/JMAK/tau"),
-                         readresultfile(filename,ph +"/JMAK/n")]
-    else:
-        start = readresultfile(filename, ph + "/start")
-        half = readresultfile(filename, ph + "/half")
-        finish = readresultfile(filename, ph + "/finish")
-        phase["start"] = [[start,start],[0.1, 1E12]]
-        phase["half"] = [[half,half],[0.1, 1E12]]
-        phase["finish"] = [[finish,finish],[0.1, 1E12]]
-        model["KM"] = [readresultfile(filename, ph + "/KM/Ms"),
-                       readresultfile(filename, ph + "/KM/beta")]
-
-    TTTdata[ph] = phase
-    modeldata[ph] = model
-data = read_input()
-composition = data["Material"]["Composition"]
-#addTTTdata(composition, TTTdata, "TTTdata")
-#addTTTdata(composition, modeldata, "Modeldata")
-#e = getTTTdata(composition,"TTTdata")
-#print(e)
-#TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
-#TTTdata["1"] = {"TTTdata":1,"Composition":2}
-#print([i for i in TTTdata.keys()])
-#for key, item in TTTdata.items():
-#    print(key)
-#print(TTTdata.items())
-#TTTdata.close()
-#test = getTTTdata(composition)
-#plt.plot(test["Perlite"]["start"][1],test["Perlite"]["start"][0])
-#plt.plot(test["Bainite"]["start"][1],test["Bainite"]["start"][0])
-#plt.plot(test["Ferrite"]["start"][1],test["Ferrite"]["start"][0])
-#plt.plot(test["Martensite"]["start"][1],test["Martensite"]["start"][0])
-#plt.plot(test["Martensite"]["finish"][1],test["Martensite"]["finish"][0])
-#plt.xscale("log")
-#plt.axis([1,1E12,300,1000])
-#plt.show()
+    analyseTTTdatabase()
+    input("pause")
 
 
-#print(readdatastream("C"))
 
+    data = read_input()
+    with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
+        x = np.array(f.get("CNcurves/Position"))
+        a = dict()
+        for element in data['Material']['Composition'].keys():
+            #plt.plot(x, 100 * np.array(f.get("CNcurves/"+element)))
+            a[element] = round(100 * np.array(f.get("CNcurves/Elements/" + element))[-1], 2) # Composition curves at all points along x
+
+    #print(a)
+
+    filename = "TTT_center.hdf5"
+
+    phases = ["Ferrite","Bainite","Perlite","Martensite"]
+    TTTdata = dict()
+    modeldata = dict()
+    for ph in phases:
+        phase = dict()
+        model = dict()
+        if ph in ["Ferrite", "Bainite", "Perlite"]:
+            Tsteps = readresultfile(filename, ph + "/Tsteps")
+            phase["start"] = [Tsteps, readresultfile(filename, ph + "/start")]
+            phase["half"] = [Tsteps, readresultfile(filename, ph + "/half")]
+            phase["finish"] = [Tsteps, readresultfile(filename, ph + "/finish")]
+            model["JMAK"] = [readresultfile(filename,ph + "/JMAK/T"),
+                             readresultfile(filename,ph +"/JMAK/tau"),
+                             readresultfile(filename,ph +"/JMAK/n")]
+        else:
+            start = readresultfile(filename, ph + "/start")
+            half = readresultfile(filename, ph + "/half")
+            finish = readresultfile(filename, ph + "/finish")
+            phase["start"] = [[start,start],[0.1, 1E12]]
+            phase["half"] = [[half,half],[0.1, 1E12]]
+            phase["finish"] = [[finish,finish],[0.1, 1E12]]
+            model["KM"] = [readresultfile(filename, ph + "/KM/Ms"),
+                           readresultfile(filename, ph + "/KM/beta")]
+
+        TTTdata[ph] = phase
+        modeldata[ph] = model
+    data = read_input()
+    composition = data["Material"]["Composition"]
+    #addTTTdata(composition, TTTdata, "TTTdata")
+    #addTTTdata(composition, modeldata, "Modeldata")
+    #e = getTTTdata(composition,"TTTdata")
+    #print(e)
+    #TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    #TTTdata["1"] = {"TTTdata":1,"Composition":2}
+    #print([i for i in TTTdata.keys()])
+    #for key, item in TTTdata.items():
+    #    print(key)
+    #print(TTTdata.items())
+    #TTTdata.close()
+    #test = getTTTdata(composition)
+    #plt.plot(test["Perlite"]["start"][1],test["Perlite"]["start"][0])
+    #plt.plot(test["Bainite"]["start"][1],test["Bainite"]["start"][0])
+    #plt.plot(test["Ferrite"]["start"][1],test["Ferrite"]["start"][0])
+    #plt.plot(test["Martensite"]["start"][1],test["Martensite"]["start"][0])
+    #plt.plot(test["Martensite"]["finish"][1],test["Martensite"]["finish"][0])
+    #plt.xscale("log")
+    #plt.axis([1,1E12,300,1000])
+    #plt.show()
+
+
+    #print(readdatastream("C"))
 
 def splineJMAK(phase, filename):
     import numpy as np
@@ -97,3 +97,32 @@ def splineJMAK(phase, filename):
     taufunc = interpolate.splrep(T, tau, s=0)
     nfunc = interpolate.splrep(T, n, s=0)
     return taufunc, nfunc
+
+def modeldatatocsv():
+    import csv
+    xyz = readdatastream("nodes")
+    print(xyz[0])
+    input("Pause")
+    phases = ["Ferrite", "Perlite", "Bainite","Martensite"]
+    for phase in phases:
+        if phase != "Martensite":
+            tmpT = readresultfile("Modeldata", phase + "/JMAK/T")
+            tmp1 = readresultfile("Modeldata", phase + "/JMAK/tau")
+            tmp2 = readresultfile("Modeldata", phase + "/JMAK/n")
+            tmpnames = ["tau", "n"]
+        else:
+            tmpT = readresultfile("Modeldata", phase + "/T")
+            tmp1 = readresultfile("Modeldata", phase + "/Ms")
+            tmp2 = readresultfile("Modeldata", phase + "/beta")
+            tmpnames = ["Ms", "beta"]
+        for i in [0, 1]:
+            with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w', newline=',') as csvfile:
+                writer = csv.writer(csvfile)
+                if not tmp1.all():
+                    break
+                print(len(tmp1))
+                print(len(xyz))
+                for j in range(len(tmp1)):
+                    pass
+                    #for k in range()
+                        #writer.writerow([xyz[j][0], xyz[j][1], tmpT[], tmp1[j]])

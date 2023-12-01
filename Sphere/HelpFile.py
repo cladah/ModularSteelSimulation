@@ -150,7 +150,7 @@ def readresultfile(filename, dataname):
     except:
         raise KeyError("Result "+str(dataname)+" doesn't exist in result file")
 def addTTTdata(compdata, data, type):
-    if type not in ["TTTdata","Modeldata"]:
+    if type not in ["TTTdata", "Modeldata"]:
         raise KeyError("Type can't be added to TTT database")
     from sqlitedict import SqliteDict
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
@@ -184,7 +184,7 @@ def getTTTdata(compdata, type):
             if type in TTTdata[key].keys():
                 return TTTdata[key][type]
             else:
-                raise KeyError(type + ' not in database for composition ' + compdata)
+                raise KeyError(type + ' not in database for composition ' + str(compdata))
     print("Composition not in database")
 def analyseTTTdatabase():
     from sqlitedict import SqliteDict
