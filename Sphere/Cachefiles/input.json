@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "Mesh": 0,
+    "Mesh": 1,
     "Carbonitriding": 0,
     "TTT": 1,
     "ThermoFit": 1,
@@ -19,7 +19,7 @@
     "Name": "Grade 159",
     "Dependentmat": "Fe",
     "Composition": {
-      "C": 0.2, "N": 0.025, "Cr": 1.6
+      "C": 0.2
     },
     "E": 200.0,
     "rho": 7800.0,

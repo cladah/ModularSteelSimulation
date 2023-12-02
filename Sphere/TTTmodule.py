@@ -111,7 +111,8 @@ def TTTinterpolatetonodes():
     from scipy import interpolate
     data = read_input()
     fullcomposition = dict()
-
+    for element in data['Material']['Composition'].keys():
+        fullcomposition[element] = readdatastream("Composition/" + element)
     compositions = getTTTcompositions()
     for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
         Z1 = list()
@@ -125,16 +126,22 @@ def TTTinterpolatetonodes():
             indx = ~np.isnan(TTTdata[phase][1])
             if not indx.any():
                 continue
-            T = TTTdata[phase][0][indx]
-            modelpar1 = TTTdata[phase][1][indx]
-            modelpar2 = TTTdata[phase][2][indx]
-            print(T)
-            print(modelpar1)
-            m1func = interpolate.splrep(T, modelpar1, s=0)
-            m2func = interpolate.splrep(T, modelpar2, s=0)
+            if phase == ["Ferrite", "Bainite", "Perlite"]:
+                T = TTTdata[phase][0][indx]
+                modelpar1 = TTTdata[phase][1][indx]
+                modelpar2 = TTTdata[phase][2][indx]
+                x.append(list(T))
+                m1func = interpolate.splrep(T, modelpar1, s=0)
+                m2func = interpolate.splrep(T, modelpar2, s=0)
+            else:
+                modelpar1 = TTTdata[phase][0][indx] # Ms
+                modelpar2 = TTTdata[phase][1][indx] # beta
+            # print(T)
+            # print(modelpar1)
+
 
             # Creating grid for interpolation
-            x.append(list(T))
+
             #for element in ["C"]:
             for element in data["Material"]["Composition"].keys():
                 tmpx = [comp[element]]*len(T)
@@ -149,8 +156,8 @@ def TTTinterpolatetonodes():
             else:
                 X = x.copy()
             # TTT data points
-            z1 = interpolate.splev(T, m1func)
-            z2 = interpolate.splev(T, m2func)
+            z1 = modelpar1 #interpolate.splev(T, m1func)
+            z2 = modelpar2 #interpolate.splev(T, m2func)
             print(z1)
             Z1 = Z1 + list(z1)
             Z2 = Z2 + list(z2)
