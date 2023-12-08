@@ -5,7 +5,7 @@ from Sphere.Solvers.TTTmodelfit import *
 from HelpFile import *
 
 def getTTTcompositions():
-    roundingTTT = 2
+    roundingTTT = 1
     data = read_input()
     TTTcompositions = list()
     fullcomposition = dict()
@@ -23,10 +23,14 @@ def getTTTcompositions():
     for element in data['Material']['Composition'].keys():
         tmpcomp = surfcomp.copy()
         tmpcomp[element] = round(composition[element], roundingTTT)
-        TTTcompositions.append(tmpcomp)
-    TTTcompositions.append(composition)
-    TTTcompositions.append(halfcomp)
-    TTTcompositions.append(surfcomp)
+        if tmpcomp not in TTTcompositions:
+            TTTcompositions.append(tmpcomp)
+    if composition not in TTTcompositions:
+        TTTcompositions.append(composition)
+    if halfcomp not in TTTcompositions:
+        TTTcompositions.append(halfcomp)
+    if surfcomp not in TTTcompositions:
+        TTTcompositions.append(surfcomp)
     return TTTcompositions
 
 def runTTTmodule():
@@ -46,7 +50,7 @@ def runTTTcalc(composition):
         print("TTTdata exists in database for " + str(composition))
         return
     print("Running TTT calculation for " + str(composition))
-    Tsteps = np.linspace(300, 1000, 21)  # 74
+    Tsteps = np.linspace(300, 1000, 74)  # 74
     phases = ["Ferrite", "Bainite", "Perlite","Martensite"]
     TTTdata = dict()
     for ph in phases:
@@ -67,7 +71,7 @@ def runTTTcalc(composition):
             finish = [Tsteps, finish]
         elif ph == "Martensite":
             start, half, finish = calculateMartensite(composition)
-            start = [[start,start],[0.1,1E12]]
+            start = [[start, start], [0.1,1E12]]
             half = [[half, half], [0.1, 1E12]]
             finish = [[finish, finish], [0.1, 1E12]]
         else:
@@ -115,42 +119,35 @@ def TTTinterpolatetonodes():
         fullcomposition[element] = readdatastream("Composition/" + element)
     compositions = getTTTcompositions()
     for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+
         Z1 = list()
         Z2 =list()
         X = []
         for comp in compositions:
             x = list()
-            print(comp)
             TTTdata = getTTTdata(comp, "Modeldata")
             # Get datapoints that aren't Nan
             indx = ~np.isnan(TTTdata[phase][1])
             if not indx.any():
                 continue
-            if phase == ["Ferrite", "Bainite", "Perlite"]:
+
+            if phase in ["Ferrite", "Bainite", "Perlite"]:
                 T = TTTdata[phase][0][indx]
                 modelpar1 = TTTdata[phase][1][indx]
                 modelpar2 = TTTdata[phase][2][indx]
                 x.append(list(T))
-                m1func = interpolate.splrep(T, modelpar1, s=0)
-                m2func = interpolate.splrep(T, modelpar2, s=0)
+
+                #m1func = interpolate.splrep(T, modelpar1, s=0)
+                #m2func = interpolate.splrep(T, modelpar2, s=0)
             else:
                 modelpar1 = TTTdata[phase][0][indx] # Ms
                 modelpar2 = TTTdata[phase][1][indx] # beta
-            # print(T)
             # print(modelpar1)
-
-
-            # Creating grid for interpolation
-
-            #for element in ["C"]:
             for element in data["Material"]["Composition"].keys():
                 tmpx = [comp[element]]*len(T)
-                print(tmpx)
-                print(x)
                 x.append(tmpx)
             x = np.transpose(x)
-            print(x)
-            input("t")
+
             if len(X)!=0:
                 X = np.vstack([X,x])
             else:
@@ -158,22 +155,68 @@ def TTTinterpolatetonodes():
             # TTT data points
             z1 = modelpar1 #interpolate.splev(T, m1func)
             z2 = modelpar2 #interpolate.splev(T, m2func)
-            print(z1)
+            #print(z1)
             Z1 = Z1 + list(z1)
             Z2 = Z2 + list(z2)
+        #print(np.shape(np.array(X)[:,0]))
+        #print(np.array(X)[:,0])
+        #print(np.shape(np.array(X)[:, 1]))
+        #print(np.array(X)[:,1])
+        print(" ")
+        print(X[0])
+        X = X[:,0:2]
+        print(X[0])
+        dupindx = list()
+        #(a[0] == a[2]).all()
+        for i in range(len(X)):
+            for tmpX in X[i+1:]:
+                if (X[i]==tmpX).all():
+                    print("Duplicate")
+                    dupindx.append(i)
+
+
+        print(dupindx)
+        X = np.delete(X,dupindx,0)
+        print(X)
+        Z1 = np.delete(Z1, dupindx,0)
+        #print(np.array(X)[:, 1])
+        print(np.shape(np.array(X)[:,0]))
+        print(np.shape(np.array(X)[:,1]))
+        print(np.shape(Z1))
+        interp1 = interpolate.LinearNDInterpolator(X, Z1)
+
+        # Test
+        X = np.linspace(min(np.array(X)[:,0]), max(np.array(X)[:,0]))
+        Y = np.linspace(min(np.array(X)[:,1]), max(np.array(X)[:,1]))
+        X, Y = np.meshgrid(X, Y)
+        Z = interp1(X,Y)
+        plt.figure()
+        plt.pcolormesh(X,Y,Z)
+        plt.colorbar()  # Color Bar
+        plt.show()
         interp1 = interpolate.LinearNDInterpolator(X, Z1)
         interp2 = interpolate.LinearNDInterpolator(X, Z2)
         intermodels = [interp1, interp2]
 
-        Tgrid = T
-        grid = np.array(fullcomposition["C"])
+        Tgrid = np.linspace(300, 1000, 74)
+        print(Tgrid)
+        grid = list()
+        for element in data["Material"]["Composition"].keys():
+            if len(grid) == 0:
+                grid = [[i] for i in np.array(fullcomposition[element])]
+            else:
+                tmpgrid = np.array(fullcomposition[element])
+                grid = [grid[i] + [tmpgrid[i]] for i in range(len(tmpgrid))]
         zdata = list()
+        print(grid[0])
         for point in grid:
-            point = [[t,point] for t in Tgrid]
+            point = [[t] + point for t in Tgrid]
             for inter in intermodels:
                 Z = inter(point)
             zdata.append(Z)
         zdata = np.asarray(zdata)
+        print(zdata)
+        input("teststop")
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             saveresult("Modeldata", phase + "/JMAK/T", zdata[0])
             saveresult("Modeldata", phase + "/JMAK/tau",zdata[1])
@@ -182,6 +225,7 @@ def TTTinterpolatetonodes():
             saveresult("Modeldata", phase + "/T", zdata[0])
             saveresult("Modeldata", phase + "/Ms", zdata[1])
             saveresult("Modeldata", phase + "/beta", zdata[2])
+        print(phase + " added to node data")
     print("Modeldata interpolated to nodes")
 def getJMAK(composition, phase):
     from scipy import interpolate

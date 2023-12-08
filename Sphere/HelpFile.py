@@ -175,8 +175,8 @@ def addTTTdata(compdata, data, type):
 def getTTTdata(compdata, type):
     # Making sure the composition has the correct round value
     for key in compdata:
-        if compdata[key] != round(compdata[key], 2):
-            compdata[key] = round(compdata[key], 2)
+        if compdata[key] != round(compdata[key], 1):
+            compdata[key] = round(compdata[key], 1)
     from sqlitedict import SqliteDict
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
     for key in TTTdata.keys():
