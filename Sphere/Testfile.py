@@ -1,4 +1,6 @@
 import sqlite3
+
+import numpy as np
 from sqlitedict import SqliteDict
 from HelpFile import *
 import matplotlib.pyplot as plt
@@ -101,9 +103,7 @@ def splineJMAK(phase, filename):
 def modeldatatocsv():
     import csv
     xyz = readdatastream("nodes")
-    print(xyz[0])
-    input("Pause")
-    phases = ["Ferrite", "Perlite", "Bainite","Martensite"]
+    phases = ["Ferrite", "Perlite", "Bainite"]
     for phase in phases:
         if phase != "Martensite":
             tmpT = readresultfile("Modeldata", phase + "/JMAK/T")
@@ -115,14 +115,24 @@ def modeldatatocsv():
             tmp1 = readresultfile("Modeldata", phase + "/Ms")
             tmp2 = readresultfile("Modeldata", phase + "/beta")
             tmpnames = ["Ms", "beta"]
+        print(np.shape(xyz))
+        print(np.shape(tmpT))
+        print(np.shape(tmp1))
+        print(np.shape(tmp2))
+        tmp1 = np.asarray(tmp1)
+        tmp1[tmp1 == None] = 0
+        print(tmp1)
+        plt.tricontour(np.asarray(xyz)[:,0], np.asarray(xyz)[:,1], np.asarray(tmp1)[:,0], 15)
+        plt.show()
         for i in [0, 1]:
-            with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w', newline=',') as csvfile:
-                writer = csv.writer(csvfile)
+            with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
+            #with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as file:
+                writer = csv.writer(file)
                 if not tmp1.all():
                     break
-                print(len(tmp1))
-                print(len(xyz))
-                for j in range(len(tmp1)):
-                    pass
-                    #for k in range()
-                        #writer.writerow([xyz[j][0], xyz[j][1], tmpT[], tmp1[j]])
+                if i == 0:
+                    for j in range(len(tmp1)):
+                            writer.writerow([xyz[j][0], xyz[j][1], tmpT[j], tmp1[j]])
+                else:
+                    for j in range(len(tmp2)):
+                        writer.writerow([xyz[j][0], xyz[j][1], tmpT[j], tmp2[j]])

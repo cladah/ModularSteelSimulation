@@ -118,8 +118,13 @@ def TTTinterpolatetonodes():
     for element in data['Material']['Composition'].keys():
         fullcomposition[element] = readdatastream("Composition/" + element)
     compositions = getTTTcompositions()
-    for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+    newcomp = list()
+    for comp in compositions:
+        if comp not in newcomp:
+            newcomp.append(comp)
+    compositions = newcomp.copy()
 
+    for phase in ["Ferrite", "Bainite", "Perlite"]:
         Z1 = list()
         Z2 =list()
         X = []
@@ -133,73 +138,50 @@ def TTTinterpolatetonodes():
 
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 T = TTTdata[phase][0][indx]
-                modelpar1 = TTTdata[phase][1][indx]
-                modelpar2 = TTTdata[phase][2][indx]
+                z1 = TTTdata[phase][1][indx]
+                z2 = TTTdata[phase][2][indx]
                 x.append(list(T))
-
-                #m1func = interpolate.splrep(T, modelpar1, s=0)
-                #m2func = interpolate.splrep(T, modelpar2, s=0)
+                for element in data["Material"]["Composition"].keys():
+                    tmpx = [comp[element]] * len(T)
+                    x.append(tmpx)
             else:
-                modelpar1 = TTTdata[phase][0][indx] # Ms
-                modelpar2 = TTTdata[phase][1][indx] # beta
-            # print(modelpar1)
-            for element in data["Material"]["Composition"].keys():
-                tmpx = [comp[element]]*len(T)
-                x.append(tmpx)
+                z1 = TTTdata[phase][0][indx] # Ms
+                z2 = TTTdata[phase][1][indx] # beta
+                for element in data["Material"]["Composition"].keys():
+                    tmpx = [comp[element]]
+                    x.append(tmpx)
             x = np.transpose(x)
 
             if len(X)!=0:
-                X = np.vstack([X,x])
+                X = np.vstack([X, x])
             else:
                 X = x.copy()
             # TTT data points
-            z1 = modelpar1 #interpolate.splev(T, m1func)
-            z2 = modelpar2 #interpolate.splev(T, m2func)
-            #print(z1)
             Z1 = Z1 + list(z1)
             Z2 = Z2 + list(z2)
-        #print(np.shape(np.array(X)[:,0]))
-        #print(np.array(X)[:,0])
-        #print(np.shape(np.array(X)[:, 1]))
-        #print(np.array(X)[:,1])
-        print(" ")
-        print(X[0])
-        X = X[:,0:2]
-        print(X[0])
-        dupindx = list()
-        #(a[0] == a[2]).all()
-        for i in range(len(X)):
-            for tmpX in X[i+1:]:
-                if (X[i]==tmpX).all():
-                    print("Duplicate")
-                    dupindx.append(i)
+        # X is all points on the [T, comp1, comp2, comp3, ...] list
+        # Z is all points n, tau, Ms, beta values
 
+        # Reducing the amount of elements
+        X = X[:,0:3]
+        # Duplicate check needed if number of elements are reduced
+        if phase in ["Ferrite", "Bainite", "Perlite"]:
+            dupindx = list()
+            for i in range(len(X)):
+                for tmpX in X[i+1:]:
+                    if (X[i]==tmpX).all():
+                        dupindx.append(i)
+            X = np.delete(X, dupindx, 0)
+            #
+            Z1 = np.delete(Z1, dupindx, 0)
+            Z2 = np.delete(Z2, dupindx, 0)
+            #print(str(len(dupindx)) + " nr of duplicate compositions")
 
-        print(dupindx)
-        X = np.delete(X,dupindx,0)
-        print(X)
-        Z1 = np.delete(Z1, dupindx,0)
-        #print(np.array(X)[:, 1])
-        print(np.shape(np.array(X)[:,0]))
-        print(np.shape(np.array(X)[:,1]))
-        print(np.shape(Z1))
-        interp1 = interpolate.LinearNDInterpolator(X, Z1)
-
-        # Test
-        X = np.linspace(min(np.array(X)[:,0]), max(np.array(X)[:,0]))
-        Y = np.linspace(min(np.array(X)[:,1]), max(np.array(X)[:,1]))
-        X, Y = np.meshgrid(X, Y)
-        Z = interp1(X,Y)
-        plt.figure()
-        plt.pcolormesh(X,Y,Z)
-        plt.colorbar()  # Color Bar
-        plt.show()
         interp1 = interpolate.LinearNDInterpolator(X, Z1)
         interp2 = interpolate.LinearNDInterpolator(X, Z2)
-        intermodels = [interp1, interp2]
 
         Tgrid = np.linspace(300, 1000, 74)
-        print(Tgrid)
+        #print(Tgrid)
         grid = list()
         for element in data["Material"]["Composition"].keys():
             if len(grid) == 0:
@@ -207,24 +189,29 @@ def TTTinterpolatetonodes():
             else:
                 tmpgrid = np.array(fullcomposition[element])
                 grid = [grid[i] + [tmpgrid[i]] for i in range(len(tmpgrid))]
-        zdata = list()
-        print(grid[0])
+        z1 = list()
+        z2 = list()
+
+
+        #print(grid[:, 0])
+        #print([grid[i][0:2] for i in range(len(grid))])
+        grid = [grid[i][0:2] for i in range(len(grid))]
         for point in grid:
             point = [[t] + point for t in Tgrid]
-            for inter in intermodels:
-                Z = inter(point)
-            zdata.append(Z)
-        zdata = np.asarray(zdata)
-        print(zdata)
-        input("teststop")
+
+            z1.append(interp1(point))
+            z2.append(interp2(point))
+        print("Results has the shape")
+        print(np.shape(Tgrid))
+        print(np.shape(z1))
+        print(np.shape(z2))
         if phase in ["Ferrite", "Bainite", "Perlite"]:
-            saveresult("Modeldata", phase + "/JMAK/T", zdata[0])
-            saveresult("Modeldata", phase + "/JMAK/tau",zdata[1])
-            saveresult("Modeldata", phase + "/JMAK/n", zdata[2])
+            saveresult("Modeldata", phase + "/JMAK/T", Tgrid)
+            saveresult("Modeldata", phase + "/JMAK/tau", np.asarray(z1))
+            saveresult("Modeldata", phase + "/JMAK/n", np.asarray(z2))
         else:
-            saveresult("Modeldata", phase + "/T", zdata[0])
-            saveresult("Modeldata", phase + "/Ms", zdata[1])
-            saveresult("Modeldata", phase + "/beta", zdata[2])
+            saveresult("Modeldata", phase + "/Ms", np.asarray(z1))
+            saveresult("Modeldata", phase + "/beta", np.asarray(z2))
         print(phase + " added to node data")
     print("Modeldata interpolated to nodes")
 def getJMAK(composition, phase):
