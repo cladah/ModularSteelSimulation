@@ -115,24 +115,32 @@ def modeldatatocsv():
             tmp1 = readresultfile("Modeldata", phase + "/Ms")
             tmp2 = readresultfile("Modeldata", phase + "/beta")
             tmpnames = ["Ms", "beta"]
-        print(np.shape(xyz))
-        print(np.shape(tmpT))
-        print(np.shape(tmp1))
-        print(np.shape(tmp2))
-        tmp1 = np.asarray(tmp1)
-        tmp1[tmp1 == None] = 0
-        print(tmp1)
-        plt.tricontour(np.asarray(xyz)[:,0], np.asarray(xyz)[:,1], np.asarray(tmp1)[:,0], 15)
-        plt.show()
+        #print(tmp1)
+        #plt.tricontour(np.asarray(xyz)[:,0], np.asarray(xyz)[:,1], np.asarray(tmp1)[:,0], 15)
+        #plt.show()
         for i in [0, 1]:
+        #     with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as f:
+        #         if not tmp1.all():
+        #             break
+        #         if i == 0:
+        #             for j in range(len(tmp1)-1):
+        #                 for k in range(len(tmpT)-1):
+        #                     f.write(" ".join(np.str([xyz[j][0],xyz[j][1],tmpT[k],tmp1[j][k]])) + "\n")
+        #         else:
+        #             for j in range(len(tmp2)-1):
+        #                 for k in range(len(tmpT) - 1):
+        #                     f.write(" ".join([xyz[j][0],xyz[j][1],tmpT[k],tmp2[j][k]]) + "\n")
             with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
-            #with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as file:
-                writer = csv.writer(file)
-                if not tmp1.all():
-                    break
-                if i == 0:
-                    for j in range(len(tmp1)):
-                            writer.writerow([xyz[j][0], xyz[j][1], tmpT[j], tmp1[j]])
-                else:
-                    for j in range(len(tmp2)):
-                        writer.writerow([xyz[j][0], xyz[j][1], tmpT[j], tmp2[j]])
+             ##with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as file:
+                 writer = csv.writer(file)
+                 if not tmp1.all():
+                     break
+                 if i == 0:
+                     for j in range(len(tmp1)-1):
+                         for k in range(len(tmpT)-1):
+                             writer.writerow([xyz[j][0], xyz[j][1], tmpT[k], tmp1[j][k]])
+                 else:
+                     for j in range(len(tmp2)-1):
+                         for k in range(len(tmpT) - 1):
+                             writer.writerow([xyz[j][0], xyz[j][1], tmpT[k], tmp2[j][k]])
+        print(str(phase) + " written to csv files")

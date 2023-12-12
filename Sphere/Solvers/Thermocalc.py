@@ -64,6 +64,7 @@ def TCcarbonitriding(activityair):
                        .set_geometrical_factor(data['Geometry']['meshscaling']))
         austenite.add_phase("FCC_A1")
         austenite.add_phase("FCC_A1#2")
+        #austenite.add_phase("CEMENTITE")
         austeniteprofile = CompositionProfile()
         for element in data['Material']["Composition"]:
             austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))

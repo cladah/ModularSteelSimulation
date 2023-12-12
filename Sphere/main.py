@@ -22,7 +22,7 @@ def start():
     runTTTmodule()
     runTTTmodelmodule()
     modeldatatocsv()
-    #runquenchingmodule()
+    runquenchingmodule()
     #plotTTTdiagram()
     #x,y = getaxisvalues('C', 0)
     #plt.plot(x,y)

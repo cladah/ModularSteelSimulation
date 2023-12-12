@@ -46,11 +46,19 @@ def runTTTmodule():
     return
 
 def runTTTcalc(composition):
+    # Take away values that are 0 EXCEPT N AND C!
+    keys = composition.keys()
+    for key in keys:
+        if key in ["C", "N"]:
+            continue
+        if composition[key] == 0.:
+            del composition[key]
+    #
     if bool(getTTTdata(composition, "TTTdata")):
         print("TTTdata exists in database for " + str(composition))
         return
     print("Running TTT calculation for " + str(composition))
-    Tsteps = np.linspace(300, 1000, 74)  # 74
+    Tsteps = np.linspace(300, 1000, 71)  # 71
     phases = ["Ferrite", "Bainite", "Perlite","Martensite"]
     TTTdata = dict()
     for ph in phases:
@@ -180,7 +188,7 @@ def TTTinterpolatetonodes():
         interp1 = interpolate.LinearNDInterpolator(X, Z1)
         interp2 = interpolate.LinearNDInterpolator(X, Z2)
 
-        Tgrid = np.linspace(300, 1000, 74)
+        Tgrid = np.linspace(300, 1000, 71)
         #print(Tgrid)
         grid = list()
         for element in data["Material"]["Composition"].keys():
@@ -206,6 +214,8 @@ def TTTinterpolatetonodes():
         print(np.shape(z1))
         print(np.shape(z2))
         if phase in ["Ferrite", "Bainite", "Perlite"]:
+            z1 = np.nan_to_num(z1,nan=-1E12)
+            z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
             saveresult("Modeldata", phase + "/JMAK/T", Tgrid)
             saveresult("Modeldata", phase + "/JMAK/tau", np.asarray(z1))
             saveresult("Modeldata", phase + "/JMAK/n", np.asarray(z2))

@@ -176,6 +176,7 @@ def setupComsol(model):
 
     # Ferrite
     model.component("comp1").physics("audc").feature("phase2").set("phaseMaterial", "Ferrite")
+    model.component("comp1").physics("audc").feature("phase2").selection().all()
     model.component("comp1").physics("audc").feature("ptran1").set("ptModel", "JMAK")
     model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "Tau_F")
     model.component("comp1").physics("audc").feature("ptran1").set("njmak", "n_F")
@@ -183,6 +184,7 @@ def setupComsol(model):
 
     # Perlite
     model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Perlite")
+    model.component("comp1").physics("audc").feature("phase3").selection().all()
     model.component("comp1").physics("audc").feature("ptran2").set("ptModel", "JMAK")
     model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "Tau_P")
     model.component("comp1").physics("audc").feature("ptran2").set("njmak", "n_P")
@@ -190,6 +192,7 @@ def setupComsol(model):
 
     # Bainite
     model.component("comp1").physics("audc").feature("phase4").set("phaseMaterial", "Bainite")
+    model.component("comp1").physics("audc").feature("phase4").selection().all()
     model.component("comp1").physics("audc").feature("ptran3").set("ptModel", "JMAK")
     model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "Tau_B")
     model.component("comp1").physics("audc").feature("ptran3").set("njmak", "n_B")
@@ -197,6 +200,7 @@ def setupComsol(model):
 
     # Martensite
     model.component("comp1").physics("audc").feature("phase5").set("phaseMaterial", "Martensite")
+    model.component("comp1").physics("audc").feature("phase5").selection().all()
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(T)")
     model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(T)")
 
@@ -262,7 +266,10 @@ def setupComsol(model):
     #model.component("comp1").physics("audc").active(False)
     #model.component("comp1").multiphysics("lht1").active(False)
     #model.component("comp1").multiphysics("ptstr1").active(False)
-    model = setupComsolSolver(model)
+
+
+
+    #model = setupComsolSolver(model)
     model.save('Resultfiles/Comsolmodel')
     return model
 
@@ -276,17 +283,18 @@ def adjustComsol(model):
     materials = ["Austenite","Ferrite","Perlite","Bainite","Martensite"]
     for mat in materials:
         if mat in ["Ferrite","Perlite","Bainite"]:
-            materialprop = ["E", "Cp", "k", "Sy", "alpha_k", "Tau", "n"]
+            materialprop = ["E", "Cp", "k", "Sy", "alpha_k", "tau", "n"]
         elif mat == "Martensite":
             materialprop = ["E", "Cp", "k", "Sy", "alpha_k","Ms","beta"]
         for prop in materialprop:
             # model.func("E_A").set("table", "[]")
-            if prop == "Tau":
-                model.func(prop + "_" + mat[0]).setIndex("table", 1., 0, 0)
-                model.func(prop + "_" + mat[0]).setIndex("table", 1., 0, 1)
-            elif prop == "n":
-                model.func(prop + "_" + mat[0]).setIndex("table", 1., 0, 0)
-                model.func(prop + "_" + mat[0]).setIndex("table", 1., 0, 1)
+            if prop in ["tau","n"]:
+                model.func(prop + "_" + mat[0]).set("source", "file")
+                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("nargs", "3")
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 0)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 2)
             elif prop == "Ms":
                 model.func(prop + "_" + mat[0]).setIndex("table", 0., 0, 0)
                 model.func(prop + "_" + mat[0]).setIndex("table", "200[degC]", 0, 1)
@@ -299,6 +307,7 @@ def adjustComsol(model):
                 for i in range(len(x)):
                     model.func(prop + "_" + mat[0]).setIndex("table", x[i], i, 0)
                     model.func(prop + "_" + mat[0]).setIndex("table", y[i], i, 1)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 0)
     model.save('Resultfiles/Comsolmodel')
     return model
 

@@ -36,7 +36,15 @@ def runcarbonitridingmodule():
         for element in composition[1].keys():
             f.create_dataset("CNcurves/Elements/"+element, data=np.array(composition[1][element]))
         f.create_dataset("CNcurves/Position", data=np.array(composition[0]))
-
+    xyz = readdatastream('nodes')
+    r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
+    with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
+        CN_xyz = np.array(f.get("CNcurves/Position"))
+        elements = f.get("CNcurves/Elements").keys()
+        for element in elements:
+            c_element = np.array(f.get("CNcurves/Elements/" + element))
+            elementvalues = interp(r, CN_xyz, c_element) * 100
+            adjustdatastream("Composition/" + element, elementvalues, "nodes")
 
 
 
