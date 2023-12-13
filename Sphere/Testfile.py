@@ -115,9 +115,7 @@ def modeldatatocsv():
             tmp1 = readresultfile("Modeldata", phase + "/Ms")
             tmp2 = readresultfile("Modeldata", phase + "/beta")
             tmpnames = ["Ms", "beta"]
-        #print(tmp1)
-        #plt.tricontour(np.asarray(xyz)[:,0], np.asarray(xyz)[:,1], np.asarray(tmp1)[:,0], 15)
-        #plt.show()
+
         for i in [0, 1]:
         #     with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as f:
         #         if not tmp1.all():

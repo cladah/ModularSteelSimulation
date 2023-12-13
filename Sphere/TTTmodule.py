@@ -9,28 +9,35 @@ def getTTTcompositions():
     data = read_input()
     TTTcompositions = list()
     fullcomposition = dict()
-    surfcomp = dict()
-    halfcomp = dict()
     for element in data['Material']['Composition'].keys():
         fullcomposition[element] = getaxisvalues("Composition/" + element)
     composition = data['Material']['Composition']
+
+    mesh = list()
+    # Trying to create grid of compositions
     for element in data['Material']['Composition'].keys():
-        surfcomp[element] = round(fullcomposition[element][-1], roundingTTT)
-        halfcomp[element] = round((fullcomposition[element][-1] + composition[element]) / 2, roundingTTT)
-        tmpcomp = composition.copy()
-        tmpcomp[element] = round(fullcomposition[element][-1], roundingTTT)
+        if composition[element] != fullcomposition[element][-1]:
+            if element == "C":
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
+            else:
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+            tmplist = [round(elem, roundingTTT) for elem in tmplist]
+            tmplist = list(set(tmplist)) # getting unique values
+            tmplist.sort()
+        else:
+            tmplist = [composition[element]]
+        mesh.append(tmplist)
+
+    g = np.meshgrid(*mesh)
+    positions = np.vstack(list(map(np.ravel, g)))
+    print(len(positions[0,:])-1)
+    for compnr in range(len(positions[0,:])): # The number 0 here is correlated to the coal as it varies the most
+        tmpcomp = dict()
+        i = 0
+        for element in data['Material']['Composition'].keys():
+            tmpcomp[element] = round(positions[i, compnr], roundingTTT)
+            i = i+1
         TTTcompositions.append(tmpcomp)
-    for element in data['Material']['Composition'].keys():
-        tmpcomp = surfcomp.copy()
-        tmpcomp[element] = round(composition[element], roundingTTT)
-        if tmpcomp not in TTTcompositions:
-            TTTcompositions.append(tmpcomp)
-    if composition not in TTTcompositions:
-        TTTcompositions.append(composition)
-    if halfcomp not in TTTcompositions:
-        TTTcompositions.append(halfcomp)
-    if surfcomp not in TTTcompositions:
-        TTTcompositions.append(surfcomp)
     return TTTcompositions
 
 def runTTTmodule():
@@ -58,7 +65,7 @@ def runTTTcalc(composition):
         print("TTTdata exists in database for " + str(composition))
         return
     print("Running TTT calculation for " + str(composition))
-    Tsteps = np.linspace(300, 1000, 71)  # 71
+    Tsteps = np.linspace(260, 1000, 38)
     phases = ["Ferrite", "Bainite", "Perlite","Martensite"]
     TTTdata = dict()
     for ph in phases:
@@ -79,7 +86,7 @@ def runTTTcalc(composition):
             finish = [Tsteps, finish]
         elif ph == "Martensite":
             start, half, finish = calculateMartensite(composition)
-            start = [[start, start], [0.1,1E12]]
+            start = [[start, start], [0.1, 1E12]]
             half = [[half, half], [0.1, 1E12]]
             finish = [[finish, finish], [0.1, 1E12]]
         else:
@@ -112,12 +119,7 @@ def TTTfit(composition):
             Ms, beta = KMfit(composition, phase)
             modeldata[phase] = [Ms, beta]
     addTTTdata(composition, modeldata, "Modeldata")
-def fitspline():
-    pass
-    #with h5py.File("Resultfiles/TTT.hdf5", "r+") as f:
-    #    f.create_dataset('Bainite/JMAK/Tau', data=b_Tlist)
-    #   f.create_dataset('Bainite/JMAK/Tau', data=b_n)
-    #    f.create_dataset('Bainite/JMAK/Tau', data=b_tau)
+
 def TTTinterpolatetonodes():
     import matplotlib.pyplot as plt
     from scipy import interpolate
@@ -132,29 +134,39 @@ def TTTinterpolatetonodes():
             newcomp.append(comp)
     compositions = newcomp.copy()
 
-    for phase in ["Ferrite", "Bainite", "Perlite"]:
+    for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
         Z1 = list()
         Z2 =list()
         X = []
+        print("Number of compositions used for interpolations are " + str(len(compositions)))
         for comp in compositions:
             x = list()
             TTTdata = getTTTdata(comp, "Modeldata")
-            # Get datapoints that aren't Nan
-            indx = ~np.isnan(TTTdata[phase][1])
-            if not indx.any():
-                continue
 
+            # Get datapoints that aren't Nan
+            #indx = ~np.isnan(TTTdata[phase][1])
+            #if not indx.any():
+            #    continue
+            #T = TTTdata[phase][0][indx]
             if phase in ["Ferrite", "Bainite", "Perlite"]:
-                T = TTTdata[phase][0][indx]
-                z1 = TTTdata[phase][1][indx]
-                z2 = TTTdata[phase][2][indx]
+                T = TTTdata[phase][0]
+                z1 = TTTdata[phase][1]
+
+                z2 = TTTdata[phase][2]
+                if np.isnan(z2).all():
+                    z2 = np.nan_to_num(z2, nan=1)
+                z2mean = np.nanmean(z2)
+                z2 = np.nan_to_num(z2, nan=z2mean)
+                z1 = np.nan_to_num(z1, nan=-1E12)
                 x.append(list(T))
                 for element in data["Material"]["Composition"].keys():
                     tmpx = [comp[element]] * len(T)
                     x.append(tmpx)
             else:
-                z1 = TTTdata[phase][0][indx] # Ms
-                z2 = TTTdata[phase][1][indx] # beta
+                z1 = TTTdata[phase][0] # Ms
+                z2 = TTTdata[phase][1] # beta
+                z1 = np.nan_to_num(z1, nan=0)
+                z2 = np.nan_to_num(z2, nan=0.01)
                 for element in data["Material"]["Composition"].keys():
                     tmpx = [comp[element]]
                     x.append(tmpx)
@@ -171,24 +183,27 @@ def TTTinterpolatetonodes():
         # Z is all points n, tau, Ms, beta values
 
         # Reducing the amount of elements
-        X = X[:,0:3]
+        X = X[:, 0:3]
         # Duplicate check needed if number of elements are reduced
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             dupindx = list()
             for i in range(len(X)):
                 for tmpX in X[i+1:]:
-                    if (X[i]==tmpX).all():
+                    if (X[i] == tmpX).all():
                         dupindx.append(i)
             X = np.delete(X, dupindx, 0)
             #
             Z1 = np.delete(Z1, dupindx, 0)
             Z2 = np.delete(Z2, dupindx, 0)
-            #print(str(len(dupindx)) + " nr of duplicate compositions")
-
+            print(str(len(dupindx)) + " nr of duplicate grid points")
+            print(str(len(X)-len(dupindx)) + " nr of grid points used")
+        else:
+            print("MARTENSITE")
+        print(X)
         interp1 = interpolate.LinearNDInterpolator(X, Z1)
         interp2 = interpolate.LinearNDInterpolator(X, Z2)
 
-        Tgrid = np.linspace(300, 1000, 71)
+        Tgrid = np.linspace(260, 1000, 38)
         #print(Tgrid)
         grid = list()
         for element in data["Material"]["Composition"].keys():
