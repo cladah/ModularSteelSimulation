@@ -30,7 +30,6 @@ def getTTTcompositions():
 
     g = np.meshgrid(*mesh)
     positions = np.vstack(list(map(np.ravel, g)))
-    print(len(positions[0,:])-1)
     for compnr in range(len(positions[0,:])): # The number 0 here is correlated to the coal as it varies the most
         tmpcomp = dict()
         i = 0
@@ -165,6 +164,9 @@ def TTTinterpolatetonodes():
             else:
                 z1 = TTTdata[phase][0] # Ms
                 z2 = TTTdata[phase][1] # beta
+                print(z1)
+                print(z2)
+                input("Martensite pause")
                 z1 = np.nan_to_num(z1, nan=0)
                 z2 = np.nan_to_num(z2, nan=0.01)
                 for element in data["Material"]["Composition"].keys():
@@ -183,7 +185,7 @@ def TTTinterpolatetonodes():
         # Z is all points n, tau, Ms, beta values
 
         # Reducing the amount of elements
-        X = X[:, 0:3]
+        #X = X[:, 0:3]
         # Duplicate check needed if number of elements are reduced
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             dupindx = list()
@@ -199,9 +201,27 @@ def TTTinterpolatetonodes():
             print(str(len(X)-len(dupindx)) + " nr of grid points used")
         else:
             print("MARTENSITE")
-        print(X)
-        interp1 = interpolate.LinearNDInterpolator(X, Z1)
-        interp2 = interpolate.LinearNDInterpolator(X, Z2)
+        tmpX = list(set(np.array(X)[:, 0]))
+        tmpX.sort()
+        newX = [tmpX]
+        for elementnr in range(len(data["Material"]["Composition"])):
+            tmpX = list(set(np.array(X)[:, elementnr+1]))
+            tmpX.sort()
+            newX.append(tmpX)
+
+        def values_grid(points):
+            print(*points)
+        print(np.shape(Z1))
+        print(np.vstack(map(np.ravel, np.meshgrid(*newX, indexing='ij'))))
+
+        #test = values_grid()
+        #print(np.shape(np.meshgrid(newX, indexing="ij")))
+        #print(test)
+        input("testpoint")
+        #values = value_grid(np.meshgrid(*newX, indexing='ij'))
+        #interpolate.interpn()
+        #interp1 = interpolate.LinearNDInterpolator(X, Z1)
+        #interp2 = interpolate.LinearNDInterpolator(X, Z2)
 
         Tgrid = np.linspace(260, 1000, 38)
         #print(Tgrid)
@@ -214,16 +234,20 @@ def TTTinterpolatetonodes():
                 grid = [grid[i] + [tmpgrid[i]] for i in range(len(tmpgrid))]
         z1 = list()
         z2 = list()
-
+        test = newX.copy()
+        for value in Z1:
+            pass
 
         #print(grid[:, 0])
         #print([grid[i][0:2] for i in range(len(grid))])
-        grid = [grid[i][0:2] for i in range(len(grid))]
+        #grid = [grid[i][0:2] for i in range(len(grid))]
         for point in grid:
             point = [[t] + point for t in Tgrid]
+            print(interpolate.interpn(newX, Z1, point))
 
-            z1.append(interp1(point))
-            z2.append(interp2(point))
+            input("testpoint")
+            #z1.append(interp1(point))
+            #z2.append(interp2(point))
         print("Results has the shape")
         print(np.shape(Tgrid))
         print(np.shape(z1))
