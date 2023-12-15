@@ -50,6 +50,7 @@ def gmshmodule():
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
     gmsh.write("Resultfiles/Mesh.nas")
+    gmsh.write("Resultfiles/Mesh.vtk")
     gmsh.finalize()
     meshdata = meshio.read("Resultfiles/Mesh.msh")
     meshio.write("Resultfiles/Datastream.xdmf",

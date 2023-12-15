@@ -43,10 +43,34 @@ def runguimodule():
     return gui
 
 def addgui(gui, type):
+    import numpy as np
+    import vtk
+    from vtk.util.numpy_support import vtk_to_numpy
     import tkinter as tk
-    button = tk.Button(master=gui, text="Quit", command=_run)
-    button.pack(side=tk.RIGHT)
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
+                                                   NavigationToolbar2Tk)
+
     gui.update()
+    if type == "Mesh":
+        fig = Figure(figsize=(5, 4), dpi=100)
+        reader = vtk.vtkUnstructuredGridReader()
+        reader.SetFileName("Resultfiles/Mesh.vtk")
+        reader.Update()
+        data = reader.GetOutput()
+
+        points = data.GetPoints()
+        npts = points.GetNumberOfPoints()
+        x = vtk_to_numpy(points.GetData())
+        triangles = vtk_to_numpy(data.GetCells().GetData())
+        ntri = triangles.size // 4  # number of cells
+        tri = np.take(triangles, [n for n in range(triangles.size) if n % 4 != 0]).reshape(ntri, 3)
+        plt.figure(figsize=(8, 8))
+        plt.triplot(x[:, 0], x[:, 1], tri)
+        plt.gca().set_aspect('equal')
+        plt.show()
+        #plot1 = fig.add_subplot(111)
     #if type=="carbonitriding":
 
 

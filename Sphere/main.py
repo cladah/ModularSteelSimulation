@@ -21,8 +21,11 @@ def start():
         print(programstate.get())
         if programstate.get() == 0:
             createMesh()
+            addgui(gui, "Mesh")
         elif programstate.get() == 1:
             runcarbonitridingmodule()
+            print(getaxisvalues("Composition/C"))
+            input("")
         elif programstate.get() == 2:
             runTTTmodule()
         elif programstate.get() == 3:
