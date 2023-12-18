@@ -44,8 +44,7 @@ def runguimodule():
 
 def addgui(gui, type):
     import numpy as np
-    import vtk
-    from vtk.util.numpy_support import vtk_to_numpy
+    import vtkplotlib as vpl
     import tkinter as tk
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure

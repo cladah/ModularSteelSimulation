@@ -26,19 +26,21 @@ def start():
             runcarbonitridingmodule()
             print(getaxisvalues("Composition/C"))
             input("")
+            addgui(gui, "Carbonitriding")
         elif programstate.get() == 2:
             runTTTmodule()
+            addgui(gui, "TTT")
         elif programstate.get() == 3:
             runTTTmodelmodule()
+            addgui(gui, "TTTmodel")
         elif programstate.get() == 4:
-            modeldatatocsv()
-        elif programstate.get() == 5:
             runquenchingmodule()
+            addgui(gui, "Quenching")
         programstate.set(programstate.get()+1)
     if not os.path.exists('Cachefiles/InputCache.json'):
         createinputcache()
     gui = runguimodule()
-    button = tk.Button(master=gui, text="Run", command=runmodule, padx=20)
+    button = tk.Button(master=gui, text="Continue", command=runmodule, padx=20)
     button.pack(side=tk.TOP, anchor=tk.SW)
     programstate = tk.IntVar(gui, 0)
     gui.mainloop()
@@ -48,7 +50,6 @@ def modelling():
     runcarbonitridingmodule()
     runTTTmodule()
     runTTTmodelmodule()
-    modeldatatocsv()
     runquenchingmodule()
 
 if __name__ == "__main__":

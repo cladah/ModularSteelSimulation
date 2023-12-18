@@ -1,7 +1,61 @@
 import mph
 import os
-from HelpFile import readresultfile, read_input
+from HelpFile import readresultfile, read_input, readdatastream
+def modeldatatoComsolfiles():
+    print("Adjusting phase transformation data to Comsol specifics")
+    import csv
+    xyz = readdatastream("nodes")
+    phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
+    for phase in phases:
+        if phase != "Martensite":
+            tmpT = readresultfile("Modeldata", phase + "/JMAK/T")
+            tmp1 = readresultfile("Modeldata", phase + "/JMAK/tau")
+            tmp2 = readresultfile("Modeldata", phase + "/JMAK/n")
+            tmpnames = ["tau", "n"]
+        else:
+            tmp1 = readresultfile("Modeldata", phase + "/KM/Ms")
+            tmp2 = readresultfile("Modeldata", phase + "/KM/beta")
+            tmpnames = ["Ms", "beta"]
+
+        for i in [0, 1]:
+            #     with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as f:
+            #         if not tmp1.all():
+            #             break
+            #         if i == 0:
+            #             for j in range(len(tmp1)-1):
+            #                 for k in range(len(tmpT)-1):
+            #                     f.write(" ".join(np.str([xyz[j][0],xyz[j][1],tmpT[k],tmp1[j][k]])) + "\n")
+            #         else:
+            #             for j in range(len(tmp2)-1):
+            #                 for k in range(len(tmpT) - 1):
+            #                     f.write(" ".join([xyz[j][0],xyz[j][1],tmpT[k],tmp2[j][k]]) + "\n")
+            with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
+                ##with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as file:
+                writer = csv.writer(file)
+
+                if phase in ["Ferrite", "Perlite", "Bainite"]:
+                    if not tmp1.all():
+                        break
+                    if i == 0:
+                        for j in range(len(tmp1) - 1):
+                            for k in range(len(tmpT) - 1):
+                                writer.writerow([xyz[j][0], xyz[j][1], tmpT[k], tmp1[j][k]])
+                    else:
+                        for j in range(len(tmp2) - 1):
+                            for k in range(len(tmpT) - 1):
+                                writer.writerow([xyz[j][0], xyz[j][1], tmpT[k], tmp2[j][k]])
+                else:
+
+                    if i == 0:
+                        for j in range(len(tmp1) - 1):
+                            writer.writerow([xyz[j][0], xyz[j][1], tmp1[j][0]])
+                    else:
+                        for j in range(len(tmp1) - 1):
+                            writer.writerow([xyz[j][0], xyz[j][1], tmp2[j][0]])
+        print(str(phase) + " written to csv files")
+    pass
 def setupComsolSolver(model):
+    print("Setting upp Comsol model")
     model.sol("sol1").study("std1");
     model.study("std1").feature("time").set("notlistsolnum", 1);
     model.study("std1").feature("time").set("notsolnum", "auto");
@@ -142,8 +196,8 @@ def setupComsol(model):
             model.func().create("beta_"+ph, "Interpolation")
             model.nodeGroup(phase).add("func", "beta_"+ph)
         else:
-            model.func().create("Tau_"+ph, "Interpolation")
-            model.nodeGroup(phase).add("func", "Tau_"+ph)
+            model.func().create("tau_"+ph, "Interpolation")
+            model.nodeGroup(phase).add("func", "tau_"+ph)
             model.func().create("n_"+ph, "Interpolation")
             model.nodeGroup(phase).add("func", "n_"+ph)
 
@@ -178,31 +232,31 @@ def setupComsol(model):
     model.component("comp1").physics("audc").feature("phase2").set("phaseMaterial", "Ferrite")
     model.component("comp1").physics("audc").feature("phase2").selection().all()
     model.component("comp1").physics("audc").feature("ptran1").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "Tau_F")
-    model.component("comp1").physics("audc").feature("ptran1").set("njmak", "n_F")
+    model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "tau_F(r,z,T)")
+    model.component("comp1").physics("audc").feature("ptran1").set("njmak", "n_F(r,z,T)")
     #model.component("comp1").physics("audc").feature("ptran1").set("trip", True)
 
     # Perlite
     model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Perlite")
     model.component("comp1").physics("audc").feature("phase3").selection().all()
     model.component("comp1").physics("audc").feature("ptran2").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "Tau_P")
-    model.component("comp1").physics("audc").feature("ptran2").set("njmak", "n_P")
+    model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "tau_P(r,z,T)")
+    model.component("comp1").physics("audc").feature("ptran2").set("njmak", "n_P(r,z,T)")
     #model.component("comp1").physics("audc").feature("ptran2").set("trip", True)
 
     # Bainite
     model.component("comp1").physics("audc").feature("phase4").set("phaseMaterial", "Bainite")
     model.component("comp1").physics("audc").feature("phase4").selection().all()
     model.component("comp1").physics("audc").feature("ptran3").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "Tau_B")
-    model.component("comp1").physics("audc").feature("ptran3").set("njmak", "n_B")
+    model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "tau_B(r,z,T)")
+    model.component("comp1").physics("audc").feature("ptran3").set("njmak", "n_B(r,z,T)")
     #model.component("comp1").physics("audc").feature("ptran3").set("trip", True)
 
     # Martensite
     model.component("comp1").physics("audc").feature("phase5").set("phaseMaterial", "Martensite")
     model.component("comp1").physics("audc").feature("phase5").selection().all()
-    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(T)")
-    model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(T)")
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(r,z)")
+    model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(r,z)")
 
     # --------------- Adjusting properties
     model.component("comp1").physics("ht").prop("ShapeProperty").set("order_temperature", "1")
@@ -274,6 +328,7 @@ def setupComsol(model):
     return model
 
 def adjustComsol(model):
+    print("Adding phase transformation models to Comsol model")
     JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
     JMAK_P = readresultfile("TTT_surface.hdf5","Perlite/JMAK")
     data = read_input()
@@ -296,11 +351,17 @@ def adjustComsol(model):
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 2)
             elif prop == "Ms":
-                model.func(prop + "_" + mat[0]).setIndex("table", 0., 0, 0)
-                model.func(prop + "_" + mat[0]).setIndex("table", "200[degC]", 0, 1)
+                model.func(prop + "_" + mat[0]).set("source", "file")
+                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("nargs", "2")
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 0)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
             elif prop == "beta":
-                model.func(prop + "_" + mat[0]).setIndex("table", 0., 0, 0)
-                model.func(prop + "_" + mat[0]).setIndex("table", "0.011[1/K]", 0, 1)
+                model.func(prop + "_" + mat[0]).set("source", "file")
+                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("nargs", "2")
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 0)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
             else:
                 x = data["Material"][mat][prop]["T"]
                 y = data["Material"][mat][prop][prop]
@@ -318,7 +379,7 @@ def runComsol():
     #client = mph.start()
     #pymodel = client.load("Resultfiles/Comsolmodel.mph")
     #model = pymodel.java
-
+    modeldatatoComsolfiles()
     client = mph.start()
     pymodel = client.create()
     model = pymodel.java

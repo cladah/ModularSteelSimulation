@@ -1,9 +1,9 @@
 {
   "Rerun": {
-    "Mesh": 1,
+    "Mesh": 0,
     "Carbonitriding": 0,
-    "TTT": 1,
-    "ThermoFit": 1,
+    "TTT": 0,
+    "ThermoFit": 0,
     "Quenching": 1,
     "Temp": 0,
     "Fatigue": 0
@@ -12,8 +12,8 @@
     "radius": 0.01,
     "innerradius": 0.0,
     "thickness": 0.01,
-    "nodes": 25,
-    "meshscaling": 0.95
+    "nodes": 20,
+    "meshscaling": 0.8
   },
   "Material": {
     "Name": "Grade 159",

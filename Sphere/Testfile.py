@@ -103,7 +103,7 @@ def splineJMAK(phase, filename):
 def modeldatatocsv():
     import csv
     xyz = readdatastream("nodes")
-    phases = ["Ferrite", "Perlite", "Bainite"]
+    phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
     for phase in phases:
         if phase != "Martensite":
             tmpT = readresultfile("Modeldata", phase + "/JMAK/T")
@@ -111,9 +111,8 @@ def modeldatatocsv():
             tmp2 = readresultfile("Modeldata", phase + "/JMAK/n")
             tmpnames = ["tau", "n"]
         else:
-            tmpT = readresultfile("Modeldata", phase + "/T")
-            tmp1 = readresultfile("Modeldata", phase + "/Ms")
-            tmp2 = readresultfile("Modeldata", phase + "/beta")
+            tmp1 = readresultfile("Modeldata", phase + "/KM/Ms")
+            tmp2 = readresultfile("Modeldata", phase + "/KM/beta")
             tmpnames = ["Ms", "beta"]
 
         for i in [0, 1]:

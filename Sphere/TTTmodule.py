@@ -123,7 +123,7 @@ def TTTinterpolatetonodes():
     import matplotlib.pyplot as plt
     from scipy import interpolate
     data = read_input()
-    gridlen = len(data['Material']['Composition'])
+
     fullcomposition = dict()
     for element in data['Material']['Composition'].keys():
         fullcomposition[element] = readdatastream("Composition/" + element)
@@ -150,6 +150,8 @@ def TTTinterpolatetonodes():
             #    continue
             #T = TTTdata[phase][0][indx]
             if phase in ["Ferrite", "Bainite", "Perlite"]:
+                gridlen = len(data['Material']['Composition']) + 1
+
                 T = TTTdata[phase][0]
                 z1 = TTTdata[phase][1]
 
@@ -164,6 +166,7 @@ def TTTinterpolatetonodes():
                     tmpx = [comp[element]] * len(T)
                     x.append(tmpx)
             else:
+                gridlen = len(data['Material']['Composition'])
                 z1 = TTTdata[phase][0] # Ms
                 z2 = TTTdata[phase][1] # beta
                 z1 = np.nan_to_num(z1, nan=0)
@@ -206,11 +209,11 @@ def TTTinterpolatetonodes():
             print(str(len(dupindx)) + " nr of duplicate grid points")
             print(str(len(X)-len(dupindx)) + " nr of grid points used")
         else:
-            print("MARTENSITE")
+            pass
         tmpX = list(set(np.array(X)[:, 0]))
         tmpX.sort()
         newX = [tmpX]
-        print(gridlen)
+        #print(gridlen)
         # Check len on X grid as T is added for FPB
         for elementnr in range(gridlen-1):
             tmpX = list(set(np.array(X)[:, elementnr+1]))
@@ -257,6 +260,7 @@ def TTTinterpolatetonodes():
 
         #print([grid[i][0:2] for i in range(len(grid))])
         #grid = [grid[i][0:2] for i in range(len(grid))]
+        print("Interpolating modeldata to gridpoints for " + phase)
         for point in grid:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 points = [[t] + point for t in Tgrid]
@@ -270,19 +274,15 @@ def TTTinterpolatetonodes():
                 tmpz2 = tmpz2 + list(interpolate.interpn(newX, newZ2, p))
             z1.append(tmpz1)
             z2.append(tmpz2)
-            #input("testpoint")
-            #z1.append(interp1(point))
-            #z2.append(interp2(point))
 
         print("Results has the shape")
-        print(np.shape(Tgrid))
         print(np.shape(z1))
         print(np.shape(z2))
         print(z1)
-        input("testpoint")
+        #input("testpoint")
         if phase in ["Ferrite", "Bainite", "Perlite"]:
-            z1 = np.nan_to_num(z1,nan=-1E12)
-            z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
+            #z1 = np.nan_to_num(z1,nan=-1E12)
+            #z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
             saveresult("Modeldata", phase + "/JMAK/T", Tgrid)
             saveresult("Modeldata", phase + "/JMAK/tau", np.asarray(z1))
             saveresult("Modeldata", phase + "/JMAK/n", np.asarray(z2))
