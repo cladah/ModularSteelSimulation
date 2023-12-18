@@ -287,8 +287,8 @@ def TTTinterpolatetonodes():
             saveresult("Modeldata", phase + "/JMAK/tau", np.asarray(z1))
             saveresult("Modeldata", phase + "/JMAK/n", np.asarray(z2))
         else:
-            saveresult("Modeldata", phase + "/Ms", np.asarray(z1))
-            saveresult("Modeldata", phase + "/beta", np.asarray(z2))
+            saveresult("Modeldata", phase + "/KM/Ms", np.asarray(z1))
+            saveresult("Modeldata", phase + "/KM/beta", np.asarray(z2))
         print(phase + " added to node data")
     print("Modeldata interpolated to nodes")
 def getJMAK(composition, phase):
