@@ -34,15 +34,17 @@ def start():
         elif programstate.get() == 4 or runall == 1:
             runquenchingmodule()
             addgui(gui, "Quenching")
+        if programstate.get() < 4 or runall == 1:
+            print("All simulations are done")
         programstate.set(programstate.get()+1)
     if not os.path.exists('Cachefiles/InputCache.json'):
         createinputcache()
     gui = tk.Tk()
     gui.geometry("500x600")
     gui.title("Quenching of steel")
-    gui = runguimodule(gui)
     button = tk.Button(master=gui, text="Continue", command=runmodule, padx=20)
     button.pack(side=tk.TOP, anchor=tk.NW)
+    gui = runguimodule(gui)
     programstate = tk.IntVar(gui, 0)
     runall = tk.IntVar(gui, 0)
 

@@ -154,8 +154,8 @@ def TTTinterpolatetonodes():
             newcomp.append(comp)
     compositions = newcomp.copy()
 
-    #for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-    for phase in ["Martensite"]:
+    for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+    #for phase in ["Martensite"]:
         Z1 = list()
         Z2 =list()
         X = []
@@ -295,10 +295,10 @@ def TTTinterpolatetonodes():
             z1.append(tmpz1)
             z2.append(tmpz2)
 
-        print("Results has the shape")
-        print(np.shape(z1))
-        print(np.shape(z2))
-        print(z1)
+        #print("Results has the shape")
+        #print(np.shape(z1))
+        #print(np.shape(z2))
+        #print(z1)
         #input("testpoint")
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             #z1 = np.nan_to_num(z1,nan=-1E12)
