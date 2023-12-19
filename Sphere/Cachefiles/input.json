@@ -2,8 +2,8 @@
   "Rerun": {
     "Mesh": 0,
     "Carbonitriding": 0,
-    "TTT": 0,
-    "ThermoFit": 0,
+    "TTT": 1,
+    "ThermoFit": 1,
     "Quenching": 1,
     "Temp": 0,
     "Fatigue": 0
@@ -85,7 +85,7 @@
   "Thermo": {
     "CNtemp": 1073.15,
     "CNenv": "Methane",
-    "CNtime": 1,
+    "CNtime": 10,
     "tempertemp": 1,
     "quenchtime": 1000,
     "quench_steps": 10,

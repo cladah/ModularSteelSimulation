@@ -347,21 +347,21 @@ def adjustComsol(model):
                 model.func(prop + "_" + mat[0]).set("source", "file")
                 model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "3")
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 0)
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 1)
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 2)
             elif prop == "Ms":
                 model.func(prop + "_" + mat[0]).set("source", "file")
                 model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "2")
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 0)
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 1)
             elif prop == "beta":
                 model.func(prop + "_" + mat[0]).set("source", "file")
                 model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "2")
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 0)
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "mm", 1)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
+                model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 1)
             else:
                 x = data["Material"][mat][prop]["T"]
                 y = data["Material"][mat][prop][prop]

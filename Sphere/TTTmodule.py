@@ -64,6 +64,26 @@ def runTTTcalc(composition):
         print("TTTdata exists in database for " + str(composition))
         return
     print("Running TTT calculation for " + str(composition))
+    # If N is changed check
+    tmpcomp = composition.copy()
+    tmpcomp["N"] = 0.
+    if bool(getTTTdata(tmpcomp, "TTTdata")):
+        TTTdata = getTTTdata(tmpcomp, "TTTdata")
+        start, half, finish = calculateMartensite(composition)
+        start = [[start, start], [0.1, 1E12]]
+        half = [[half, half], [0.1, 1E12]]
+        finish = [[finish, finish], [0.1, 1E12]]
+        phase = dict()
+        phase["start"] = start
+        phase["half"] = half
+        phase["finish"] = finish
+        print(TTTdata)
+        print(phase)
+        TTTdata["Martensite"] = phase
+
+        addTTTdata(composition, TTTdata, "TTTdata")
+        return
+
     Tsteps = np.linspace(260, 1000, 38)
     phases = ["Ferrite", "Bainite", "Perlite","Martensite"]
     TTTdata = dict()
