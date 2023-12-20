@@ -233,38 +233,16 @@ def TTTinterpolatetonodes():
         tmpX = list(set(np.array(X)[:, 0]))
         tmpX.sort()
         newX = [tmpX]
-        #print(gridlen)
+
         # Check len on X grid as T is added for FPB
         for elementnr in range(gridlen-1):
             tmpX = list(set(np.array(X)[:, elementnr+1]))
             tmpX.sort()
             newX.append(tmpX)
 
-        def values_grid(points, gridpoints, values):
-            gridvalues = np.zeros(np.shape(gridpoints[0]))
-            size = len(values)
-            for i in range(size):
-                point = list()
-                for dim in gridpoints:
-                    point.append(np.array(dim).item(i))
-                print(point)
-                print((points[i] == point).all())
-                gridvalues
-                print(gridvalues.item(i))
-                input("")
-            return 1
-        #print(np.array(Z1).reshape(np.shape(np.meshgrid(*newX)[0])))
         newZ1 = np.array(Z1).reshape(np.shape(np.meshgrid(*newX,indexing='ij')[0]))
         newZ2 = np.array(Z2).reshape(np.shape(np.meshgrid(*newX, indexing='ij')[0]))
-        #for j in range(len(X)):
-        #    if (X[j] == [np.meshgrid(*newX)[i].item(j) for i in range(len(X[0]))]).all():
-        #        print(Z1[j] == newZ1.item(j))
-        #    else:
-        #        print("FALSE!!")
-        #print(([np.meshgrid(*newX)[i].item(70) for i in range(len(X[0]))]==X[70]).all())
-        #print(newZ1.item(70))
-        #print(X[70])
-        #print(Z1[70])
+
 
 
         Tgrid = np.linspace(260, 1000, 38)
@@ -278,9 +256,8 @@ def TTTinterpolatetonodes():
         z1 = []
         z2 = []
 
-        #print([grid[i][0:2] for i in range(len(grid))])
-        #grid = [grid[i][0:2] for i in range(len(grid))]
         print("Interpolating modeldata to gridpoints for " + phase)
+        print(np.shape(grid))
         for point in grid:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 points = [[t] + point for t in Tgrid]
@@ -289,9 +266,15 @@ def TTTinterpolatetonodes():
             tmpz1 = list()
             tmpz2 = list()
             for p in points:
+                indx = points.index(p)
                 p = [round(p[i], 1) for i in range(len(p))]
-                tmpz1 = tmpz1 + list(interpolate.interpn(newX, newZ1, p))
-                tmpz2 = tmpz2 + list(interpolate.interpn(newX, newZ2, p))
+                points[indx] = p
+            tmpz1 = tmpz1 + list(interpolate.interpn(newX, newZ1, points))
+            tmpz2 = tmpz2 + list(interpolate.interpn(newX, newZ2, points))
+            #for p in points:
+            #    p = [round(p[i], 1) for i in range(len(p))]
+            #    tmpz1 = tmpz1 + list(interpolate.interpn(newX, newZ1, p))
+            #    tmpz2 = tmpz2 + list(interpolate.interpn(newX, newZ2, p))
             z1.append(tmpz1)
             z2.append(tmpz2)
 

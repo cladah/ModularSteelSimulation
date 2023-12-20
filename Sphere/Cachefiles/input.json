@@ -1,10 +1,10 @@
 {
   "Rerun": {
-    "Mesh": 0,
+    "Mesh": 1,
     "Carbonitriding": 0,
-    "TTT": 1,
-    "ThermoFit": 1,
-    "Quenching": 1,
+    "TTT": 0,
+    "ThermoFit": 0,
+    "Quenching": 0,
     "Temp": 0,
     "Fatigue": 0
   },
@@ -13,7 +13,7 @@
     "innerradius": 0.0,
     "thickness": 0.01,
     "nodes": 20,
-    "meshscaling": 0.8
+    "meshscaling": 0.75
   },
   "Material": {
     "Name": "Grade 159",
@@ -95,7 +95,8 @@
   "FEM": {
     "elementdim": 2,
     "elementtype": "Axisym2D",
-    "element_f": 2
+    "element_f": 2,
+    "heatflux": {"htc": [200.0, 200.0, 2800.0, 750.0, 750.0],"T": [0.0, 300.0, 500.0, 650.0, 1300.0]}
   },
   "Programs": {
     "Meshing": "Gmsh",
