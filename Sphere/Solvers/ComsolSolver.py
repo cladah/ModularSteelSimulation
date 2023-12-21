@@ -171,7 +171,7 @@ def setupComsol(model):
 
     # --------------- Setting up geometry and mesh ------------------#
     model.component("comp1").geom().create("geom1", 2)
-    model.component("comp1").geom("geom1").axisymmetric(True)
+    #model.component("comp1").geom("geom1").axisymmetric(True)
     model.component("comp1").mesh().create("mesh1")
     model.component("comp1").geom("geom1").run()
     model.component("comp1").mesh("mesh1").create("imp1", "Import")

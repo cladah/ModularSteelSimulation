@@ -24,9 +24,10 @@ def pygmshmodule():
     import gmsh
     data = read_input()
     r = data['Geometry']['radius']
-    lc = data['Geometry']['radius'] * data['Geometry']['meshscaling'] ** (data['Geometry']['nodes'] - 1) / np.sum(
-        data['Geometry']['meshscaling'] **
-        np.linspace(0, data['Geometry']['nodes'] - 1, data['Geometry']['nodes']))
+    tmpgeo = [data['Geometry']['meshscaling'] ** i for i in range(data['Geometry']['nodes'] - 1)]
+    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(data['Geometry']['nodes'] - 1)])
+    rnodes = r * tmpgeo / np.max(tmpgeo)
+    lc = rnodes[-1] - rnodes[-2]
 
     with pygmsh.geo.Geometry() as geom:
         p0 = geom.add_point((0.0, 0.0, 0.0))
@@ -44,16 +45,14 @@ def pygmshmodule():
         geom.add_physical([rs0], "Volume")
 
         mesh = geom.generate_mesh(dim=2)
-        gmsh.write("Resultfiles/Mesh.msh")
-        gmsh.write("Resultfiles/Mesh.nas")
-        gmsh.write("Resultfiles/Mesh.vtk")
 
-    #meshio.write("Resultfiles/Mesh.nas", mesh)
-    #meshio.write("Resultfiles/Mesh.vtk", mesh)
+
+    meshio.write("Resultfiles/Mesh.nas", mesh)
+    meshio.write("Resultfiles/Mesh.vtk", mesh)
     #meshio.write("Resultfiles/Mesh.msh", mesh)
 
     # Adding mesh data to datastream
-    meshdata = meshio.read("Resultfiles/Mesh.msh")
+    meshdata = meshio.read("Resultfiles/Mesh.nas")
     meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))
@@ -61,43 +60,57 @@ def gmshmodule():
     print('Meshing with Gmsh')
     import gmsh
     data = read_input()
-    lc = data['Geometry']['radius'] * data['Geometry']['meshscaling'] ** (data['Geometry']['nodes'] - 1) / np.sum(data['Geometry']['meshscaling'] **
-        np.linspace(0, data['Geometry']['nodes'] - 1, data['Geometry']['nodes']))
-
+    r = data['Geometry']['radius']
+    tmpgeo = [data['Geometry']['meshscaling'] ** i for i in range(data['Geometry']['nodes'] - 1)]
+    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(data['Geometry']['nodes'] - 1)])
+    rnodes = r * tmpgeo / np.max(tmpgeo)
+    lc = rnodes[-1]-rnodes[-2]
+    print(lc)
     gmsh.initialize()
     gmsh.clear()
     gmsh.model.add("QuarterCirc")
     gdim = 2
-    r = data['Geometry']['radius']
     gmsh.model.occ.addPoint(0, 0, 0, 1)
     gmsh.model.occ.addPoint(r*np.cos(np.pi/6), r*np.sin(np.pi/6), 0, lc, 2)
     gmsh.model.occ.addPoint(r, 0, 0, lc, 3)
+    #gmsh.model.occ.addPoint(r, 0, 0, 3)
+    #gmsh.model.occ.addLine(1, 2, 1)
+    #gmsh.model.occ.addLine(3, 1, 2)
+    #gmsh.model.occ.addCircleArc(2, 1, 3, 3)
+    #gmsh.model.occ.addCurveLoop([1, 3, 2], 4)
+
     gmsh.model.occ.addLine(1, 2, 1)
-    gmsh.model.occ.addLine(1, 3, 2)
+    gmsh.model.occ.addLine(3, 1, 2)
     gmsh.model.occ.addCircleArc(2, 1, 3, 3)
-    gmsh.model.occ.addCurveLoop([1, 2, 3], 4)
+    gmsh.model.occ.addCurveLoop([1, 3, 2], 4)
+
     gmsh.model.occ.addPlaneSurface([4], 1)
     gmsh.model.occ.synchronize()
 
-    gmsh.model.addPhysicalGroup(1, [1], 1, 'Bottom')
-    gmsh.model.addPhysicalGroup(1, [2], 2, 'Side')
+    gmsh.model.addPhysicalGroup(1, [1], 1, 'Side')
+    gmsh.model.addPhysicalGroup(1, [2], 2, 'Bottom')
+    #gmsh.model.addPhysicalGroup()
     gmsh.model.addPhysicalGroup(1, [3], 3, 'Circumference')
     gmsh.model.addPhysicalGroup(gdim, [1], 4, 'Sphere')
+    gmsh.model.mesh.set_size_from_boundary(2, 1, 2)
     gmsh.model.mesh.set_transfinite_curve(1, data['Geometry']['nodes'], 'Progression', data['Geometry']['meshscaling'])
-    gmsh.model.mesh.set_transfinite_curve(2, data['Geometry']['nodes'], 'Progression', data['Geometry']['meshscaling'])
+    gmsh.model.mesh.set_transfinite_curve(2, data['Geometry']['nodes'], 'Progression', -data['Geometry']['meshscaling'])
     #gmsh.option.setNumber("Mesh.CharacteristicLengthMin", 2*data['Geometry']['radius']/100)
     #gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 3*data['Geometry']['radius']/100)
     #gmsh.model.mesh.set_order(2)
-    gmsh.option.setNumber('Mesh.ElementOrder', 2)
-    gmsh.model.mesh.optimize()
+    #gmsh.option.setNumber('Mesh.ElementOrder', 2)
+    #gmsh.model.mesh.optimize()
     gmsh.model.mesh.generate(gdim)
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
+    gmsh.write("Resultfiles/Mesh.dat")
     gmsh.write("Resultfiles/Mesh.nas")
-    gmsh.write("Resultfiles/Mesh.vtk")
+    #gmsh.write("Resultfiles/Mesh.vtk")
     gmsh.finalize()
 
     meshdata = meshio.read("Resultfiles/Mesh.msh")
+    #meshio.nastran.write("Resultfiles/Mesh.nas", meshdata)
+    #meshio.write("Resultfiles/Mesh.dat", meshdata)
     meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))
@@ -114,16 +127,24 @@ def meshpymodule():
     def round_trip_connect(start, end):
         return [(i, i + 1) for i in range(start, end)] + [(end, start)]
     data = read_input()
+    r = data['Geometry']['radius']
     lc = data['Geometry']['radius'] * data['Geometry']['meshscaling'] ** (data['Geometry']['nodes'] - 1) / np.sum(
         data['Geometry']['meshscaling'] **
         np.linspace(0, data['Geometry']['nodes'] - 1, data['Geometry']['nodes']))
-    r = data['Geometry']['radius']
-    p1 = (0., 0.)
-    p2 = (r * np.cos(np.pi / 6), r * np.sin(np.pi / 6))
-    p3 = (r, 0.)
+    tmpgeo = [data['Geometry']['meshscaling']**i for i in range(data['Geometry']['nodes'] - 1)]
+    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(data['Geometry']['nodes'] - 1)])
+    rnodes = r*tmpgeo/np.max(tmpgeo)
+
+    #p1 = (0., 0.)
+    #p2 = (r * np.cos(np.pi / 6), r * np.sin(np.pi / 6))
+    #p3 = (r, 0.)
+    p2 = [(rnodes[::-1][i]*np.cos(np.pi / 6), rnodes[::-1][i]*np.sin(np.pi / 6)) for i in range(len(rnodes)-1)]
+    p3 = [(rnodes[i], 0.) for i in range(len(rnodes)-1)]
+    print(p2[0])
+    print(p3[0])
     numel = 30/360*2*r*np.pi/lc
     print(int(numel))
-    points = [p2, p1, p3]
+    points = p2+p3
 
     #
     circ_start = len(points)
@@ -131,14 +152,19 @@ def meshpymodule():
         (r * np.cos(angle), r * np.sin(angle))
         for angle in np.linspace(0, np.pi / 6, int(numel), endpoint=False)
     )
-    facets = round_trip_connect(0, len(points) - 1)
+    facets = round_trip_connect(0, len(points)-1)
+    #info = tet.MeshInfo()
+    #info.set_points(points)
+    #info.set_facets(facets)
+    #mesh = tet.build()
+
     #facets.extend(round_trip_connect(circ_start, len(points) - 1))
     info = triangle.MeshInfo()
     info.set_points(points)
     info.set_facets(facets)
 
     mesh = triangle.build(info)
-
+    triangle.write_gnuplot_mesh("Resultfiles/Test.dat", mesh)
     mesh_points = np.array(mesh.points)
     mesh_tris = np.array(mesh.elements)
 

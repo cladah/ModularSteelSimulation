@@ -55,10 +55,10 @@ def GUI():
     app.mainloop()
 def modelling():
     createMesh()
-    #runcarbonitridingmodule()
-    #runTTTmodule()
-    #runTTTmodelmodule()
-    #runquenchingmodule()
+    runcarbonitridingmodule()
+    runTTTmodule()
+    runTTTmodelmodule()
+    runquenchingmodule()
 
 if __name__ == "__main__":
     modelling()
