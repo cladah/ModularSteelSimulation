@@ -48,7 +48,7 @@ def pygmshmodule():
 
 
     meshio.write("Resultfiles/Mesh.nas", mesh)
-    meshio.write("Resultfiles/Mesh.vtk", mesh)
+    #meshio.write("Resultfiles/Mesh.vtk", mesh)
     #meshio.write("Resultfiles/Mesh.msh", mesh)
 
     # Adding mesh data to datastream
