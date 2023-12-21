@@ -1,5 +1,3 @@
-import meshio
-import meshpy
 from HelpFile import read_input, checkinput, adjustinputcache
 import numpy as np
 import meshio
@@ -107,5 +105,44 @@ def gmshmodule():
                              #cell_data={"phiM": [0.*np.arange(len(meshdata.cells[3]))]}))
     data = meshio.read("Resultfiles/Datastream.xdmf")
 
-def pygmshmodule():
-    pass
+
+
+def meshpymodule():
+    import meshpy
+    import meshpy.triangle as triangle
+    import meshpy.tet as tet
+    def round_trip_connect(start, end):
+        return [(i, i + 1) for i in range(start, end)] + [(end, start)]
+    data = read_input()
+    lc = data['Geometry']['radius'] * data['Geometry']['meshscaling'] ** (data['Geometry']['nodes'] - 1) / np.sum(
+        data['Geometry']['meshscaling'] **
+        np.linspace(0, data['Geometry']['nodes'] - 1, data['Geometry']['nodes']))
+    r = data['Geometry']['radius']
+    p1 = (0., 0.)
+    p2 = (r * np.cos(np.pi / 6), r * np.sin(np.pi / 6))
+    p3 = (r, 0.)
+    numel = 30/360*2*r*np.pi/lc
+    print(int(numel))
+    points = [p2, p1, p3]
+
+    #
+    circ_start = len(points)
+    points.extend(
+        (r * np.cos(angle), r * np.sin(angle))
+        for angle in np.linspace(0, np.pi / 6, int(numel), endpoint=False)
+    )
+    facets = round_trip_connect(0, len(points) - 1)
+    #facets.extend(round_trip_connect(circ_start, len(points) - 1))
+    info = triangle.MeshInfo()
+    info.set_points(points)
+    info.set_facets(facets)
+
+    mesh = triangle.build(info)
+
+    mesh_points = np.array(mesh.points)
+    mesh_tris = np.array(mesh.elements)
+
+    import matplotlib.pyplot as pt
+
+    pt.triplot(mesh_points[:, 0], mesh_points[:, 1], mesh_tris)
+    pt.show()
