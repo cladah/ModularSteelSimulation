@@ -12,7 +12,8 @@ def createMesh():
     data = read_input()
     if data['Programs']["Meshing"] == "Gmsh":
         gmshmodule()
-        #pygmshmodule()
+    elif data['Programs']["Meshing"] == "PyGmsh":
+        pygmshmodule()
     else:
         raise KeyError('Meshprogram not implemented in mesh module')
     adjustinputcache('Mesh')
@@ -20,6 +21,7 @@ def pygmshmodule():
     print('Meshing with PyGmsh')
     import pygmsh
     import meshio
+    import gmsh
     data = read_input()
     r = data['Geometry']['radius']
     lc = data['Geometry']['radius'] * data['Geometry']['meshscaling'] ** (data['Geometry']['nodes'] - 1) / np.sum(
@@ -28,24 +30,33 @@ def pygmshmodule():
 
     with pygmsh.geo.Geometry() as geom:
         p0 = geom.add_point((0.0, 0.0, 0.0))
-        p1 = geom.add_point((r, 0.0, 0.0))
-        p2 = geom.add_point((r*np.cos(np.pi/6), r*np.sin(np.pi/6), 0.0),lc)
+        p1 = geom.add_point((r, 0.0, 0.0), mesh_size=lc)
+        p2 = geom.add_point((r*np.cos(np.pi/6), r*np.sin(np.pi/6), 0.0),mesh_size =lc)
         l1 = geom.add_line(p0, p1)
         l2 = geom.add_line(p2, p0)
         l3 = geom.add_circle_arc(p1, p0, p2)
         loop1 = geom.add_curve_loop((l1, l3, l2))
         rs0 = geom.add_surface(loop1)
+        geom.synchronize()
+        # Adding Geometric scaling of the mesh
         geom.set_transfinite_curve(l1,data["Geometry"]["nodes"],"Progression",data["Geometry"]["meshscaling"])
         geom.set_transfinite_curve(l2, data["Geometry"]["nodes"], "Progression", -data["Geometry"]["meshscaling"])
+        geom.add_physical([rs0], "Volume")
 
-        #geom.set_transfinite_curve([l1], progression=data['Geometry']['meshscaling'])
-        #geom.set_transfinite_curve([l2])
-        #geom.set_transfinite_surface(rs0)
-        #geom.add_circle_arc([r, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, r, 0.0])
-        #geom.add_circle_arc([r, 0.0, 0.0],[0.0, 0.0, 0.0],[0.0,r,0.0])
-        #geom.add_circle([0.0, 0.0], 1.0, mesh_size=0.2)
-        mesh = geom.generate_mesh()
-    #meshio.write("test.nas",mesh)
+        mesh = geom.generate_mesh(dim=2)
+        gmsh.write("Resultfiles/Mesh.msh")
+        gmsh.write("Resultfiles/Mesh.nas")
+        gmsh.write("Resultfiles/Mesh.vtk")
+
+    #meshio.write("Resultfiles/Mesh.nas", mesh)
+    #meshio.write("Resultfiles/Mesh.vtk", mesh)
+    #meshio.write("Resultfiles/Mesh.msh", mesh)
+
+    # Adding mesh data to datastream
+    meshdata = meshio.read("Resultfiles/Mesh.msh")
+    meshio.write("Resultfiles/Datastream.xdmf",
+                 meshio.Mesh(points=meshdata.points,
+                             cells={"triangle": meshdata.get_cells_type("triangle")}))
 def gmshmodule():
     print('Meshing with Gmsh')
     import gmsh

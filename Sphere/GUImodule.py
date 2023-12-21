@@ -1,6 +1,66 @@
+import tkinter as tk
+from tkinter import ttk
+class MainApp(tk.Tk):
+
+    def __init__(self, *args, **kwargs):
+        tk.Tk.__init__(self, *args, **kwargs)
+
+        #tk.Tk.iconbitmap(self, default="clienticon.ico")
+        tk.Tk.wm_title(self, "Client")
+
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        self.frames = {}
+        frame = StartPage(container, self)
+
+        self.frames[StartPage] = frame
+
+        frame.grid(row=0, column=0, sticky="nsew")
+
+
+        self.show_frame(StartPage)
+    def create_frame(self, cont):
+        pass
+        #self.frames[cont] = Page2(container, self)
+    def show_frame(self, cont):
+        frame = self.frames[cont]
+        frame.tkraise()
+class Page2(tk.Frame):
+    pass
+class StartPage(tk.Frame):
+    def __init__(self, parent, controller):
+        from HelpFile import read_input
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
+                                                       NavigationToolbar2Tk)
+        data = read_input()
+        tk.Frame.__init__(self,parent)
+        label = tk.Label(self, text="Start Page")
+        label.pack(pady=10,padx=10)
+        # Add plot of temperature
+        starttemp = data["Thermo"]["CNtemp"] - 273.15
+        quenchtemp = data["Thermo"]["quenchtemp"] - 273.15
+        tempertemp = 400  # data["Thermo"]["tempertemp"]
+        roomtemp = data["Thermo"]["quenchtemp"] - 273.15
+        holdCN = data["Thermo"]["CNtime"] * 60
+        holdquench = holdCN + 30
+        holdtemper = holdquench + 60
+        holdend = holdtemper + 60
+        times = [0, 0, holdCN, holdCN + 10, holdquench, holdquench + 10, holdtemper, holdtemper + 10, holdend]
+        temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
+        fig = Figure(figsize=(5, 4), dpi=100)
+        plot1 = fig.add_subplot(111)
+        plot1.plot(times, temps)
+        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas.draw()
+        canvas.get_tk_widget().pack()
 
 def runguimodule(gui):
     import tkinter as tk
+    #from tkinter import ttk
     from HelpFile import read_input
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
@@ -8,6 +68,14 @@ def runguimodule(gui):
     import threading
     import matplotlib.pyplot as plt
     data = read_input()
+
+    #tabControl = tk.ttk.Notebook(gui)
+    #tab1 = tk.ttk.Frame(tabControl)
+    #tab2 = tk.ttk.Frame(tabControl)
+    #tabControl.add(tab1, text='Input')
+    #tabControl.pack(expand=1, fill="both")
+
+
     composition = tk.Label(gui, text="Composition of steel is:", pady=20)
     composition.pack()
     compstr = " ".join([i + "=" + str(data["Material"]["Composition"][i]) for i in data["Material"]["Composition"].keys()])
@@ -20,21 +88,21 @@ def runguimodule(gui):
     # Add plot of temperature
     starttemp = data["Thermo"]["CNtemp"]-273.15
     quenchtemp = data["Thermo"]["quenchtemp"]-273.15
-    tempertemp = 400 #data["Thermo"]["tempertemp"]
+    tempertemp = 400 # data["Thermo"]["tempertemp"]
     roomtemp = data["Thermo"]["quenchtemp"]-273.15
     holdCN = data["Thermo"]["CNtime"]*60
     holdquench = holdCN + 30
     holdtemper = holdquench + 60
     holdend = holdtemper + 60
-    times = [0, 0, holdCN,holdCN+10,holdquench,holdquench + 10, holdtemper,holdtemper + 10, holdend]
-    temps = [roomtemp, starttemp, starttemp,quenchtemp,quenchtemp,tempertemp,tempertemp,roomtemp,roomtemp]
-    fig = Figure(figsize=(5, 4), dpi=100)
+    times = [0, 0, holdCN, holdCN+10, holdquench,holdquench + 10, holdtemper, holdtemper + 10, holdend]
+    temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
+    fig = Figure(figsize=(5, 4), dpi=50)
     plot1 = fig.add_subplot(111)
     plot1.plot(times,temps)
     canvas = FigureCanvasTkAgg(fig, master=gui)
     canvas.draw()
+    canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     canvas.get_tk_widget().pack()
-
 
 
     return gui
@@ -50,6 +118,10 @@ def addgui(gui, type):
 
 
     if type == "Mesh":
+
+        tabControl = tk.ttk.Notebook(gui)
+        tab2 = tk.ttk.Frame(tabControl)
+        tabControl.add(tab2, text='Input')
         pass
         # fig = Figure(figsize=(5, 4), dpi=100)
         # reader = vtk.vtkUnstructuredGridReader()
@@ -71,13 +143,16 @@ def addgui(gui, type):
         wC = getaxisvalues("Composition/C")
         wN = getaxisvalues("Composition/N")
         xyz = getaxisvalues("nodes")
-        fig = Figure(figsize=(5, 4), dpi=100)
+        fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
         plot1.plot(np.array(xyz)[:,0], wC)
         plot1.plot(np.array(xyz)[:, 0], wN)
         canvas = FigureCanvasTkAgg(fig, master=gui)
         canvas.draw()
         canvas.get_tk_widget().pack()
+        toolbar = NavigationToolbar2Tk(canvas)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     elif type == "TTT":
         data = read_input()
         core = data['Material']['Composition']
@@ -86,7 +161,7 @@ def addgui(gui, type):
             surface[element] = getaxisvalues("Composition/" + element)[-1]
         TTTcore = getTTTdata(core, "TTTdata")
         TTTsurf = getTTTdata(surface, "TTTdata")
-        fig = Figure(figsize=(10, 4), dpi=100)
+        fig = Figure(figsize=(10, 4), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
         colorlist = ["green","blue","orange","red"]
@@ -110,6 +185,7 @@ def addgui(gui, type):
         plot2.legend(loc="upper right")
         canvas = FigureCanvasTkAgg(fig, master=gui)
         canvas.draw()
+        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         canvas.get_tk_widget().pack()
 
 

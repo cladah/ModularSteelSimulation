@@ -8,11 +8,12 @@ from HelpFile import *
 from Meshmodule import createMesh
 from Carbonitridingmodule import runcarbonitridingmodule
 from TTTmodule import runTTTmodule, runTTTmodelmodule
-from GUImodule import runguimodule, addgui
+from GUImodule import runguimodule, addgui, MainApp
 from Postmodule import *
 from Quenchingmodule import runquenchingmodule
 from Testfile import *
 import tkinter as tk
+from tkinter import ttk
 
 
 
@@ -49,13 +50,15 @@ def start():
     runall = tk.IntVar(gui, 0)
 
     gui.mainloop()
-
+def GUI():
+    app = MainApp()
+    app.mainloop()
 def modelling():
     createMesh()
     runcarbonitridingmodule()
     runTTTmodule()
     runTTTmodelmodule()
-    runquenchingmodule()
+    #runquenchingmodule()
 
 if __name__ == "__main__":
-    modelling()
+    start()

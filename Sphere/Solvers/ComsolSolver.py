@@ -160,8 +160,13 @@ def setupComsolSolver(model):
     return model
 def setupComsol(model):
     directory = os.getcwd()
-    meshdirec = directory + '\\Resultfiles\\Mesh.nas'
-    savedirec = directory + '\\Resultfiles'
+    if os.name == "posix":
+        meshdirec = directory + '/Resultfiles/Mesh.nas'
+        savedirec = directory + '/Resultfiles'
+    else:
+        meshdirec = directory + '\\Resultfiles\\Mesh.nas'
+        savedirec = directory + '\\Resultfiles'
+
     model.modelNode().create("comp1", True)
 
     # --------------- Setting up geometry and mesh ------------------#
@@ -339,8 +344,8 @@ def setupComsol(model):
 
 def adjustComsol(model):
     print("Adding phase transformation models to Comsol model")
-    JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
-    JMAK_P = readresultfile("TTT_surface.hdf5","Perlite/JMAK")
+    #JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
+    #JMAK_P = readresultfile("TTT_surface.hdf5","Perlite/JMAK")
     data = read_input()
 
     # Heat flux

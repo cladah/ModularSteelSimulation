@@ -40,11 +40,27 @@ def checkinput(model):
     f = open('Cachefiles/InputCache.json', 'r')
     cachedata = json.load(f)
     f.close()
+
+    modellist = list(indata["Rerun"].keys())
+    # create a stacked rerun criteria?
+
     # Check rerun criteria
     if indata['Rerun'][model] == 1:
         return False
     if model == 'Mesh':
         for x in ['Geometry']:
+            if indata[x] != cachedata[x]:
+                return False
+    elif model == 'Carbonitriding':
+        for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
+            if indata[x] != cachedata[x]:
+                return False
+    elif model == 'TTT':
+        for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
+            if indata[x] != cachedata[x]:
+                return False
+    elif model == 'TTTfit':
+        for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
             if indata[x] != cachedata[x]:
                 return False
     elif model == 'Quenching':
@@ -148,7 +164,7 @@ def readresultfile(filename, dataname):
             data = np.array(f.get(dataname))
         return data
     except:
-        raise KeyError("Result "+str(dataname)+" doesn't exist in result file")
+        raise KeyError("Result \""+str(dataname)+"\" doesn't exist in result file")
 def addTTTdata(compdata, data, type):
     if type not in ["TTTdata", "Modeldata"]:
         raise KeyError("Type can't be added to TTT database")

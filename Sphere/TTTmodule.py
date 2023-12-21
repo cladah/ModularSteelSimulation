@@ -4,6 +4,7 @@ from Sphere.Solvers.Thermocalc import *
 from Sphere.Solvers.TTTmodelfit import *
 from HelpFile import *
 
+
 def getTTTcompositions():
     roundingTTT = 1
     data = read_input()
@@ -164,42 +165,35 @@ def TTTinterpolatetonodes():
             x = list()
             TTTdata = getTTTdata(comp, "Modeldata")
 
-            # Get datapoints that aren't Nan
-            #indx = ~np.isnan(TTTdata[phase][1])
-            #if not indx.any():
-            #    continue
-            #T = TTTdata[phase][0][indx]
             if phase in ["Ferrite", "Bainite", "Perlite"]:
-                gridlen = len(data['Material']['Composition']) + 1
-
+                gridlen = len(data['Material']['Composition']) + 1 # Adding temp to gridlength
                 T = TTTdata[phase][0]
-                z1 = TTTdata[phase][1]
+                z1 = TTTdata[phase][1]  # tau
+                z2 = TTTdata[phase][2]  # n
 
-                z2 = TTTdata[phase][2]
+                # Checking the values for tau and n if all nan n = 1, tau = -1E12
                 if np.isnan(z2).all():
                     z2 = np.nan_to_num(z2, nan=1)
-                z2mean = np.nanmean(z2)
-                z2 = np.nan_to_num(z2, nan=z2mean)
+                z2 = np.nan_to_num(z2, nan=float(np.nanmean(z2)))
                 z1 = np.nan_to_num(z1, nan=-1E12)
                 x.append(list(T))
+
+                # Creating new grid with points for all temperature points
                 for element in data["Material"]["Composition"].keys():
                     tmpx = [comp[element]] * len(T)
                     x.append(tmpx)
-            else:
+            else:  # Martensite
                 gridlen = len(data['Material']['Composition'])
-                z1 = TTTdata[phase][0] # Ms
-                z2 = TTTdata[phase][1] # beta
-                z1 = np.nan_to_num(z1, nan=0)
+                z1 = TTTdata[phase][0]  # Ms
+                z2 = TTTdata[phase][1]  # beta
+                z1 = np.nan_to_num(z1, nan=0.)
                 z2 = np.nan_to_num(z2, nan=0.01)
-                #print(z1)
-                #print(z2)
-                #input("Martensite pause")
                 for element in data["Material"]["Composition"].keys():
                     tmpx = [comp[element]]
                     x.append(tmpx)
             x = np.transpose(x)
 
-            if len(X)!=0:
+            if len(X) != 0:
                 X = np.vstack([X, x])
             else:
                 X = x.copy()
@@ -213,8 +207,6 @@ def TTTinterpolatetonodes():
         # X is all points on the [T, comp1, comp2, comp3, ...] list
         # Z is all points n, tau, Ms, beta values
 
-        # Reducing the amount of elements
-        #X = X[:, 0:3]
         # Duplicate check needed if number of elements are reduced
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             dupindx = list()

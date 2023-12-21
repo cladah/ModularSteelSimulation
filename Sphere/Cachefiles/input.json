@@ -1,10 +1,10 @@
 {
   "Rerun": {
-    "Mesh": 1,
+    "Mesh": 0,
     "Carbonitriding": 0,
-    "TTT": 0,
-    "ThermoFit": 0,
-    "Quenching": 0,
+    "TTT": 1,
+    "ThermoFit": 1,
+    "Quenching": 1,
     "Temp": 0,
     "Fatigue": 0
   },
@@ -99,7 +99,7 @@
     "heatflux": {"htc": [200.0, 200.0, 2800.0, 750.0, 750.0],"T": [0.0, 300.0, 500.0, 650.0, 1300.0]}
   },
   "Programs": {
-    "Meshing": "Gmsh",
+    "Meshing": "PyGmsh",
     "Coupling": "Stagg",
     "CNDiffusion": "TC",
     "CCT": "TC",
