@@ -1,5 +1,5 @@
 import meshio
-
+import meshpy
 from HelpFile import read_input, checkinput, adjustinputcache
 import numpy as np
 import meshio
@@ -14,6 +14,8 @@ def createMesh():
         gmshmodule()
     elif data['Programs']["Meshing"] == "PyGmsh":
         pygmshmodule()
+    elif data['Programs']["Meshing"] == "MeshPy":
+        meshpymodule()
     else:
         raise KeyError('Meshprogram not implemented in mesh module')
     adjustinputcache('Mesh')
@@ -104,3 +106,6 @@ def gmshmodule():
                              #point_data={"T": 0.*np.arange(len(meshdata.points)),"C": 0.*np.arange(len(meshdata.points))},
                              #cell_data={"phiM": [0.*np.arange(len(meshdata.cells[3]))]}))
     data = meshio.read("Resultfiles/Datastream.xdmf")
+
+def pygmshmodule():
+    pass
