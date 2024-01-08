@@ -242,31 +242,31 @@ def setupComsol(model):
     model.component("comp1").physics("audc").feature("phase2").set("phaseMaterial", "Ferrite")
     model.component("comp1").physics("audc").feature("phase2").selection().all()
     model.component("comp1").physics("audc").feature("ptran1").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "tau_F(sqrt(r^2+z^2),T)")
-    model.component("comp1").physics("audc").feature("ptran1").set("njmak", "n_F(sqrt(r^2+z^2),T)")
+    model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "tau_F(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran1").set("njmak", "n_F(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran1").set("trip", True)
 
     # Perlite
     model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Perlite")
     model.component("comp1").physics("audc").feature("phase3").selection().all()
     model.component("comp1").physics("audc").feature("ptran2").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "tau_P(sqrt(r^2+z^2),T)")
-    model.component("comp1").physics("audc").feature("ptran2").set("njmak", "n_P(sqrt(r^2+z^2),T)")
+    model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "tau_P(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran2").set("njmak", "n_P(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran2").set("trip", True)
 
     # Bainite
     model.component("comp1").physics("audc").feature("phase4").set("phaseMaterial", "Bainite")
     model.component("comp1").physics("audc").feature("phase4").selection().all()
     model.component("comp1").physics("audc").feature("ptran3").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "tau_B(sqrt(r^2+z^2),T)")
-    model.component("comp1").physics("audc").feature("ptran3").set("njmak", "n_B(sqrt(r^2+z^2),T)")
+    model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "tau_B(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran3").set("njmak", "n_B(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran3").set("trip", True)
 
     # Martensite
     model.component("comp1").physics("audc").feature("phase5").set("phaseMaterial", "Martensite")
     model.component("comp1").physics("audc").feature("phase5").selection().all()
-    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(r^2+z^2))")
-    model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(sqrt(r^2+z^2))")
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
+    model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(sqrt(x^2+y^2))")
 
     # --------------- Adjusting properties
     model.component("comp1").physics("ht").prop("ShapeProperty").set("order_temperature", "1")
@@ -418,6 +418,11 @@ def runComsol():
     print("Adjusting model to input")
     model = adjustComsol(model)
     print("Running model")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,100)")
+    model.study("std1").run()
+    model.save('Resultfiles/Comsolmodel')
+    print("Exporting results")
+
     client.clear()
     print("Comsol multiphysics closed")
 
