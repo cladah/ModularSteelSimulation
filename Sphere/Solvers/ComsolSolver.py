@@ -290,9 +290,9 @@ def setupComsol(model):
     model.component("comp1").multiphysics("te1").selection().all()
 
     # --------------- Adding boundary conditions ------------------#
-    model.component("comp1").physics("solid").create("symp1", "SymmetryPlane", 1)
+    model.component("comp1").physics("solid").create("symp1", "SymmetrySolid", 1)
     model.component("comp1").physics("solid").feature("symp1").selection().set(1, 2)
-
+    model.component("comp1").physics("solid").feature("symp1").set("constraintMethod", "nodal")
     model.component("comp1").physics("ht").create("symp1", "Symmetry", 1)
     model.component("comp1").physics("ht").feature("symp1").selection().set(1, 2)
     #model.component("comp1").physics("ht").create("temp1", "TemperatureBoundary", 1)
@@ -409,12 +409,17 @@ def runComsol():
     #pymodel = client.load("Resultfiles/Comsolmodel.mph")
     #model = pymodel.java
     modeldatatoComsolfiles()
+    print("Opening Comsol multiphysics")
     client = mph.start()
     pymodel = client.create()
     model = pymodel.java
+    print("Setting up model")
     model = setupComsol(model)
+    print("Adjusting model to input")
     model = adjustComsol(model)
+    print("Running model")
     client.clear()
+    print("Comsol multiphysics closed")
 
 
     #client = mph.start()

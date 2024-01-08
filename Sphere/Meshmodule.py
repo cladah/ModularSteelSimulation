@@ -70,9 +70,11 @@ def gmshmodule():
     gmsh.clear()
     gmsh.model.add("QuarterCirc")
     gdim = 2
+    gmsh.option.setNumber("Geometry.Tolerance", 1.E-6)
+    gmsh.option.setNumber("Mesh.MeshSizeFactor", 0.01)
     gmsh.model.occ.addPoint(0, 0, 0, 1)
-    gmsh.model.occ.addPoint(r*np.cos(np.pi/6), r*np.sin(np.pi/6), 0, lc, 2)
-    gmsh.model.occ.addPoint(r, 0, 0, lc, 3)
+    gmsh.model.occ.addPoint(r*np.cos(np.pi/6), r*np.sin(np.pi/6), 0, 2)
+    gmsh.model.occ.addPoint(r, 0, 0, 3)
     #gmsh.model.occ.addPoint(r, 0, 0, 3)
     #gmsh.model.occ.addLine(1, 2, 1)
     #gmsh.model.occ.addLine(3, 1, 2)
@@ -86,15 +88,14 @@ def gmshmodule():
 
     gmsh.model.occ.addPlaneSurface([4], 1)
     gmsh.model.occ.synchronize()
-
-    gmsh.model.addPhysicalGroup(1, [1], 1, 'Side')
-    gmsh.model.addPhysicalGroup(1, [2], 2, 'Bottom')
-    #gmsh.model.addPhysicalGroup()
-    gmsh.model.addPhysicalGroup(1, [3], 3, 'Circumference')
+    #gmsh.model.addPhysicalGroup(1, [1], 1, 'Side')
+    #gmsh.model.addPhysicalGroup(1, [2], 2, 'Bottom')
+    #gmsh.model.addPhysicalGroup(1, [3], 3, 'Circumference')
     gmsh.model.addPhysicalGroup(gdim, [1], 4, 'Sphere')
-    gmsh.model.mesh.set_size_from_boundary(2, 1, 2)
-    gmsh.model.mesh.set_transfinite_curve(1, data['Geometry']['nodes'], 'Progression', data['Geometry']['meshscaling'])
-    gmsh.model.mesh.set_transfinite_curve(2, data['Geometry']['nodes'], 'Progression', -data['Geometry']['meshscaling'])
+    #gmsh.model.mesh.set_size([gdim], 1.E-4)
+    #gmsh.model.mesh.set_size_from_boundary(2, 1, 2)
+    #gmsh.model.mesh.set_transfinite_curve(1, data['Geometry']['nodes'], 'Progression', data['Geometry']['meshscaling'])
+    #gmsh.model.mesh.set_transfinite_curve(2, data['Geometry']['nodes'], 'Progression', -data['Geometry']['meshscaling'])
     #gmsh.option.setNumber("Mesh.CharacteristicLengthMin", 2*data['Geometry']['radius']/100)
     #gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 3*data['Geometry']['radius']/100)
     #gmsh.model.mesh.set_order(2)
@@ -117,8 +118,8 @@ def gmshmodule():
                              #point_data={"T": 0.*np.arange(len(meshdata.points)),"C": 0.*np.arange(len(meshdata.points))},
                              #cell_data={"phiM": [0.*np.arange(len(meshdata.cells[3]))]}))
     data = meshio.read("Resultfiles/Datastream.xdmf")
-
-
+    mesh = meshio.read("Resultfiles/Mesh.msh")
+    meshio.write("Resultfiles/Mesh.nas", mesh)
 
 def meshpymodule():
     import meshpy

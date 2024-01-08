@@ -13,7 +13,7 @@ def setupComsol():
 
     # --------------- Setting up geometry and mesh ------------------#
     model.component("comp1").geom().create("geom1", 2)
-    model.component("comp1").geom("geom1").axisymmetric(True)
+    #model.component("comp1").geom("geom1").axisymmetric(True)
     model.component("comp1").mesh().create("mesh1")
     model.component("comp1").geom("geom1").run()
     model.component("comp1").mesh("mesh1").create("imp1", "Import")
@@ -63,9 +63,9 @@ def setupComsol():
     model.component("comp1").multiphysics("ptstr1").selection().all()
 
     # --------------- Adding boundary conditions ------------------#
-    model.component("comp1").physics("solid").create("symp1", "SymmetryPlane", 1)
+    model.component("comp1").physics("solid").create("symp1", "SymmetrySolid", 1)
     model.component("comp1").physics("solid").feature("symp1").selection().set(2)
-
+    model.component("comp1").physics("solid").feature("symp1").set("constraintMethod", "nodal")
     model.component("comp1").physics("ht").create("symp1", "Symmetry", 1)
     model.component("comp1").physics("ht").feature("symp1").selection().set(2)
     model.component("comp1").physics("ht").create("hf1", "HeatFluxBoundary", 1)
