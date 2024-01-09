@@ -1,14 +1,23 @@
 import tkinter as tk
 from tkinter import ttk
+from Meshmodule import createMesh
+from Carbonitridingmodule import runcarbonitridingmodule
+from TTTmodule import runTTTmodule, runTTTmodelmodule
+from HelpFile import *
+
 class MainApp(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+        programstate = tk.IntVar(self, 0)
+        runall = tk.IntVar(self, 0)
 
         #tk.Tk.iconbitmap(self, default="clienticon.ico")
         tk.Tk.wm_title(self, "Client")
 
         container = tk.Frame(self)
+        button = tk.Button(master=self, text="Continue", command=create_frame("test"), padx=20, pady=20)
+        button.pack(side=tk.TOP, anchor=tk.NW, padx=20, pady=20)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
@@ -69,20 +78,11 @@ def runguimodule(gui):
     import matplotlib.pyplot as plt
     data = read_input()
 
-    #tabControl = tk.ttk.Notebook(gui)
-    #tab1 = tk.ttk.Frame(tabControl)
-    #tab2 = tk.ttk.Frame(tabControl)
-    #tabControl.add(tab1, text='Input')
-    #tabControl.pack(expand=1, fill="both")
+    tab = ttk.Frame(gui)
 
 
-    composition = tk.Label(gui, text="Composition of steel is:", pady=20)
-    composition.pack()
-    compstr = " ".join([i + "=" + str(data["Material"]["Composition"][i]) for i in data["Material"]["Composition"].keys()])
-    composition = tk.Label(gui, text=compstr)
-    composition.pack()
 
-    text = tk.Label(gui, text="Temperature history:")
+    text = tk.Label(tab, text="Temperature history:")
     text.pack()
 
     # Add plot of temperature
@@ -99,13 +99,14 @@ def runguimodule(gui):
     fig = Figure(figsize=(5, 4), dpi=50)
     plot1 = fig.add_subplot(111)
     plot1.plot(times,temps)
-    canvas = FigureCanvasTkAgg(fig, master=gui)
+    canvas = FigureCanvasTkAgg(fig, master=tab)
     canvas.draw()
     canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     canvas.get_tk_widget().pack()
+    gui.add(tab, text="Heat treatment history")
+    gui.pack()
 
-
-    return gui
+    #return gui
 
 def addgui(gui, type):
     from HelpFile import readdatastream, getaxisvalues, getTTTdata, read_input
@@ -115,13 +116,13 @@ def addgui(gui, type):
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                    NavigationToolbar2Tk)
-
+    import vtk
 
     if type == "Mesh":
 
-        tabControl = tk.ttk.Notebook(gui)
-        tab2 = tk.ttk.Frame(tabControl)
-        tabControl.add(tab2, text='Input')
+        tab = ttk.Frame(gui)
+        gui.add(tab, text="Mesh")
+        gui.pack()
         pass
         # fig = Figure(figsize=(5, 4), dpi=100)
         # reader = vtk.vtkUnstructuredGridReader()
@@ -140,6 +141,7 @@ def addgui(gui, type):
         # plt.gca().set_aspect('equal')
         # plt.show()
     elif type == "Carbonitriding":
+        tab = ttk.Frame(gui)
         wC = getaxisvalues("Composition/C")
         wN = getaxisvalues("Composition/N")
         xyz = getaxisvalues("nodes")
@@ -147,13 +149,18 @@ def addgui(gui, type):
         plot1 = fig.add_subplot(111)
         plot1.plot(np.array(xyz)[:,0], wC)
         plot1.plot(np.array(xyz)[:, 0], wN)
-        canvas = FigureCanvasTkAgg(fig, master=gui)
+        canvas = FigureCanvasTkAgg(fig, master=tab)
         canvas.draw()
         canvas.get_tk_widget().pack()
         toolbar = NavigationToolbar2Tk(canvas)
         toolbar.update()
         canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        gui.add(tab, text="Carbonitriding")
+        gui.pack()
+
     elif type == "TTT":
+        tab = ttk.Frame(gui)
         data = read_input()
         core = data['Material']['Composition']
         surface = dict()
@@ -183,11 +190,19 @@ def addgui(gui, type):
         plot2.set_xscale('log')
         plot2.title.set_text('Surface TTT')
         plot2.legend(loc="upper right")
-        canvas = FigureCanvasTkAgg(fig, master=gui)
+        canvas = FigureCanvasTkAgg(fig, master=tab)
         canvas.draw()
         canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         canvas.get_tk_widget().pack()
-
-
+        gui.add(tab, text="TTT diagrams")
+        gui.pack()
+    elif type == "TTTmodel":
+        tab = ttk.Frame(gui)
+        gui.add(tab, text="TTT fitted")
+        gui.pack()
+    elif type == "Quenching":
+        tab = ttk.Frame(gui)
+        gui.add(tab, text="Results")
+        gui.pack()
 def _run():
     pass

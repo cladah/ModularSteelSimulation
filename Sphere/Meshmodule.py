@@ -5,6 +5,10 @@ import meshio
 def createMesh():
     if checkinput('Mesh'):
         print('Using precalculated mesh')
+        meshdata = meshio.read("Cachefiles/Datastream.xdmf")
+        meshio.write("Resultfiles/Datastream.xdmf",
+                     meshio.Mesh(points=meshdata.points,
+                                 cells={"triangle": meshdata.get_cells_type("triangle")}))
         return
     print('Mesh module')
     data = read_input()
@@ -72,7 +76,7 @@ def gmshmodule():
     gdim = 2
     gmsh.option.setNumber("Geometry.Tolerance", 1.E-6)
     gmsh.model.occ.addPoint(0, 0, 0, 1)
-    gmsh.model.occ.addPoint(r*np.cos(np.pi/6), r*np.sin(np.pi/6), 0, lc, 2)
+    gmsh.model.occ.addPoint(r*np.cos(np.pi/12), r*np.sin(np.pi/12), 0, lc, 2)
     gmsh.model.occ.addPoint(r, 0, 0, lc, 3)
     #gmsh.model.occ.addPoint(r, 0, 0, 3)
     #gmsh.model.occ.addLine(1, 2, 1)
@@ -103,13 +107,11 @@ def gmshmodule():
     gmsh.model.mesh.generate(gdim)
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
-    gmsh.write("Resultfiles/Mesh.dat")
     #gmsh.write("Resultfiles/Mesh.vtk")
     gmsh.finalize()
 
     meshdata = meshio.read("Resultfiles/Mesh.msh")
-    #meshio.nastran.write("Resultfiles/Mesh.nas", meshdata)
-    #meshio.write("Resultfiles/Mesh.dat", meshdata)
+    # Creating datastream from mesh
     meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))

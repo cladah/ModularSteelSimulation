@@ -270,11 +270,6 @@ def TTTinterpolatetonodes():
             z1.append(tmpz1)
             z2.append(tmpz2)
 
-        #print("Results has the shape")
-        #print(np.shape(z1))
-        #print(np.shape(z2))
-        #print(z1)
-        #input("testpoint")
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             #z1 = np.nan_to_num(z1,nan=-1E12)
             #z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
@@ -286,22 +281,3 @@ def TTTinterpolatetonodes():
             saveresult("Modeldata", phase + "/KM/beta", np.asarray(z2))
         print(phase + " added to node data")
     print("Modeldata interpolated to nodes")
-def getJMAK(composition, phase):
-    from scipy import interpolate
-    T = readresultfile(filename, phase + "/JMAK/T")
-
-    tau = readresultfile(filename, phase + "/JMAK/tau")
-
-    n = readresultfile(filename, phase + "/JMAK/n")
-    # Taking out Nan values
-    xpoints = -tau * (-np.log(0.98)) ** (1 / n)
-    indx = xpoints < 1E12 * np.logical_not(np.isnan(tau))
-    T = T[indx]
-    tau = tau[indx]
-    n = n[indx]
-    taufunc = interpolate.splrep(T, tau, s=0)
-    nfunc = interpolate.splrep(T, n, s=0)
-    return taufunc, nfunc
-
-def getKM():
-    pass

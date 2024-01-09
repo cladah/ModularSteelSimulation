@@ -418,9 +418,10 @@ def runComsol():
     print("Adjusting model to input")
     model = adjustComsol(model)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,100)")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,2)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
+    print("Comsol model successfully ran")
     print("Exporting results")
 
     client.clear()

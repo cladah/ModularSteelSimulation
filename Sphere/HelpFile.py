@@ -131,6 +131,41 @@ def readdatastream(dataname):
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file")
 
+def createdatastreamcache():
+    import shutil
+    import os
+    shutil.copy("Resultfiles/Datastream.h5", "Cachefiles/Datastream.h5")
+    shutil.copy("Resultfiles/Datastream.xdmf", "Cachefiles/Datastream.xdmf")
+    try:
+        os.remove("Resultfiles/Datastream.h5")
+        os.remove("Resultfiles/Datastream.xdmf")
+    except:
+        print("No datastream caches")
+def removedatastreamcache():
+    import os
+    try:
+        os.remove("Cachefiles/Datastream.h5")
+        os.remove("Cachefiles/Datastream.xdmf")
+    except:
+        print("No datastream caches")
+
+def readdatastreamcache(dataname):
+    import h5py
+    try:
+        meshstream = meshio.read("Cachefiles/Datastream.xdmf")
+        if dataname in meshstream.point_data.keys():
+            data = meshstream.point_data[dataname]
+        elif dataname in meshstream.cell_data.keys():
+            data = meshstream.cell_data[dataname]
+        elif dataname == "nodes":
+            data = meshstream.points
+        elif dataname == "elements":
+            data = meshstream.cells
+        else:
+            raise KeyError()
+        return data
+    except:
+        raise KeyError("Datastream "+str(dataname)+" doesn't exist in cache file")
 def getaxisvalues(dataname):
     node_y = readdatastream('nodes')[:, 1]
     indx = np.where(node_y == 0)
@@ -183,7 +218,6 @@ def addTTTdata(compdata, data, type):
             TTTdata.close()
             return
     print("Composition not in TTT database")
-    #TTTdata[str(len(TTTdata) + 1)] = dict()
     TTTdata[str(len(TTTdata) + 1)] = {type:data,"Composition":compdata}
     TTTdata.commit()
     TTTdata.close()
