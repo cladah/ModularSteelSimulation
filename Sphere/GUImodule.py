@@ -122,14 +122,19 @@ def addgui(gui, type):
     mpl.rcParams["font.size"] = 32
 
     if type == "Mesh":
+        grid = meshio.read("Resultfiles/Datastream.xdmf")
+        nodes = grid.points
 
         tab = ttk.Frame(gui)
 
+        nodenr = tk.Label(tab, text="Number of nodes: " + str(len(nodes)), pady=10)
+        nodenr.pack()
+        elnr = tk.Label(tab, text="Number of elements: " + str(len(nodes)), pady=0)
+        elnr.pack()
 
 
 
-        grid = meshio.read("Resultfiles/Datastream.xdmf")
-        nodes = grid.points
+
         fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
         cmap = mpl.colors.ListedColormap("lightgray")
         c = np.ones(len(nodes))
