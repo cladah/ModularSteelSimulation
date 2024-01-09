@@ -71,13 +71,14 @@ def runguimodule(gui):
     import tkinter as tk
     #from tkinter import ttk
     from HelpFile import read_input
+    import matplotlib as mpl
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                    NavigationToolbar2Tk)
     import threading
     import matplotlib.pyplot as plt
     data = read_input()
-
+    mpl.rcParams["font.size"] = 32
     tab = ttk.Frame(gui)
 
 
@@ -112,34 +113,40 @@ def addgui(gui, type):
     from HelpFile import readdatastream, getaxisvalues, getTTTdata, read_input
     import numpy as np
     import tkinter as tk
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                    NavigationToolbar2Tk)
-    import vtk
+
+    mpl.rcParams["font.size"] = 32
 
     if type == "Mesh":
 
         tab = ttk.Frame(gui)
+
+
+
+
+        grid = meshio.read("Resultfiles/Datastream.xdmf")
+        nodes = grid.points
+        fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
+        cmap = mpl.colors.ListedColormap("lightgray")
+        c = np.ones(len(nodes))
+        ax.tripcolor(nodes[:, 0], nodes[:, 1], c, edgecolor="k", cmap=cmap)
+        fig.gca().set_aspect('equal')
+
+        canvas = FigureCanvasTkAgg(fig, master=tab)
+        canvas.draw()
+        canvas.get_tk_widget().pack()
+        toolbar = NavigationToolbar2Tk(canvas)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+
         gui.add(tab, text="Mesh")
         gui.pack()
-        pass
-        # fig = Figure(figsize=(5, 4), dpi=100)
-        # reader = vtk.vtkUnstructuredGridReader()
-        # reader.SetFileName("Resultfiles/Mesh.vtk")
-        # reader.Update()
-        # data = reader.GetOutput()
-        #
-        # points = data.GetPoints()
-        # npts = points.GetNumberOfPoints()
-        # x = vtk_to_numpy(points.GetData())
-        # triangles = vtk_to_numpy(data.GetCells().GetData())
-        # ntri = triangles.size // 4  # number of cells
-        # tri = np.take(triangles, [n for n in range(triangles.size) if n % 4 != 0]).reshape(ntri, 3)
-        # plt.figure(figsize=(8, 8))
-        # plt.triplot(x[:, 0], x[:, 1], tri)
-        # plt.gca().set_aspect('equal')
-        # plt.show()
+
     elif type == "Carbonitriding":
         tab = ttk.Frame(gui)
         wC = getaxisvalues("Composition/C")

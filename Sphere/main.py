@@ -43,13 +43,14 @@ def start():
             removedatastreamcache()
             addgui(tabs, "Quenching")
             tabs.select(5)
+            button.destroy()
         elif programstate.get() > 4 or runall == 1:
             print("All simulations are done")
         programstate.set(programstate.get()+1)
     if not os.path.exists('Cachefiles/InputCache.json'):
         createinputcache()
     gui = tk.Tk()
-    gui.geometry("500x600")
+    gui.geometry("1200x1000")
     gui.title("Quenching of steel")
     header = tk.Frame(gui, height=10)
     button = tk.Button(master=header, text="Continue", command=runmodule, padx=20, pady=10)

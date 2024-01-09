@@ -134,9 +134,9 @@ def readdatastream(dataname):
 def createdatastreamcache():
     import shutil
     import os
-    shutil.copy("Resultfiles/Datastream.h5", "Cachefiles/Datastream.h5")
-    shutil.copy("Resultfiles/Datastream.xdmf", "Cachefiles/Datastream.xdmf")
     try:
+        shutil.copy("Resultfiles/Datastream.h5", "Cachefiles/Datastream.h5")
+        shutil.copy("Resultfiles/Datastream.xdmf", "Cachefiles/Datastream.xdmf")
         os.remove("Resultfiles/Datastream.h5")
         os.remove("Resultfiles/Datastream.xdmf")
     except:
