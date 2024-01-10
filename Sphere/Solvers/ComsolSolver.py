@@ -468,12 +468,14 @@ def resultconverter():
     cord = getaxisvalues('nodes')
     fig = plt.figure()
 
-    azm = np.linspace(0, 2 * np.pi, 20)
+    azm = np.linspace(0, 2 * np.pi, 30)
     r, th = np.meshgrid(cord[:,0], azm)
-    z = [getaxisvalues("Martensite") for i in range(20)]
+    z = [getaxisvalues("Martensite") for i in range(30)]
     plt.subplot(projection="polar")
     plt.pcolormesh(th, r, z)
-    plt.plot(azm, r, color='k', ls='none')
+    plt.colorbar()
+    plt.clim(0, 1)
+    #plt.plot(azm, r, color='k', ls='none')
     plt.grid()
 
     plt.show()
