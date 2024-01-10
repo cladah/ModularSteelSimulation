@@ -3,6 +3,7 @@ import os
 from HelpFile import read
 
 def setupComsol():
+    return
     directory = os.getcwd()
     meshdirec = directory + '\\Resultfiles\\Mesh.nas'
     savedirec = directory + '\\Resultfiles'
@@ -44,6 +45,8 @@ def setupComsol():
     model.component("comp1").physics().create("audc", "AusteniteDecomposition", "geom1")
 
     # --------------- Adjusting properties
+    model.component("comp1").physics("solid").prop("StructuralTransientBehavior").set("StructuralTransientBehavior",
+                                                                                      "Quasistatic")
     model.component("comp1").physics("ht").prop("ShapeProperty").set("order_temperature", "1")
     #
     model.component("comp1").physics("audc").prop("SolidMechanics").set("trip", "1")

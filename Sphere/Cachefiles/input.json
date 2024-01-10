@@ -2,9 +2,9 @@
   "Rerun": {
     "Mesh": 1,
     "Carbonitriding": 0,
-    "TTT": 0,
+    "TTT": 1,
     "ThermoFit": 0,
-    "Quenching": 0,
+    "Quenching": 1,
     "Temp": 0,
     "Fatigue": 0
   },

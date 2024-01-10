@@ -2,7 +2,7 @@ import mph
 import os
 
 import numpy as np
-from HelpFile import readresultfile, read_input, readdatastream
+from HelpFile import readresultfile, read_input, readdatastream, adjustdatastream
 def modeldatatoComsolfiles():
     print("Adjusting phase transformation data to Comsol specifics")
     import csv
@@ -230,6 +230,8 @@ def setupComsol(model):
     model.component("comp1").physics().create("solid", "SolidMechanics", "geom1")
     model.component("comp1").physics().create("ht", "HeatTransfer", "geom1")
     model.component("comp1").physics().create("audc", "AusteniteDecomposition", "geom1")
+    model.component("comp1").physics("solid").prop("StructuralTransientBehavior").set("StructuralTransientBehavior",
+                                                                                      "Quasistatic")
 
     model.component("comp1").physics("audc").prop("MaterialProperties").runCommand("makecompoundmaterial")
     model.component("comp1").material("audcmat").selection().all()
@@ -401,30 +403,84 @@ def adjustComsol(model):
     model.save('Resultfiles/Comsolmodel')
     return model
 
+def Comsolexport(model):
+
+    model.result().export().create("data1", "Data")
+    model.result().export("data1").set("expr", "audc.phase1.xi")
+    model.result().export("data1").setIndex("expr", "audc.phase2.xi", 1)
+    model.result().export("data1").setIndex("expr", "audc.phase3.xi", 2)
+    model.result().export("data1").setIndex("expr", "audc.phase4.xi", 3)
+    model.result().export("data1").setIndex("expr", "audc.phase5.xi", 4)
+    model.result().export("data1").set("descr", "Phase fraction")
+    model.result().export("data1").set("unit", "1")
+    model.result().export("data1").set("filename", "C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Phasecomp.txt")
+    model.result().export("data1").setIndex("looplevelinput", "last", 0)
+    #model.result().export("data1").setIndex("looplevelindices", "1, 601", 0)
+    model.result().export("data1").run()
+
+    model.result().export().create("data2", "Data")
+    model.result().export("data2").set("expr", "solid.mises")
+    model.result().export("data2").set("descr", "von Mises")
+    model.result().export("data2").set("unit", "MPa")
+    model.result().export("data2").set("filename","C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Stress.txt")
+    model.result().export("data2").setIndex("looplevelinput", "last", 0)
+    model.result().export("data2").run()
+    pass
+def resultconverter():
+    import numpy as np
+    directory = os.getcwd()
+    savedirec = directory + '\\Resultfiles'
+    nodes = readdatastream("nodes")
+
+    data = np.loadtxt(savedirec + "\\Phasecomp.txt")
+    xdata = np.around(np.array(data)[:, 0], 12)
+    ydata = np.around(np.array(data)[:, 1], 12)
+    x = np.around(np.array(nodes[:, 0]), 12)
+    y = np.around(np.array(nodes[:, 1]), 12)
+    print(len(nodes))
+    print(xdata[1])
+    print(x[1])
+    resultlist = np.ones(len(nodes))
+    for i in range(len(nodes)):
+        for j in range(len(nodes)):
+            if x[j] == xdata[i]:
+                if y[j] == ydata[i]:
+                    resultlist[j] = data[i, 6]
+                    continue
+    print(resultlist)
+    adjustdatastream("Martensite", resultlist, "nodes")
+    print(readdatastream("Martensite"))
 def runComsol():
     directory = os.getcwd()
-    meshdirec = directory + '\\Resultfiles\\Mesh.nas'
     savedirec = directory + '\\Resultfiles'
     #client = mph.start()
     #pymodel = client.load("Resultfiles/Comsolmodel.mph")
     #model = pymodel.java
     modeldatatoComsolfiles()
     print("Opening Comsol multiphysics")
-    client = mph.start()
-    pymodel = client.create()
-    model = pymodel.java
+    #client = mph.start()
+
     print("Setting up model")
-    model = setupComsol(model)
+    if 1==1:
+        #pymodel = client.load("Resultfiles/Comsolmodel.mph")
+        #model = pymodel.java
+        pass
+    else:
+        pymodel = client.create()
+        model = pymodel.java
+        model = setupComsol(model)
+
     print("Adjusting model to input")
-    model = adjustComsol(model)
+    #model = adjustComsol(model)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,2)")
-    model.study("std1").run()
-    model.save('Resultfiles/Comsolmodel')
+    #model.study("std1").feature("time").set("tlist", "range(0,1,600)")
+    #model.study("std1").run()
+    #model.save('Resultfiles/Comsolmodel')
     print("Comsol model successfully ran")
     print("Exporting results")
-
-    client.clear()
+    #Comsolexport(model)
+    #client.clear()
+    resultconverter()
     print("Comsol multiphysics closed")
 
 
