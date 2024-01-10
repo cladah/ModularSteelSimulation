@@ -2,7 +2,7 @@ import mph
 import os
 
 import numpy as np
-from HelpFile import readresultfile, read_input, readdatastream, adjustdatastream
+from HelpFile import readresultfile, read_input, readdatastream, adjustdatastream, getaxisvalues
 def modeldatatoComsolfiles():
     print("Adjusting phase transformation data to Comsol specifics")
     import csv
@@ -428,28 +428,55 @@ def Comsolexport(model):
     pass
 def resultconverter():
     import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'
     nodes = readdatastream("nodes")
 
     data = np.loadtxt(savedirec + "\\Phasecomp.txt")
-    xdata = np.around(np.array(data)[:, 0], 12)
-    ydata = np.around(np.array(data)[:, 1], 12)
-    x = np.around(np.array(nodes[:, 0]), 12)
-    y = np.around(np.array(nodes[:, 1]), 12)
-    print(len(nodes))
-    print(xdata[1])
-    print(x[1])
-    resultlist = np.ones(len(nodes))
+    xdata = np.around(np.array(data)[:, 0], 8)
+    ydata = np.around(np.array(data)[:, 1], 8)
+    x = np.around(np.array(nodes[:, 0]), 8)
+    y = np.around(np.array(nodes[:, 1]), 8)
+
+    # Getting position of comsol nodes
+    indxcomsol = np.ones(len(nodes))
     for i in range(len(nodes)):
         for j in range(len(nodes)):
             if x[j] == xdata[i]:
                 if y[j] == ydata[i]:
-                    resultlist[j] = data[i, 6]
+                    indxcomsol[j] = i
                     continue
-    print(resultlist)
-    adjustdatastream("Martensite", resultlist, "nodes")
-    print(readdatastream("Martensite"))
+    indxcomsol = indxcomsol.astype(int)
+
+    adjustdatastream("Austenite", data[:, 2][indxcomsol], "nodes")
+    adjustdatastream("Ferrite", data[:, 3][indxcomsol], "nodes")
+    adjustdatastream("Pearlite", data[:, 4][indxcomsol], "nodes")
+    adjustdatastream("Bainite", data[:, 5][indxcomsol], "nodes")
+    adjustdatastream("Martensite", data[:, 6][indxcomsol], "nodes")
+
+    # shading interp
+    # ['viridis', 'plasma', 'inferno', 'magma', 'cividis']
+    #plt.tripcolor(nodes[:, 0], nodes[:, 1], data[:,6][indxcomsol], shading='gouraud',cmap='cividis')
+    #plt.clim(0, 1)
+    #plt.colorbar(label='Phase fraction [%]')
+    #plt.show()
+
+
+    # https://stackoverflow.com/questions/36513312/polar-heatmaps-in-python
+    cord = getaxisvalues('nodes')
+    fig = plt.figure()
+
+    azm = np.linspace(0, 2 * np.pi, 20)
+    r, th = np.meshgrid(cord[:,0], azm)
+    z = [getaxisvalues("Martensite") for i in range(20)]
+    plt.subplot(projection="polar")
+    plt.pcolormesh(th, r, z)
+    plt.plot(azm, r, color='k', ls='none')
+    plt.grid()
+
+    plt.show()
 def runComsol():
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'
