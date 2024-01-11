@@ -465,20 +465,19 @@ def resultconverter():
 
 
     # https://stackoverflow.com/questions/36513312/polar-heatmaps-in-python
-    cord = getaxisvalues('nodes')
-    fig = plt.figure()
-
-    azm = np.linspace(0, 2 * np.pi, 30)
-    r, th = np.meshgrid(cord[:,0], azm)
-    z = [getaxisvalues("Martensite") for i in range(30)]
-    plt.subplot(projection="polar")
-    plt.pcolormesh(th, r, z)
-    plt.colorbar()
-    plt.clim(0, 1)
-    #plt.plot(azm, r, color='k', ls='none')
-    plt.grid()
-
-    plt.show()
+    # cord = getaxisvalues('nodes')
+    # fig = plt.figure()
+    #
+    # azm = np.linspace(0, 2 * np.pi, 30)
+    # r, th = np.meshgrid(cord[:,0], azm)
+    # z = [getaxisvalues("Martensite") for i in range(30)]
+    # subfig = plt.subplot(projection="polar")
+    # plot1 = subfig.pcolormesh(th, r, z)
+    # subfig.set_xticklabels([])
+    # #subfig.set_yticklabels([])
+    # fig.colorbar(plot1, ax=fig.get_axes())
+    # plot1.set_clim(0,1)
+    # plt.show()
 def runComsol():
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'

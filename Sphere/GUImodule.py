@@ -5,68 +5,6 @@ from Carbonitridingmodule import runcarbonitridingmodule
 from TTTmodule import runTTTmodule, runTTTmodelmodule
 from HelpFile import *
 
-class MainApp(tk.Tk):
-
-    def __init__(self, *args, **kwargs):
-        tk.Tk.__init__(self, *args, **kwargs)
-        programstate = tk.IntVar(self, 0)
-        runall = tk.IntVar(self, 0)
-
-        #tk.Tk.iconbitmap(self, default="clienticon.ico")
-        tk.Tk.wm_title(self, "Client")
-
-        container = tk.Frame(self)
-        button = tk.Button(master=self, text="Continue", command=create_frame("test"), padx=20, pady=20)
-        button.pack(side=tk.TOP, anchor=tk.NW, padx=20, pady=20)
-        container.pack(side="top", fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
-
-        self.frames = {}
-        frame = StartPage(container, self)
-
-        self.frames[StartPage] = frame
-
-        frame.grid(row=0, column=0, sticky="nsew")
-
-
-        self.show_frame(StartPage)
-    def create_frame(self, cont):
-        pass
-        #self.frames[cont] = Page2(container, self)
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
-class Page2(tk.Frame):
-    pass
-class StartPage(tk.Frame):
-    def __init__(self, parent, controller):
-        from HelpFile import read_input
-        from matplotlib.figure import Figure
-        from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
-                                                       NavigationToolbar2Tk)
-        data = read_input()
-        tk.Frame.__init__(self,parent)
-        label = tk.Label(self, text="Start Page")
-        label.pack(pady=10,padx=10)
-        # Add plot of temperature
-        starttemp = data["Thermo"]["CNtemp"] - 273.15
-        quenchtemp = data["Thermo"]["quenchtemp"] - 273.15
-        tempertemp = 400  # data["Thermo"]["tempertemp"]
-        roomtemp = data["Thermo"]["quenchtemp"] - 273.15
-        holdCN = data["Thermo"]["CNtime"] * 60
-        holdquench = holdCN + 30
-        holdtemper = holdquench + 60
-        holdend = holdtemper + 60
-        times = [0, 0, holdCN, holdCN + 10, holdquench, holdquench + 10, holdtemper, holdtemper + 10, holdend]
-        temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
-        fig = Figure(figsize=(5, 4), dpi=100)
-        plot1 = fig.add_subplot(111)
-        plot1.plot(times, temps)
-        canvas = FigureCanvasTkAgg(fig, master=self)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
-
 def runguimodule(gui):
     import tkinter as tk
     #from tkinter import ttk
@@ -132,14 +70,13 @@ def addgui(gui, type):
         elnr = tk.Label(tab, text="Number of elements: " + str(len(nodes)), pady=0)
         elnr.pack()
 
-
-
-
         fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
         cmap = mpl.colors.ListedColormap("lightgray")
         c = np.ones(len(nodes))
-        ax.tripcolor(nodes[:, 0], nodes[:, 1], c, edgecolor="k", cmap=cmap)
+        ax.tripcolor(nodes[:, 0]*1000, nodes[:, 1]*1000, c, edgecolor="k", cmap=cmap)
         fig.gca().set_aspect('equal')
+        ax.set_xlabel('[mm]')
+        ax.set_ylabel('[mm]')
 
         canvas = FigureCanvasTkAgg(fig, master=tab)
         canvas.draw()
@@ -159,8 +96,11 @@ def addgui(gui, type):
         xyz = getaxisvalues("nodes")
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
-        plot1.plot(np.array(xyz)[:,0], wC)
-        plot1.plot(np.array(xyz)[:, 0], wN)
+        plot1.plot(np.array(xyz)[:, 0]*1000, wC, label='Carbon')
+        plot1.plot(np.array(xyz)[:, 0]*1000, wN, label='Nitrogen')
+        plot1.set_xlabel('radius [mm]')
+        plot1.set_ylabel('Weight fraction [%]')
+        plot1.legend()
         canvas = FigureCanvasTkAgg(fig, master=tab)
         canvas.draw()
         canvas.get_tk_widget().pack()
@@ -214,6 +154,39 @@ def addgui(gui, type):
         gui.pack()
     elif type == "Quenching":
         tab = ttk.Frame(gui)
+        cord = getaxisvalues('nodes')
+        fig = Figure(figsize=(10, 4), dpi=50)
+
+        azm = np.linspace(0, 2 * np.pi, 30)
+        r, th = np.meshgrid(cord[:, 0], azm)
+        aust = [getaxisvalues("Austenite") for i in range(30)]
+        mart = [getaxisvalues("Martensite") for i in range(30)]
+
+        #sfig1 = fig.add_subplot(121, projection="polar")
+        #sfig2 = fig.add_subplot(122, projection="polar")
+
+        subfigs = fig.subfigures(1, 2)
+
+        ax1 = subfigs[0].add_subplot(projection="polar")
+        plot1 = ax1.pcolormesh(th, r, aust)
+        ax1.set_xticklabels([])
+        ax1.set_yticklabels([])
+
+        ax2 = subfigs[1].add_subplot(projection="polar")
+        plot2 = ax2.pcolormesh(th, r, mart)
+        ax2.set_xticklabels([])
+        ax2.set_yticklabels([])
+
+        fig.colorbar(plot1, ax=subfigs[0].get_axes())
+        fig.colorbar(plot2, ax=subfigs[1].get_axes())
+        plot1.set_clim(0, 1)
+        plot2.set_clim(0, 1)
+
+
+        canvas = FigureCanvasTkAgg(fig, master=tab)
+        canvas.draw()
+        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        canvas.get_tk_widget().pack()
         gui.add(tab, text="Results")
         gui.pack()
 def _run():

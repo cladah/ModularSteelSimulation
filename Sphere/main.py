@@ -8,12 +8,14 @@ from HelpFile import *
 from Meshmodule import createMesh
 from Carbonitridingmodule import runcarbonitridingmodule
 from TTTmodule import runTTTmodule, runTTTmodelmodule
-from GUImodule import runguimodule, addgui, MainApp
+from GUImodule import runguimodule, addgui
+from GUImoduletest import MainApp
 from Postmodule import *
 from Quenchingmodule import runquenchingmodule
 from Testfile import *
 import tkinter as tk
 from tkinter import ttk
+import subprocess as sub
 
 
 
@@ -21,30 +23,30 @@ def start():
     data = read_input()
     def runmodule():
         print(" ")
-        if programstate.get() == 0 or runall == 1:
+        if programstate.get() == 0 or runall.get() == 1:
             createdatastreamcache()
             createMesh()
             addgui(tabs, "Mesh")
             tabs.select(1)
-        elif programstate.get() == 1 or runall == 1:
+        if programstate.get() == 1 or runall.get() == 1:
             runcarbonitridingmodule()
             addgui(tabs, "Carbonitriding")
             tabs.select(2)
-        elif programstate.get() == 2 or runall == 1:
+        if programstate.get() == 2 or runall.get() == 1:
             runTTTmodule()
             addgui(tabs, "TTT")
             tabs.select(3)
-        elif programstate.get() == 3 or runall == 1:
+        if programstate.get() == 3 or runall.get() == 1:
             runTTTmodelmodule()
             addgui(tabs, "TTTmodel")
             tabs.select(4)
-        elif programstate.get() == 4 or runall == 1:
+        if programstate.get() == 4 or runall.get() == 1:
             runquenchingmodule()
             removedatastreamcache()
             addgui(tabs, "Quenching")
             tabs.select(5)
             button.destroy()
-        elif programstate.get() > 4 or runall == 1:
+        if programstate.get() > 4 or runall.get() == 1:
             print("All simulations are done")
         programstate.set(programstate.get()+1)
     if not os.path.exists('Cachefiles/InputCache.json'):
@@ -70,14 +72,14 @@ def start():
     tabs.pack(side="top", fill="both", expand=True)
 
     runguimodule(tabs)
-
+    sub.Popen()
     #container = tk.Frame(gui)
     #container.pack(side="top", fill="both", expand=True)
     #container.grid_rowconfigure(0, weight=1)
     #container.grid_columnconfigure(0, weight=1)
 
     programstate = tk.IntVar(gui, 0)
-    runall = tk.IntVar(gui, 0)
+    runall = tk.IntVar(gui, 1)
 
     gui.mainloop()
 def GUI():
@@ -93,4 +95,4 @@ def modelling():
     removedatastreamcache()
 
 if __name__ == "__main__":
-    modelling()
+    GUI()

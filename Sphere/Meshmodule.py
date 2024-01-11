@@ -1,3 +1,5 @@
+import sys
+
 from HelpFile import read_input, checkinput, adjustinputcache
 import numpy as np
 import meshio
@@ -69,8 +71,11 @@ def gmshmodule():
     tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(data['Geometry']['nodes'] - 1)])
     rnodes = r * tmpgeo / np.max(tmpgeo)
     lc = rnodes[-1]-rnodes[-2]
-    print(lc)
+    #print(lc)
     gmsh.initialize()
+    gmsh.option.setNumber("General.Terminal", 0) ## TESTING!
+    gmsh.logger.start()
+
     gmsh.clear()
     gmsh.model.add("QuarterCirc")
     gdim = 2
@@ -108,6 +113,7 @@ def gmshmodule():
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
     gmsh.write("Resultfiles/Mesh.vtk")
+    print(*gmsh.logger.get(), sep="\n")
     gmsh.finalize()
 
     meshdata = meshio.read("Resultfiles/Mesh.msh")
