@@ -46,14 +46,16 @@ class leftFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
-        self.sidebar_button_1.grid(row=0, column=0, padx=10, pady=5)
+        self.rowconfigure(0, weight=1)
+
 
         self.log_widget = ctk.CTkTextbox(self,
                                          width=400,
                                          height=800)
-        self.log_widget.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        self.log_widget.grid(row=0, column=0, columnspan=2, padx=20, pady=10, sticky="nsew")
+
+        self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
+        self.sidebar_button_1.grid(row=1, column=1, padx=20, pady=20)
     def test(self,master):
         print()
 class rightFrame(ctk.CTkFrame):
