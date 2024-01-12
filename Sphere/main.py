@@ -9,13 +9,14 @@ from Meshmodule import createMesh
 from Carbonitridingmodule import runcarbonitridingmodule
 from TTTmodule import runTTTmodule, runTTTmodelmodule
 from GUImodule import runguimodule, addgui
-from GUImoduletest import MainApp
+from CGUImodule import MainApp
 from Postmodule import *
 from Quenchingmodule import runquenchingmodule
 from Testfile import *
 import tkinter as tk
 from tkinter import ttk
 import subprocess as sub
+import customtkinter as ctk
 
 
 
@@ -83,6 +84,7 @@ def start():
 
     gui.mainloop()
 def GUI():
+    ctk.set_appearance_mode("dark")
     app = MainApp()
     app.mainloop()
 def modelling():

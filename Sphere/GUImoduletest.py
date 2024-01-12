@@ -13,6 +13,7 @@ import subprocess
 from io import StringIO
 import logging
 import matplotlib as mpl
+import customtkinter as ctk
 
 
 class PrintLogger(object):
@@ -46,9 +47,9 @@ class MainApp(tk.Tk):
         self.header.grid(row=0, columnspan=2, sticky="news")
         self.header.columnconfigure(0, weight=1)
         self.header.rowconfigure(0, weight=1)
-        #self.header.pack(side="top", fill="both", expand=False)
-        #self.nextbutton = tk.Button(self.root, text="Continue", command=self.next)
-        #self.nextbutton.pack()
+
+
+
         self.root.grid_rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         self.left_frame = tk.Frame(self.root, width=200, height=200, bg='grey')
@@ -72,7 +73,6 @@ class MainApp(tk.Tk):
         self.tabs = ttk.Notebook(self.right_frame)
         self.tabs.pack(side="top", fill="both", expand=True)
         self.start_page()
-
 
 
     def start_page(self):
