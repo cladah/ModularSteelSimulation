@@ -17,6 +17,7 @@ import tkinter as tk
 from tkinter import ttk
 import subprocess as sub
 import customtkinter as ctk
+from StructureFile import CalcModule
 
 
 
@@ -84,17 +85,26 @@ def start():
 
     gui.mainloop()
 def GUI():
+    createdatastreamcache()
     ctk.set_appearance_mode("dark")
     app = MainApp()
     app.mainloop()
+    removedatastreamcache()
 def modelling():
     createdatastreamcache()
-    createMesh()
-    runcarbonitridingmodule()
-    runTTTmodule()
-    runTTTmodelmodule()
-    runquenchingmodule()
+
+    modules = list()
+    modules.append(CalcModule("Meshing"))
+    modules.append(CalcModule("Carbonitriding"))
+    modules.append(CalcModule("TTT"))
+    modules.append(CalcModule("TTTmodeling"))
+    modules.append(CalcModule("Quenching"))
+
+    for module in modules:
+        module.runmodule()
+
     removedatastreamcache()
+
 
 if __name__ == "__main__":
     GUI()

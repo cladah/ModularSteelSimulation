@@ -331,15 +331,46 @@ class QuenchingTab(ctk.CTkFrame):
         plot1.set_clim(0, 1)
         plot2.set_clim(0, 1)
 
-        canvas = FigureCanvasTkAgg(fig, master=self)
-        canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
-        toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
+        phasecanvas = FigureCanvasTkAgg(fig, master=self)
+        phasecanvas.draw()
+        phasecanvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        toolbar = NavigationToolbar2Tk(phasecanvas, self, pack_toolbar=False)
         toolbar.grid(row=1, column=0, sticky="nsew")
         toolbar.update()
-        canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+        #phasecanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+
+        fig2 = Figure(figsize=(10, 4), dpi=50)
+        vonMises = [getaxisvalues("vonMises") for i in range(30)]
+
+        ax3 = fig2.add_subplot(projection="polar")
+        plot3 = ax3.pcolormesh(th, r, vonMises)
+        ax3.set_xticklabels([])
+        ax3.set_yticklabels([])
+
+        fig2.colorbar(plot3, ax=fig2.get_axes())
+
+
+        stresscanvas = FigureCanvasTkAgg(fig2, master=self)
+        stresscanvas.draw()
+        stresscanvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        toolbar = NavigationToolbar2Tk(stresscanvas, self, pack_toolbar=False)
+        toolbar.grid(row=1, column=0, sticky="nsew")
+        toolbar.update()
+        stresscanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
+
+        def combobox_callback(choice):
+            print("combobox dropdown clicked:", choice)
+
+        combobox = ctk.CTkComboBox(master=self,
+                                             values=["Phase fractions", "von Mises stress"],
+                                             command=combobox_callback)
+
+        combobox.grid(row=0, column=0, sticky="nsew")
+
+
 class MainApp(ctk.CTk):
     def __init__(self):
+        from StructureFile import CalcModule
         super().__init__()
         self.geometry("1200x1000")
         self.title("Quenching of steel")
@@ -386,6 +417,13 @@ class MainApp(ctk.CTk):
         #self.sidebar_button_1.grid(row=1, column=0, padx=20, pady=10)
 
         self.programstate = ctk.IntVar(self, 0)
+        self.modules = list()
+        self.modules.append(CalcModule("Meshing"))
+        self.modules.append(CalcModule("Carbonitriding"))
+        self.modules.append(CalcModule("TTT"))
+        self.modules.append(CalcModule("TTTmodeling"))
+        self.modules.append(CalcModule("Quenching"))
+
     def next_module(self):
         # Logging frame
         logger = PrintLogger(self.sidebar_frame.log_widget)
@@ -394,19 +432,23 @@ class MainApp(ctk.CTk):
         modules = ["Mesh","Carbonitriding","TTT","TTTmodel","Quenching","Tempering"]
 
         # GUI frame
-        threading.Thread(self.run_module(self.programstate.get())).start()
-        self.main_frame.add_gui(modules[self.programstate.get()])
+        try:
+            threading.Thread(self.run_module(self.programstate.get())).start()
+            self.main_frame.add_gui(modules[self.programstate.get()])
+        except IndexError:
+            print("No modules left in pipeline")
         #self.tabs.select(self.programstate.get())
         self.programstate.set(self.programstate.get() + 1)
 
     def run_module(self, type):
-        if type == 0:
-            createMesh()
-        elif type == 1:
-            runcarbonitridingmodule()
-        elif type == 2:
-            runTTTmodule()
-        elif type == 3:
-            runTTTmodelmodule()
-        elif type == 4:
-            runquenchingmodule()
+        self.modules[type].runmodule()
+        # if type == 0:
+        #
+        # elif type == 1:
+        #     runcarbonitridingmodule()
+        # elif type == 2:
+        #     runTTTmodule()
+        # elif type == 3:
+        #     runTTTmodelmodule()
+        # elif type == 4:
+        #     runquenchingmodule()

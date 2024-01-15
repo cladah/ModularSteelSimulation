@@ -45,7 +45,7 @@ def runTTTmodule():
     if checkinput('TTT'):
         print('Using precalculated TTT simulation')
         return
-    print('TTT module')
+    print("\nTTT module")
     TTTcompositions = getTTTcompositions()
     for tmpcomp in TTTcompositions:
         runTTTcalc(tmpcomp)
@@ -118,10 +118,10 @@ def runTTTcalc(composition):
         TTTdata[ph] = phase
     addTTTdata(composition, TTTdata, "TTTdata")
 def runTTTmodelmodule():
+    print('\nTTT models module')
     if checkinput('ThermoFit'):
         print('Using precalculated phase transformation models')
         return
-    print('TTT models module')
     TTTcompositions = getTTTcompositions()
     for tmpcomp in TTTcompositions:
         TTTfit(tmpcomp)

@@ -101,8 +101,10 @@
   "Programs": {
     "Meshing": "Gmsh",
     "Coupling": "Stagg",
-    "CNDiffusion": "TC",
-    "CCT": "TC",
+    "Carbonitriding": "TC",
+    "TTT": "TC",
+    "TTTmodeling": "Python",
+    "Quenching": "Comsol",
     "Thermal": "FCSx",
     "FEM": "Comsol",
     "Phasetr": "FCSx"

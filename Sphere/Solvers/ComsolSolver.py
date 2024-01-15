@@ -428,8 +428,6 @@ def Comsolexport(model):
     pass
 def resultconverter():
     import numpy as np
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'
     nodes = readdatastream("nodes")
@@ -456,28 +454,23 @@ def resultconverter():
     adjustdatastream("Bainite", data[:, 5][indxcomsol], "nodes")
     adjustdatastream("Martensite", data[:, 6][indxcomsol], "nodes")
 
-    # shading interp
-    # ['viridis', 'plasma', 'inferno', 'magma', 'cividis']
-    #plt.tripcolor(nodes[:, 0], nodes[:, 1], data[:,6][indxcomsol], shading='gouraud',cmap='cividis')
-    #plt.clim(0, 1)
-    #plt.colorbar(label='Phase fraction [%]')
-    #plt.show()
+    data = np.loadtxt(savedirec + "\\Stress.txt")
+    xdata = np.around(np.array(data)[:, 0], 8)
+    ydata = np.around(np.array(data)[:, 1], 8)
+    x = np.around(np.array(nodes[:, 0]), 8)
+    y = np.around(np.array(nodes[:, 1]), 8)
 
+    # Getting position of comsol nodes
+    indxcomsol = np.ones(len(nodes))
+    for i in range(len(nodes)):
+        for j in range(len(nodes)):
+            if x[j] == xdata[i]:
+                if y[j] == ydata[i]:
+                    indxcomsol[j] = i
+                    continue
+    indxcomsol = indxcomsol.astype(int)
+    adjustdatastream("vonMises", data[:, 2][indxcomsol], "nodes")
 
-    # https://stackoverflow.com/questions/36513312/polar-heatmaps-in-python
-    # cord = getaxisvalues('nodes')
-    # fig = plt.figure()
-    #
-    # azm = np.linspace(0, 2 * np.pi, 30)
-    # r, th = np.meshgrid(cord[:,0], azm)
-    # z = [getaxisvalues("Martensite") for i in range(30)]
-    # subfig = plt.subplot(projection="polar")
-    # plot1 = subfig.pcolormesh(th, r, z)
-    # subfig.set_xticklabels([])
-    # #subfig.set_yticklabels([])
-    # fig.colorbar(plot1, ax=fig.get_axes())
-    # plot1.set_clim(0,1)
-    # plt.show()
 def runComsol():
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'

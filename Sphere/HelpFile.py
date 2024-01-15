@@ -115,8 +115,8 @@ def adjustdatastream(dataname,data,type):
         raise KeyError("datastream missing nodes or elements")
 def readdatastream(dataname):
     import h5py
+    meshstream = meshio.read("Resultfiles/Datastream.xdmf")
     try:
-        meshstream = meshio.read("Resultfiles/Datastream.xdmf")
         if dataname in meshstream.point_data.keys():
             data = meshstream.point_data[dataname]
         elif dataname in meshstream.cell_data.keys():
@@ -129,7 +129,7 @@ def readdatastream(dataname):
             raise KeyError()
         return data
     except:
-        raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file")
+        raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is " + str(*list(meshstream.point_data.keys())) + " and " + str(*list(meshstream.cell_data.keys())))
 
 def createdatastreamcache():
     import shutil
@@ -151,8 +151,8 @@ def removedatastreamcache():
 
 def readdatastreamcache(dataname):
     import h5py
+    meshstream = meshio.read("Cachefiles/Datastream.xdmf")
     try:
-        meshstream = meshio.read("Cachefiles/Datastream.xdmf")
         if dataname in meshstream.point_data.keys():
             data = meshstream.point_data[dataname]
         elif dataname in meshstream.cell_data.keys():
@@ -165,7 +165,7 @@ def readdatastreamcache(dataname):
             raise KeyError()
         return data
     except:
-        raise KeyError("Datastream "+str(dataname)+" doesn't exist in cache file")
+        raise KeyError("Datastream "+str(dataname)+" doesn't exist in cache file. Data that exist is " + str(*list(meshstream.point_data.keys())) + " and " + str(*list(meshstream.cell_data.keys())))
 def getaxisvalues(dataname):
     node_y = readdatastream('nodes')[:, 1]
     indx = np.where(node_y == 0)

@@ -73,7 +73,7 @@ def gmshmodule():
     lc = rnodes[-1]-rnodes[-2]
     #print(lc)
     gmsh.initialize()
-    gmsh.option.setNumber("General.Terminal", 0) ## TESTING!
+    gmsh.option.setNumber("General.Terminal", 0)
     gmsh.logger.start()
 
     gmsh.clear()

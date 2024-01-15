@@ -5,7 +5,7 @@ def runquenchingmodule():
     if checkinput('Quenching'):
         print('Using old quenching simulation')
         return
-    print('Quenching module')
+    print('\nQuenching module')
     data = read_input()
     if data['Programs']['FEM'] == 'FCSx':
         print('FeniCSx not implemented')
