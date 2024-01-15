@@ -1,3 +1,5 @@
+import matplotlib.backends.backend_tkagg
+import matplotlib
 from HelpFile import *
 from Meshmodule import createMesh
 from Carbonitridingmodule import runcarbonitridingmodule
@@ -12,6 +14,7 @@ import logging
 import matplotlib as mpl
 import customtkinter as ctk
 
+
 class PrintLogger(object):
     def __init__(self, textbox, log_level=logging.INFO):  # pass reference to text widget
         self.textbox = textbox  # keep ref
@@ -22,8 +25,11 @@ class PrintLogger(object):
         self.textbox.insert("end", text)  # write text to textbox
         self.textbox.see("end")  # scroll to end
         self.textbox.configure(state="disabled")  # make field readonly
+
     def flush(self):  # needed for file like object
         pass
+
+
 class testFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -31,33 +37,46 @@ class testFrame(ctk.CTkFrame):
         self.logo_label = ctk.CTkLabel(self, text="Quenching simulation",
                                        font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(column=0, padx=20, pady=(20, 10))
+
+
 class headerFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
-        self.columnconfigure(1, weight=1)
+        from PIL import Image
+        #self.columnconfigure(0, weight=1)
+
+        bearingimage = ctk.CTkImage(light_image=Image.open("GUIfiles/Ballbearing2.png"), size=(50, 60))
+        imagelabel = ctk.CTkLabel(self, text="", image=bearingimage)
+        imagelabel.grid(row=0, column=0, sticky="w", pady=(20, 10), padx=(20, 0))
 
         self.logo_label = ctk.CTkLabel(self, text="Quenching simulation",
-                                                 font=ctk.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
-        self.logo_label = ctk.CTkLabel(self, text="Material is: ",
                                        font=ctk.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=1, padx=20, pady=(20, 10))
+        self.logo_label.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="w")
+        #self.logo_label = ctk.CTkLabel(self, text="Material is: ",
+        #                               font=ctk.CTkFont(size=20, weight="bold"))
+        #self.logo_label.grid(row=0, column=1, padx=20, pady=(20, 10))
+
+
 class leftFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
-
         self.log_widget = ctk.CTkTextbox(self,
                                          width=400,
                                          height=800)
         self.log_widget.grid(row=0, column=0, columnspan=2, padx=20, pady=10, sticky="nsew")
 
+        self.runall_switch = ctk.CTkSwitch(self, text="Run all modules")
+        self.runall_switch.grid(row=1, column=0, padx=20, pady=20)
         self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
         self.sidebar_button_1.grid(row=1, column=1, padx=20, pady=20)
-    def test(self,master):
+
+    def test(self, master):
         print()
+
+
 class rightFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -72,6 +91,7 @@ class rightFrame(ctk.CTkFrame):
         tab0frame.grid(row=0, column=0, sticky="nsew")
         tab0.rowconfigure(0, weight=1)
         tab0.columnconfigure(0, weight=1)
+
     def add_gui(self, type):
         from HelpFile import readdatastream, getaxisvalues, getTTTdata, read_input
         import numpy as np
@@ -118,25 +138,40 @@ class rightFrame(ctk.CTkFrame):
             self.tabs_frame.set("Quenching")
         elif type == "End":
             pass
+
+
 class infoTab(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         import matplotlib as mpl
+        from PIL import Image
         import matplotlib.pyplot as plt
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
         data = read_input()
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(2, weight=1)
-        self.nodenr = ctk.CTkLabel(self, text="Number of nodes: ", pady=10)
-        self.nodenr.grid(row=0, column=0, sticky="nsew")
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=0)
+        self.rowconfigure(4, weight=1)
+
+        # bearingimage = ctk.CTkImage(light_image=Image.open("GUIfiles/Ballbearing.png"),size=(300,300))
+        # imagelabel = ctk.CTkLabel(self, text="", image=bearingimage)
+        # imagelabel.grid(row=0, column=0, sticky="nsew")
+        compstr = [key +  ": " + str(data["Material"]["Composition"][key]) for key in data["Material"]["Composition"].keys()]
+
+        self.composition = ctk.CTkLabel(self, text="Composition is:    " + "    ".join(compstr), pady=10)
+        self.composition.grid(row=0, column=0, sticky="w")
+        self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(data["Geometry"]["nodes"]), pady=10)
+        self.nodenr.grid(row=1, column=0, sticky="w")
+        self.drawing = ctk.CTkLabel(self, text="Radius of sphere: " + str(data["Geometry"]["radius"]), pady=10)
+        self.drawing.grid(row=2, column=0, sticky="w")
 
         data = read_input()
         mpl.rcParams["font.size"] = 32
 
         text = ctk.CTkLabel(self, text="Temperature history:")
-        text.grid(row=1, column=0, sticky="nsew")
+        text.grid(row=3, column=0, columnspan=2, sticky="nsew")
 
         # Add plot of temperature
         starttemp = data["Thermo"]["CNtemp"] - 273.15
@@ -155,10 +190,13 @@ class infoTab(ctk.CTkFrame):
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
         canvas.get_tk_widget().grid(row=2, column=0, sticky="nsew")
-        toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
-        toolbar.grid(row=3, column=0, sticky="nsew")
-        toolbar.update()
-        canvas._tkcanvas.grid(row=2, column=0, sticky="nsew")
+        # toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
+        # toolbar.grid(row=5, column=0, sticky="nsew")
+        # toolbar.update()
+        canvas._tkcanvas.grid(row=4, column=0,columnspan=2, sticky="nsew")
+
+
+
 class meshTab(ctk.CTkFrame):
     def __init__(self, master):
         import matplotlib as mpl
@@ -169,16 +207,16 @@ class meshTab(ctk.CTkFrame):
         super().__init__(master)
         mpl.rcParams["font.size"] = 32
         self.columnconfigure(0, weight=1)
-        #self.rowconfigure(0, weight=1)
-        #self.rowconfigure(1, weight=1)
+        # self.rowconfigure(0, weight=1)
+        # self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
         grid = meshio.read("Resultfiles/Datastream.xdmf")
         nodes = grid.points
 
         self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(len(nodes)), pady=10)
         self.nodenr.grid(row=0, column=0, sticky="nsew")
-        #self.choices = ctk.CTkComboBox(self, values=["test 1", "test 2"])
-        #self.choices.grid(row=0, column=0, padx=20, pady=10, sticky="nsew")
+        # self.choices = ctk.CTkComboBox(self, values=["test 1", "test 2"])
+        # self.choices.grid(row=0, column=0, padx=20, pady=10, sticky="nsew")
         self.elnr = ctk.CTkLabel(self, text="Number of elements: " + str(len(nodes)), pady=0)
         self.elnr.grid(row=1, column=0, sticky="nsew")
 
@@ -197,8 +235,10 @@ class meshTab(ctk.CTkFrame):
         toolbar.grid(row=3, column=0, sticky="nsew")
         toolbar.update()
         canvas._tkcanvas.grid(row=2, column=0, sticky="nsew")
+
+
 class CNTab(ctk.CTkFrame):
-    def __init__(self,master):
+    def __init__(self, master):
         super().__init__(master)
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
@@ -225,8 +265,9 @@ class CNTab(ctk.CTkFrame):
         toolbar.update()
         canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 
+
 class TTTTab(ctk.CTkFrame):
-    def __init__(self,master):
+    def __init__(self, master):
         super().__init__(master)
         import matplotlib as mpl
         import matplotlib.pyplot as plt
@@ -277,6 +318,7 @@ class TTTTab(ctk.CTkFrame):
         toolbar.update()
         canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 
+
 class TTTmodelTab(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -295,6 +337,41 @@ class TTTmodelTab(ctk.CTkFrame):
         toolbar.grid(row=1, column=0, sticky="nsew")
         toolbar.update()
         canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+
+
+class FEMresults(matplotlib.figure.Figure):
+    def __init__(self, master, datatype):
+        super().__init__((10, 4), 50)
+        self.master = master
+        from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
+                                                       NavigationToolbar2Tk)
+        cord = getaxisvalues('nodes')
+        if datatype == "vonMises":
+            azm = np.linspace(0, 2 * np.pi, 30)
+            r, th = np.meshgrid(cord[:, 0], azm)
+            vonMises = [getaxisvalues("vonMises") for i in range(30)]
+            ax = self.add_subplot(projection="polar")
+            plot3 = ax.pcolormesh(th, r, vonMises)
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.set_xlabel("testing")
+            self.colorbar(plot3, ax=self.get_axes())
+
+            self.canvas = FigureCanvasTkAgg(self, master=master)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
+            toolbar = NavigationToolbar2Tk(self.canvas, master, pack_toolbar=False)
+            toolbar.grid(row=2, column=0, sticky="nsew")
+            toolbar.update()
+            self.tkcanvas.grid(row=1, column=0, sticky="nsew")
+
+    def show(self):
+        pass
+
+    def clear(self):
+        pass
+
+
 class QuenchingTab(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -302,8 +379,16 @@ class QuenchingTab(ctk.CTkFrame):
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
         cord = getaxisvalues('nodes')
+
+        def combobox_callback(choice):
+            widgets = self.grid_slaves(row=1, column=0)
+            if len(widgets) != 0:
+                for widget in widgets:
+                    widget.grid_remove()
+            canvas[choice]._tkcanvas.grid(row=1, column=0, sticky="nsew")
+
         fig = Figure(figsize=(10, 4), dpi=50)
 
         azm = np.linspace(0, 2 * np.pi, 30)
@@ -333,11 +418,11 @@ class QuenchingTab(ctk.CTkFrame):
 
         phasecanvas = FigureCanvasTkAgg(fig, master=self)
         phasecanvas.draw()
-        phasecanvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        phasecanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
         toolbar = NavigationToolbar2Tk(phasecanvas, self, pack_toolbar=False)
-        toolbar.grid(row=1, column=0, sticky="nsew")
+        toolbar.grid(row=2, column=0, sticky="nsew")
         toolbar.update()
-        #phasecanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+        phasecanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 
         fig2 = Figure(figsize=(10, 4), dpi=50)
         vonMises = [getaxisvalues("vonMises") for i in range(30)]
@@ -349,29 +434,44 @@ class QuenchingTab(ctk.CTkFrame):
 
         fig2.colorbar(plot3, ax=fig2.get_axes())
 
-
         stresscanvas = FigureCanvasTkAgg(fig2, master=self)
         stresscanvas.draw()
-        stresscanvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        stresscanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
         toolbar = NavigationToolbar2Tk(stresscanvas, self, pack_toolbar=False)
-        toolbar.grid(row=1, column=0, sticky="nsew")
+        toolbar.grid(row=2, column=0, sticky="nsew")
         toolbar.update()
-        stresscanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
+        # stresscanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
+
+        strainfigure = Figure(figsize=(10, 4), dpi=50)
+        ep1 = getaxisvalues("ep1")
+        ep2 = getaxisvalues("ep2")
+        ep3 = getaxisvalues("ep3")
+        strainaxis = strainfigure.add_subplot()
+        strainaxis.plot(cord[:, 0], ep1, label="First principal strain")
+        strainaxis.plot(cord[:, 0], ep2, label="Second principal strain")
+        strainaxis.plot(cord[:, 0], ep3, label="Third principal strain")
+        strainaxis.legend()
+        strainaxis.set_xticklabels([])
+        strainaxis.set_yticklabels([])
+
+        straincanvas = FigureCanvasTkAgg(strainfigure, master=self)
+        straincanvas.draw()
+        straincanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
+        toolbar = NavigationToolbar2Tk(straincanvas, self, pack_toolbar=False)
+        toolbar.grid(row=2, column=0, sticky="nsew")
+        toolbar.update()
 
         canvas = dict()
-        canvas["Stress"] = stresscanvas
-        canvas["Phase fraction"] = phasecanvas
-
-        def combobox_callback(choice):
-            self.grid_slaves(row=1,column=0)[0].grid_remove()
-            canvas[choice]._tkcanvas.grid(row=1, column=0, sticky="nsew")
-            # print("combobox dropdown clicked:", choice)
-
+        canvas["von Mises stress"] = stresscanvas
+        canvas["Phase fractions"] = phasecanvas
+        canvas["Principal strain"] = straincanvas
+        # test = FEMresults(self, "vonMises")
+        #test.show()
         combobox = ctk.CTkComboBox(master=self,
-                                             values=["Phase fractions", "von Mises stress"],
-                                             command=combobox_callback)
-
+                                   values=list(canvas.keys()),
+                                   command=combobox_callback)
         combobox.grid(row=0, column=0, sticky="nsew")
+        # print("combobox dropdown clicked:", choice)
 
 
 class MainApp(ctk.CTk):
@@ -388,41 +488,21 @@ class MainApp(ctk.CTk):
 
         # Create header
         self.header_frame = headerFrame(self)
-        self.header_frame.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.header_frame.grid(row=0, column=0, sticky="nsew")
 
         # Create sidebar
         self.sidebar_frame = leftFrame(self)
         self.sidebar_frame.grid(row=1, column=0, columnspan=1, sticky="nsew")
 
-
         # Creating resultwindow
         self.main_frame = rightFrame(self)
-        self.main_frame.grid(row=1, column=1, columnspan=1, sticky="nsew")
+        self.main_frame.grid(row=0, column=1, rowspan=2, columnspan=1, sticky="nsew")
 
         # Adding button functionality
         self.sidebar_frame.sidebar_button_1.configure(command=self.next_module)
 
-        # self.sidebar_frame = ctk.CTkFrame(self, width=300, corner_radius=0)
-        # self.sidebar_frame.grid(row=0, column=3, rowspan=4, sticky="nsew")
-        # self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        # self.sidebar_button_1 = ctk.CTkButton(self.sidebar_frame, command=self.next_module)
-        # self.sidebar_button_1.grid(row=1, column=0, padx=20, pady=10)
-
-        # terminal
-        #self.log_widget = ctk.CTkScrollableFrame.ScrolledText(self.sidebar_frame, height=50, width=50,
-        #                                               font=("consolas", "12", "normal"))
-        #self.log_widget.pack()
-
-
-        # Create tabframe
-        #self.main_frame = ctk.CTkFrame(self, corner_radius=0)
-        #self.main_frame.grid(row=0, column=1, sticky="nsew")
-        #self.tabs_frame = ctk.CTkTabview(self.main_frame)
-        #self.tabs_frame.grid(row=0, column=0, sticky="nsew")
-        #self.sidebar_button_1 = ctk.CTkButton(self.tabs_frame, command=self.next_module)
-        #self.sidebar_button_1.grid(row=1, column=0, padx=20, pady=10)
-
         self.programstate = ctk.IntVar(self, 0)
+        self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
         self.modules = list()
         self.modules.append(CalcModule("Meshing"))
         self.modules.append(CalcModule("Carbonitriding"))
@@ -435,26 +515,28 @@ class MainApp(ctk.CTk):
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
         sys.stderr = logger
-        modules = ["Mesh","Carbonitriding","TTT","TTTmodel","Quenching","Tempering"]
 
+        if self.programstate.get() == 0:
+            createdatastreamcache()
+            print("Created a cache file from previous results\n")
+
+        modules = ["Mesh", "Carbonitriding", "TTT", "TTTmodel", "Quenching"]
         # GUI frame
+        if self.runall.get() == 123:
+            for module in modules:
+                self.run_module(modules.index(module))
+                self.main_frame.add_gui(module)
+            print("All modules have run")
+            self.sidebar_frame.sidebar_button_1.grid_remove()
         try:
             threading.Thread(self.run_module(self.programstate.get())).start()
             self.main_frame.add_gui(modules[self.programstate.get()])
         except IndexError:
             print("No modules left in pipeline")
-        #self.tabs.select(self.programstate.get())
+            self.sidebar_frame.sidebar_button_1.grid_remove()
+        # self.tabs.select(self.programstate.get())
         self.programstate.set(self.programstate.get() + 1)
 
-    def run_module(self, type):
-        self.modules[type].runmodule()
-        # if type == 0:
-        #
-        # elif type == 1:
-        #     runcarbonitridingmodule()
-        # elif type == 2:
-        #     runTTTmodule()
-        # elif type == 3:
-        #     runTTTmodelmodule()
-        # elif type == 4:
-        #     runquenchingmodule()
+    def run_module(self, modeltype):
+        self.modules[modeltype].runmodule()
+        pass

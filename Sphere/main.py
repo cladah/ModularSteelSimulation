@@ -85,7 +85,6 @@ def start():
 
     gui.mainloop()
 def GUI():
-    createdatastreamcache()
     ctk.set_appearance_mode("dark")
     app = MainApp()
     app.mainloop()
@@ -104,7 +103,11 @@ def modelling():
         module.runmodule()
 
     removedatastreamcache()
-
+def test():
+    ep1 = getaxisvalues("ep1")
+    xy = getaxisvalues("nodes")
+    fig = plt.plot(xy[:,0], ep1)
+    plt.show()
 
 if __name__ == "__main__":
     GUI()

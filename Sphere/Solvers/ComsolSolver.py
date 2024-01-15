@@ -416,6 +416,7 @@ def Comsolexport(model):
     model.result().export("data1").set("filename", "C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Phasecomp.txt")
     model.result().export("data1").setIndex("looplevelinput", "last", 0)
     #model.result().export("data1").setIndex("looplevelindices", "1, 601", 0)
+    model.result().export("data1").set("header", False)
     model.result().export("data1").run()
 
     model.result().export().create("data2", "Data")
@@ -424,7 +425,18 @@ def Comsolexport(model):
     model.result().export("data2").set("unit", "MPa")
     model.result().export("data2").set("filename","C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Stress.txt")
     model.result().export("data2").setIndex("looplevelinput", "last", 0)
+    model.result().export("data2").set("header", False)
     model.result().export("data2").run()
+
+    model.result().export().create("data3", "Data")
+    model.result().export("data3").set("expr", ["solid.ep1", "solid.ep2", "solid.ep3", "solid.evol", "solid.edeve"])
+    model.result().export("data3").set("descr", ["solid.ep1", "solid.ep2", "solid.ep3", "solid.evol", "solid.edeve"])
+    model.result().export("data3").set("unit", "1")
+    model.result().export("data3").set("filename",
+                                       "C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Strain.txt")
+    model.result().export("data3").setIndex("looplevelinput", "last", 0)
+    model.result().export("data3").set("header", False)
+    model.result().export("data3").run()
     pass
 def resultconverter():
     import numpy as np
@@ -455,21 +467,14 @@ def resultconverter():
     adjustdatastream("Martensite", data[:, 6][indxcomsol], "nodes")
 
     data = np.loadtxt(savedirec + "\\Stress.txt")
-    xdata = np.around(np.array(data)[:, 0], 8)
-    ydata = np.around(np.array(data)[:, 1], 8)
-    x = np.around(np.array(nodes[:, 0]), 8)
-    y = np.around(np.array(nodes[:, 1]), 8)
-
-    # Getting position of comsol nodes
-    indxcomsol = np.ones(len(nodes))
-    for i in range(len(nodes)):
-        for j in range(len(nodes)):
-            if x[j] == xdata[i]:
-                if y[j] == ydata[i]:
-                    indxcomsol[j] = i
-                    continue
-    indxcomsol = indxcomsol.astype(int)
     adjustdatastream("vonMises", data[:, 2][indxcomsol], "nodes")
+
+    data = np.loadtxt(savedirec + "\\Strain.txt")
+    adjustdatastream("ep1", data[:, 2][indxcomsol], "nodes")
+    adjustdatastream("ep2", data[:, 3][indxcomsol], "nodes")
+    adjustdatastream("ep3", data[:, 4][indxcomsol], "nodes")
+    adjustdatastream("evol", data[:, 5][indxcomsol], "nodes")
+    adjustdatastream("edeve", data[:, 6][indxcomsol], "nodes")
 
 def runComsol():
     directory = os.getcwd()
