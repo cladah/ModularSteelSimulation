@@ -358,8 +358,14 @@ class QuenchingTab(ctk.CTkFrame):
         toolbar.update()
         stresscanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
 
+        canvas = dict()
+        canvas["Stress"] = stresscanvas
+        canvas["Phase fraction"] = phasecanvas
+
         def combobox_callback(choice):
-            print("combobox dropdown clicked:", choice)
+            self.grid_slaves(row=1,column=0)[0].grid_remove()
+            canvas[choice]._tkcanvas.grid(row=1, column=0, sticky="nsew")
+            # print("combobox dropdown clicked:", choice)
 
         combobox = ctk.CTkComboBox(master=self,
                                              values=["Phase fractions", "von Mises stress"],
