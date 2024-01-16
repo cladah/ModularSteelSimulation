@@ -25,7 +25,7 @@ class PrintLogger(object):
         self.textbox.insert("end", text)  # write text to textbox
         self.textbox.see("end")  # scroll to end
         self.textbox.configure(state="disabled")  # make field readonly
-
+        self.textbox.update()
     def flush(self):  # needed for file like object
         pass
 
@@ -68,10 +68,20 @@ class leftFrame(ctk.CTkFrame):
                                          height=800)
         self.log_widget.grid(row=0, column=0, columnspan=2, padx=20, pady=10, sticky="nsew")
 
-        self.runall_switch = ctk.CTkSwitch(self, text="Run all modules")
-        self.runall_switch.grid(row=1, column=0, padx=20, pady=20)
+        #self.runall_switch = ctk.CTkSwitch(self, text="Run all modules")
+        #self.runall_switch.grid(row=1, column=0, padx=20, pady=20)
         self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
         self.sidebar_button_1.grid(row=1, column=1, padx=20, pady=20)
+
+        self.progress_bar = ctk.CTkProgressBar(self, height=40,
+                                               corner_radius=0,
+                                               mode="determinate",
+                                               progress_color="green")
+        self.progress_bar.set(0)
+        self.progress_bar.grid(row=1, column=0, padx=20, pady=20, sticky="nsw")
+
+        #self.sidebar_button_2 = ctk.CTkButton(self, text="Test")
+        #self.sidebar_button_2.grid(row=1, column=0, padx=20, pady=20)
 
     def test(self, master):
         print()
@@ -122,7 +132,7 @@ class rightFrame(ctk.CTkFrame):
             tab3.rowconfigure(0, weight=1)
             tab3.columnconfigure(0, weight=1)
             self.tabs_frame.set("TTT diagrams")
-        elif type == "TTTmodel":
+        elif type == "TTTmodeling":
             tab4 = self.tabs_frame.add("TTTmodel")
             tab4frame = TTTmodelTab(tab4)
             tab4frame.grid(row=0, column=0, sticky="nsew")
@@ -355,7 +365,7 @@ class FEMresults(matplotlib.figure.Figure):
             ax.set_xticklabels([])
             ax.set_yticklabels([])
             ax.set_xlabel("testing")
-            self.colorbar(plot3, ax=self.get_axes())
+            self.colorbar(plot3, ax=self.get_axes(), label="MPa")
 
             self.canvas = FigureCanvasTkAgg(self, master=master)
             self.canvas.draw()
@@ -411,8 +421,8 @@ class QuenchingTab(ctk.CTkFrame):
         ax2.set_xticklabels([])
         ax2.set_yticklabels([])
 
-        fig.colorbar(plot1, ax=subfigs[0].get_axes())
-        fig.colorbar(plot2, ax=subfigs[1].get_axes())
+        fig.colorbar(plot1, ax=subfigs[0].get_axes(), label="Austenite fraction")
+        fig.colorbar(plot2, ax=subfigs[1].get_axes(), label="Martensite fraction")
         plot1.set_clim(0, 1)
         plot2.set_clim(0, 1)
 
@@ -477,6 +487,7 @@ class QuenchingTab(ctk.CTkFrame):
 class MainApp(ctk.CTk):
     def __init__(self):
         from StructureFile import CalcModule
+        from multiprocessing import Process
         super().__init__()
         self.geometry("1200x1000")
         self.title("Quenching of steel")
@@ -499,16 +510,27 @@ class MainApp(ctk.CTk):
         self.main_frame.grid(row=0, column=1, rowspan=2, columnspan=1, sticky="nsew")
 
         # Adding button functionality
+        #self.sidebar_frame.sidebar_button_1.configure(command=lambda: threading.Thread(target=self.next_module).start())
         self.sidebar_frame.sidebar_button_1.configure(command=self.next_module)
+        #self.sidebar_frame.sidebar_button_2.configure(command=lambda: threading.Thread(target=self.test).start())
 
         self.programstate = ctk.IntVar(self, 0)
-        self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
+        #self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
         self.modules = list()
         self.modules.append(CalcModule("Meshing"))
         self.modules.append(CalcModule("Carbonitriding"))
         self.modules.append(CalcModule("TTT"))
         self.modules.append(CalcModule("TTTmodeling"))
         self.modules.append(CalcModule("Quenching"))
+    def test(self):
+        logger = PrintLogger(self.sidebar_frame.log_widget)
+        sys.stdout = logger
+        sys.stderr = logger
+        import time
+        print("Testing module")
+        for i in range(1, 3):
+            time.sleep(5)
+            print(str(i * 5) + "sec")
 
     def next_module(self):
         # Logging frame
@@ -520,17 +542,21 @@ class MainApp(ctk.CTk):
             createdatastreamcache()
             print("Created a cache file from previous results\n")
 
-        modules = ["Mesh", "Carbonitriding", "TTT", "TTTmodel", "Quenching"]
+        #modules = ["Meshing", "Carbonitriding", "TTT", "TTTmodeling", "Quenching"]
+        modules = ["Meshing", "Carbonitriding", "TTT", "TTTmodeling"]
         # GUI frame
-        if self.runall.get() == 123:
-            for module in modules:
-                self.run_module(modules.index(module))
-                self.main_frame.add_gui(module)
-            print("All modules have run")
-            self.sidebar_frame.sidebar_button_1.grid_remove()
+        # if self.runall.get() == 123:
+        #     for module in modules:
+        #         self.run_module(modules.index(module))
+        #         self.main_frame.add_gui(module)
+        #     print("All modules have run")
+        #     self.sidebar_frame.sidebar_button_1.grid_remove()
         try:
-            threading.Thread(self.run_module(self.programstate.get())).start()
+            self.run_module(self.programstate.get())
             self.main_frame.add_gui(modules[self.programstate.get()])
+            if modules[self.programstate.get()] == modules[-1]:
+                print("All simulations in pipeline are done")
+                self.sidebar_frame.sidebar_button_1.grid_remove()
         except IndexError:
             print("No modules left in pipeline")
             self.sidebar_frame.sidebar_button_1.grid_remove()

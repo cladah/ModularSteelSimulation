@@ -171,7 +171,7 @@ def setupComsol(model):
 
     # --------------- Setting up geometry and mesh ------------------#
     model.component("comp1").geom().create("geom1", 2)
-    #model.component("comp1").geom("geom1").axisymmetric(True)
+    model.component("comp1").geom("geom1").axisymmetric(True)
     model.component("comp1").mesh().create("mesh1")
     model.component("comp1").geom("geom1").run()
     model.component("comp1").mesh("mesh1").create("imp1", "Import")
@@ -438,9 +438,15 @@ def Comsolexport(model):
     model.result().export("data3").set("header", False)
     model.result().export("data3").run()
     pass
+
+
+
+
+
 def resultconverter():
     import numpy as np
     directory = os.getcwd()
+    cachedirectory = directory + '\\Cachefiles'
     savedirec = directory + '\\Resultfiles'
     nodes = readdatastream("nodes")
 
@@ -479,7 +485,7 @@ def resultconverter():
 def runComsol():
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'
-    #client = mph.start()
+    client = mph.start()
     #pymodel = client.load("Resultfiles/Comsolmodel.mph")
     #model = pymodel.java
     modeldatatoComsolfiles()
@@ -488,23 +494,23 @@ def runComsol():
 
     print("Setting up model")
     if 1==1:
-        #pymodel = client.load("Resultfiles/Comsolmodel.mph")
-        #model = pymodel.java
+        pymodel = client.load("Resultfiles/Comsolmodel.mph")
+        model = pymodel.java
         pass
     else:
         pymodel = client.create()
         model = pymodel.java
         model = setupComsol(model)
-
+    model.util.ModelUtil.showProgress(savedirec + "\\Comsolprogress.txt")
     print("Adjusting model to input")
-    #model = adjustComsol(model)
+    model = adjustComsol(model)
     print("Running model")
-    #model.study("std1").feature("time").set("tlist", "range(0,1,600)")
-    #model.study("std1").run()
-    #model.save('Resultfiles/Comsolmodel')
+    model.study("std1").feature("time").set("tlist", "range(0,1,600)")
+    model.study("std1").run()
+    model.save('Resultfiles/Comsolmodel')
     print("Comsol model successfully ran")
     print("Exporting results")
-    #Comsolexport(model)
+    Comsolexport(model)
     #client.clear()
     resultconverter()
     print("Comsol multiphysics closed")

@@ -42,7 +42,7 @@ class diffusionmodule():
 
 
 def runcarbonitridingmodule():
-    print("\nCarbonitriding module")
+    print("Carbonitriding module")
 
     xyz = readdatastream('nodes')
     r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)

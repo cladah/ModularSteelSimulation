@@ -17,7 +17,13 @@ class CalcModule:
 
     def runmodule(self):
         pass
-        if self.module == "Meshing":
+        if self.module == "Test":
+            import time
+            print("Testing module")
+            for i in range(1, 3):
+                time.sleep(5)
+                print(str(i*5)+"sec")
+        elif self.module == "Meshing":
             from Meshmodule import createMesh
             createMesh()
         elif self.module == "Carbonitriding":
