@@ -1,12 +1,13 @@
 {
   "Rerun": {
-    "Mesh": 1,
-    "Carbonitriding": 0,
-    "TTT": 1,
-    "ThermoFit": 0,
-    "Quenching": 1,
-    "Temp": 0,
-    "Fatigue": 0
+    "All": true,
+    "Mesh": false,
+    "Carbonitriding": false,
+    "TTT": false,
+    "ThermoFit": false,
+    "Quenching": false,
+    "Temp": false,
+    "Fatigue": false
   },
   "Geometry": {
     "radius": 0.01,

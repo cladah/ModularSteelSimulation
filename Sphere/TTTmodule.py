@@ -43,8 +43,8 @@ def getTTTcompositions():
     return TTTcompositions
 
 def runTTTmodule(parent):
-    from HelpFile import read_input, checkinput
-    if checkinput('TTT'):
+    from HelpFile import read_input, checkruncondition
+    if not checkruncondition('TTT'):
         print('Using precalculated TTT simulation')
         return
     print("\nTTT module")
@@ -126,7 +126,7 @@ def runTTTcalc(composition):
     addTTTdata(composition, TTTdata, "TTTdata")
 def runTTTmodelmodule(parent):
     print('\nTTT models module')
-    if checkinput('ThermoFit'):
+    if not checkruncondition('ThermoFit'):
         print('Using precalculated phase transformation models')
         return
     TTTcompositions = getTTTcompositions()

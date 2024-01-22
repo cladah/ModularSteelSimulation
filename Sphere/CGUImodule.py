@@ -1,15 +1,8 @@
 import matplotlib.backends.backend_tkagg
 import matplotlib
 from HelpFile import *
-from Meshmodule import createMesh
-from Carbonitridingmodule import runcarbonitridingmodule
-from TTTmodule import runTTTmodule, runTTTmodelmodule
-from Quenchingmodule import runquenchingmodule
 import sys
 import threading
-from multiprocessing import Process, Pipe
-import subprocess
-from io import StringIO
 import logging
 import matplotlib as mpl
 import customtkinter as ctk
@@ -151,7 +144,7 @@ class rightFrame(ctk.CTkFrame):
             pass
 
 
-class infoTab(ctk.CTkFrame):
+class infoTab(ctk.CTkScrollableFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
         import matplotlib as mpl
@@ -163,27 +156,31 @@ class infoTab(ctk.CTkFrame):
         data = read_input()
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
-        self.rowconfigure(0, weight=0)
-        self.rowconfigure(4, weight=1)
+
 
         # bearingimage = ctk.CTkImage(light_image=Image.open("GUIfiles/Ballbearing.png"),size=(300,300))
         # imagelabel = ctk.CTkLabel(self, text="", image=bearingimage)
         # imagelabel.grid(row=0, column=0, sticky="nsew")
         compstr = [key +  ": " + str(data["Material"]["Composition"][key]) for key in data["Material"]["Composition"].keys()]
+        infostrings = ["Composition is:    " + "    ".join(compstr),
+                       "Number of nodes in radius: " + str(data["Geometry"]["nodes"]),
+                       "Radius of sphere: " + str(data["Geometry"]["radius"]),
+                       "Mesh program: " + data["Programs"]["Meshing"],
+                       "Carbonitriding program: " + data["Programs"]["Carbonitriding"],
+                       "TTT program: " + data["Programs"]["TTT"],
+                       "FEM program: " + data["Programs"]["FEM"]]
+        i = 0
+        for info in infostrings:
+            self.rowconfigure(i, weight=0)
+            self.composition = ctk.CTkLabel(self, text=info, pady=10)
+            self.composition.grid(row=i, column=0, sticky="w")
+            i = i + 1
 
-        self.composition = ctk.CTkLabel(self, text="Composition is:    " + "    ".join(compstr), pady=10)
-        self.composition.grid(row=0, column=0, sticky="w")
-        self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(data["Geometry"]["nodes"]), pady=10)
-        self.nodenr.grid(row=1, column=0, sticky="w")
-        self.drawing = ctk.CTkLabel(self, text="Radius of sphere: " + str(data["Geometry"]["radius"]), pady=10)
-        self.drawing.grid(row=2, column=0, sticky="w")
-
-        data = read_input()
         mpl.rcParams["font.size"] = 32
-
         text = ctk.CTkLabel(self, text="Temperature history:")
-        text.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        text.grid(row=i, column=0, columnspan=2, sticky="nsew")
 
+        i = i + 1
         # Add plot of temperature
         starttemp = data["Thermo"]["CNtemp"] - 273.15
         quenchtemp = data["Thermo"]["quenchtemp"] - 273.15
@@ -195,20 +192,19 @@ class infoTab(ctk.CTkFrame):
         holdend = holdtemper + 60
         times = np.array([0, 0, holdCN, holdCN + 10, holdquench, holdquench + 10, holdtemper, holdtemper + 10, holdend]) / 60
         temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
-        fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
+        fig, ax = plt.subplots(figsize=(6, 10), dpi=50)
         ax.plot(times, temps)
         ax.set_xlabel('Time [min]')
         ax.set_ylabel('Temperature [degC]')
 
-
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=2, column=0, sticky="nsew")
+        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew", padx=20)
         # toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
         # toolbar.grid(row=5, column=0, sticky="nsew")
         # toolbar.update()
-        canvas._tkcanvas.grid(row=4, column=0,columnspan=2, sticky="nsew")
-
+        canvas._tkcanvas.grid(row=i, column=0, columnspan=2, sticky="nsew")
+        self.rowconfigure(i, weight=1)
 
 
 class meshTab(ctk.CTkFrame):
@@ -494,7 +490,7 @@ class MainApp(ctk.CTk):
     def __init__(self):
         from StructureFile import CalcModule
         super().__init__()
-        self.geometry("1200x1000")
+        self.geometry("1400x1000")
         self.title("Quenching of steel")
 
         # Setting weights
@@ -541,10 +537,10 @@ class MainApp(ctk.CTk):
         self.sidebar_frame.progress_bar.set(0.0)
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
-        sys.stderr = logger
+        #sys.stderr = logger
 
         if self.programstate.get() == 0:
-            createdatastreamcache()
+            createdatastreamcache("Resultfiles/TestDatastream.xdmf")
             print("Created a cache file from previous results\n")
 
         if self.modules.empty():
@@ -556,13 +552,9 @@ class MainApp(ctk.CTk):
         currentmodule = self.modules.get()
         if currentmodule.modulename() != "Meshing":
             tid = threading.Thread(target=self.run_module, args=(currentmodule,))
+            #tid.daemon = True
             tid.start()
             self.progressmonitor(tid, currentmodule)
-            #while tid.is_alive():
-                #print("Progress is " + str(currentmodule.getprogress()))
-                #self.sidebar_frame.progress_bar.set(0.8)
-                #self.sidebar_frame.progress_bar.set(next.getprogress)
-            pass
         else:
             self.run_module(currentmodule)
             self.sidebar_frame.progress_bar.set(currentmodule.getprogress())
@@ -577,4 +569,6 @@ class MainApp(ctk.CTk):
         self.sidebar_frame.progress_bar.set(module.getprogress())
         """ Monitor the download thread """
         if tid.is_alive():
-            self.after(100, lambda: self.progressmonitor(tid, module))
+            pass
+            #self.after(1000, lambda: self.progressmonitor(tid, module))
+            #self.after(100, lambda: self.sidebar_frame.progress_bar.set(module.getprogress()))

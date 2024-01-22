@@ -12,7 +12,7 @@ class diffusionmodule():
         data = read_input()
         self.program = data["Programs"]["Carbonitriding"]
         self.run = run
-        if checkinput("Carbonitriding"):
+        if checkruncondition("Carbonitriding"):
             self.run = True
     def reset(self):
         self.run = True
@@ -40,34 +40,23 @@ class diffusionmodule():
             calc_value = np.array(composition[1][element])
             nodevalues = interp(r, calc_xyz, calc_value) * 100
             adjustdatastream("Composition/" + element, nodevalues, "nodes")
-        print("Carbonitriding modelue done")
+        print("Carbonitriding module done")
 
 
 def runcarbonitridingmodule(parent):
     print("Carbonitriding module")
     parent.updateprogress(0.1)
 
-    xyz = readdatastream('nodes')
-    r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
-
-    with h5py.File("Resultfiles/Carbonitriding.hdf5", "r") as f:
-        CN_xyz = np.array(f.get("CNcurves/Position"))
-        elements = f.get("CNcurves/Elements").keys()
-        for element in elements:
-            c_element = np.array(f.get("CNcurves/Elements/" + element))
-            elementvalues = interp(r, CN_xyz, c_element) * 100
-            adjustdatastream("Composition/" + element, elementvalues, "nodes")
-
-
     data = read_input()
-    if checkinput('Carbonitriding'):
+    if not checkruncondition('Carbonitriding'):
         print('Using precalculated carbnitriding simulation')
         for element in data["Material"]["Composition"].keys():
             elementvalues = readdatastreamcache("Composition/" + element)
             adjustdatastream("Composition/" + element, elementvalues, "nodes")
-        print("Carbonitriding modelue done")
+        print("Carbonitriding module done")
         parent.updateprogress(1.0)
         return
+
     if data["Programs"]["Carbonitriding"] == "TC":
         print('Running carbon-nitriding module with ThermoCalc')
         activityenv = TCequalibrium("env")
@@ -85,12 +74,12 @@ def runcarbonitridingmodule(parent):
         nodevalues = interp(r, calc_xyz, calc_value) * 100
         adjustdatastream("Composition/" + element, nodevalues, "nodes")
     parent.updateprogress(1.0)
-    print("Carbonitriding modelue done")
+    print("Carbonitriding module done")
 
 
 
 def old_runcarbonitridingmodule():
-    if checkinput('Carbonitriding'):
+    if checkruncondition('Carbonitriding'):
         print('Using precalculated carbnitriding simulation')
 
         xyz = readdatastream('nodes')

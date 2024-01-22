@@ -1,12 +1,12 @@
 import sys
 import time
 
-from HelpFile import read_input, checkinput, adjustinputcache
+from HelpFile import read_input, checkruncondition, adjustinputcache
 import numpy as np
 import meshio
 
 def createMesh(parent):
-    if checkinput('Mesh'):
+    if not checkruncondition('Mesh'):
         print('Using precalculated mesh')
         meshdata = meshio.read("Cachefiles/Datastream.xdmf")
         meshio.write("Resultfiles/Datastream.xdmf",

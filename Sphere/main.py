@@ -16,7 +16,7 @@ def GUI():
     removedatastreamcache()
 def modelling():
     import threading
-    createdatastreamcache()
+    createdatastreamcache("Resultfiles/TestDatastream.xdmf")
 
     modules = list()
     modules.append(CalcModule("Meshing"))
@@ -27,23 +27,21 @@ def modelling():
 
     for currentmodule in modules:
         if currentmodule.modulename() != "Meshing":
-            tid = threading.Thread(target=runsinglemodule, args=(currentmodule,))
+            tid = threading.Thread(target=run_single_module, args=(currentmodule,))
             tid.start()
             progressmonitor(tid, currentmodule)
         else:
-            runsinglemodule(currentmodule)
-
+            run_single_module(currentmodule)
+    input("")
     removedatastreamcache()
+    savedatastream("Resultfiles/TestDatastream.xdmf")
 
-def runsinglemodule(module):
+def run_single_module(module):
     module.runmodule()
 
 def progressmonitor(tid, module):
-    print(module.getprogress())
     if tid.is_alive():
-        time.sleep(0.1)
+        time.sleep(1)
         progressmonitor(tid, module)
-
-
 if __name__ == "__main__":
     GUI()

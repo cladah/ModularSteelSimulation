@@ -87,7 +87,6 @@ def TCcarbonitriding(activityair):
         composition.append(data['Material']["Dependentmat"])
         composition.append(data['Material']["Composition"])
         for element in data['Material']["Composition"]:
-            distance = []
             distance, mass_frac_temp = result.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
             mass_frac[element] = mass_frac_temp
         return distance, mass_frac

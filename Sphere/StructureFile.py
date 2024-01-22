@@ -24,6 +24,7 @@ class CalcModule:
         pass
 
     def runmodule(self):
+        self.updateprogress(0.0)
         if self.module == "Test":
             print("Testing module")
             self.testingmodule()

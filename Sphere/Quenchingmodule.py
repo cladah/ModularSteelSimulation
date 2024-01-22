@@ -1,8 +1,8 @@
 from Solvers.ComsolSolver import setupComsol, runComsol, adjustComsol
-from HelpFile import read_input, checkinput, adjustinputcache
+from HelpFile import read_input, checkruncondition, adjustinputcache
 import os
 def runquenchingmodule(parent):
-    if checkinput('Quenching'):
+    if not checkruncondition('Quenching'):
         print('Using old quenching simulation')
         return
     print('\nQuenching module')

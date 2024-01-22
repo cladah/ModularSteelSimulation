@@ -31,7 +31,7 @@ def adjustinputcache(model):
     json.dump(data, f, indent=2)
     f.close()
 
-def checkinput(model):
+def checkruncondition(model):
     import json
     import numpy as np
     f = open('Cachefiles/Input.json', 'r')
@@ -43,31 +43,32 @@ def checkinput(model):
 
     modellist = list(indata["Rerun"].keys())
     # create a stacked rerun criteria?
-
     # Check rerun criteria
-    if indata['Rerun'][model] == 1:
-        return False
+    if indata["Rerun"]["All"] == True:
+        return True
+    if indata['Rerun'][model] == True:
+        return True
     if model == 'Mesh':
         for x in ['Geometry']:
             if indata[x] != cachedata[x]:
-                return False
+                return True
     elif model == 'Carbonitriding':
         for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
             if indata[x] != cachedata[x]:
-                return False
+                return True
     elif model == 'TTT':
         for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
             if indata[x] != cachedata[x]:
-                return False
+                return True
     elif model == 'TTTfit':
         for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
             if indata[x] != cachedata[x]:
-                return False
+                return True
     elif model == 'Quenching':
         for x in ['Geometry', 'Material', 'Thermo', 'FEM', 'Programs']:
             if indata[x] != cachedata[x]:
-                return False
-    return True
+                return True
+    return False
 
 def createdatastream():
     data = read_input()
@@ -131,23 +132,31 @@ def readdatastream(dataname, time=0):
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is " + str(*list(meshstream.point_data.keys())) + " and " + str(*list(meshstream.cell_data.keys())))
 
+def savedatastream(filename):
+    meshstream = meshio.read("Resultfiles/Datastream.xdmf")
+    meshio.write(filename, meshstream)
+
 def createdatastreamcache(filename=None):
     import shutil
     import os
     try:
+        print(filename)
         if filename == None:
-            shutil.copy("Resultfiles/Datastream.h5", "Cachefiles/Datastream.h5")
-            shutil.copy("Resultfiles/Datastream.xdmf", "Cachefiles/Datastream.xdmf")
+            meshdata = meshio.read("Resultfiles/Datastream.xdmf")
+            meshio.write("Cachefiles/Datastream.xdmf", meshdata)
             os.remove("Resultfiles/Datastream.h5")
             os.remove("Resultfiles/Datastream.xdmf")
         else:
             # Add check if filename have xdmf or h5 extension
-            shutil.copy(filename + "h5", "Cachefiles/Datastream.h5")
-            shutil.copy(filename + "xdmf", "Cachefiles/Datastream.xdmf")
+            filename = filename.split(".")[0]
+            meshdata = meshio.read(filename + ".xdmf")
+            meshio.write("Cachefiles/Datastream.xdmf", meshdata)
             os.remove("Resultfiles/Datastream.h5")
             os.remove("Resultfiles/Datastream.xdmf")
+
     except:
         print("No datastream caches")
+        input("AAAAAA")
 def removedatastreamcache():
     import os
     try:
