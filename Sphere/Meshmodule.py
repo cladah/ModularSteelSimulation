@@ -1,10 +1,11 @@
 import sys
+import time
 
 from HelpFile import read_input, checkinput, adjustinputcache
 import numpy as np
 import meshio
 
-def createMesh():
+def createMesh(parent):
     if checkinput('Mesh'):
         print('Using precalculated mesh')
         meshdata = meshio.read("Cachefiles/Datastream.xdmf")
@@ -15,7 +16,7 @@ def createMesh():
     print('Mesh module')
     data = read_input()
     if data['Programs']["Meshing"] == "Gmsh":
-        gmshmodule()
+        gmshmodule(parent)
     elif data['Programs']["Meshing"] == "PyGmsh":
         pygmshmodule()
     elif data['Programs']["Meshing"] == "MeshPy":
@@ -62,7 +63,7 @@ def pygmshmodule():
     meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))
-def gmshmodule():
+def gmshmodule(parent):
     print('Meshing with Gmsh')
     import gmsh
     data = read_input()
@@ -96,6 +97,7 @@ def gmshmodule():
 
     gmsh.model.occ.addPlaneSurface([4], 1)
     gmsh.model.occ.synchronize()
+    parent.updateprogress(0.5)
     #gmsh.model.addPhysicalGroup(1, [1], 1, 'Side')
     #gmsh.model.addPhysicalGroup(1, [2], 2, 'Bottom')
     #gmsh.model.addPhysicalGroup(1, [3], 3, 'Circumference')
@@ -115,7 +117,7 @@ def gmshmodule():
     gmsh.write("Resultfiles/Mesh.vtk")
     print(*gmsh.logger.get(), sep="\n")
     gmsh.finalize()
-
+    parent.updateprogress(0.8)
     meshdata = meshio.read("Resultfiles/Mesh.msh")
     # Creating datastream from mesh
     meshio.write("Resultfiles/Datastream.xdmf",
@@ -125,6 +127,7 @@ def gmshmodule():
     # Writing nas file  with meshio
     mesh = meshio.read("Resultfiles/Mesh.msh")
     meshio.write("Resultfiles/Mesh.nas", mesh)
+    parent.updateprogress(1.0)
 
 def meshpymodule():
     import meshpy

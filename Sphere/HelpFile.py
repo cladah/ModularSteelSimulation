@@ -131,14 +131,21 @@ def readdatastream(dataname, time=0):
     except:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is " + str(*list(meshstream.point_data.keys())) + " and " + str(*list(meshstream.cell_data.keys())))
 
-def createdatastreamcache():
+def createdatastreamcache(filename=None):
     import shutil
     import os
     try:
-        shutil.copy("Resultfiles/Datastream.h5", "Cachefiles/Datastream.h5")
-        shutil.copy("Resultfiles/Datastream.xdmf", "Cachefiles/Datastream.xdmf")
-        os.remove("Resultfiles/Datastream.h5")
-        os.remove("Resultfiles/Datastream.xdmf")
+        if filename == None:
+            shutil.copy("Resultfiles/Datastream.h5", "Cachefiles/Datastream.h5")
+            shutil.copy("Resultfiles/Datastream.xdmf", "Cachefiles/Datastream.xdmf")
+            os.remove("Resultfiles/Datastream.h5")
+            os.remove("Resultfiles/Datastream.xdmf")
+        else:
+            # Add check if filename have xdmf or h5 extension
+            shutil.copy(filename + "h5", "Cachefiles/Datastream.h5")
+            shutil.copy(filename + "xdmf", "Cachefiles/Datastream.xdmf")
+            os.remove("Resultfiles/Datastream.h5")
+            os.remove("Resultfiles/Datastream.xdmf")
     except:
         print("No datastream caches")
 def removedatastreamcache():

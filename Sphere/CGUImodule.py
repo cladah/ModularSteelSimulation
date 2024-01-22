@@ -13,6 +13,7 @@ from io import StringIO
 import logging
 import matplotlib as mpl
 import customtkinter as ctk
+from queue import Queue
 
 
 class PrintLogger(object):
@@ -111,7 +112,7 @@ class rightFrame(ctk.CTkFrame):
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
         mpl.rcParams["font.size"] = 32
-        if type == "Mesh":
+        if type == "Meshing":
             tab1 = self.tabs_frame.add("Mesh")
             tab1frame = meshTab(tab1)
             tab1frame.grid(row=0, column=0, sticky="nsew")
@@ -516,12 +517,12 @@ class MainApp(ctk.CTk):
 
         self.programstate = ctk.IntVar(self, 0)
         #self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
-        self.modules = list()
-        self.modules.append(CalcModule("Meshing"))
-        self.modules.append(CalcModule("Carbonitriding"))
-        self.modules.append(CalcModule("TTT"))
-        self.modules.append(CalcModule("TTTmodeling"))
-        self.modules.append(CalcModule("Quenching"))
+        self.modules = Queue()
+        self.modules.put(CalcModule("Meshing"))
+        self.modules.put(CalcModule("Carbonitriding"))
+        self.modules.put(CalcModule("TTT"))
+        self.modules.put(CalcModule("TTTmodeling"))
+        #self.modules.put(CalcModule("Quenching"))
     def test(self):
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
@@ -533,6 +534,8 @@ class MainApp(ctk.CTk):
             print(str(i * 5) + "sec")
 
     def next_module(self):
+        self.sidebar_frame.progress_bar.set(0.0)
+        import time
         # Logging frame
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
@@ -542,8 +545,6 @@ class MainApp(ctk.CTk):
             createdatastreamcache()
             print("Created a cache file from previous results\n")
 
-        #modules = ["Meshing", "Carbonitriding", "TTT", "TTTmodeling", "Quenching"]
-        modules = ["Meshing", "Carbonitriding", "TTT", "TTTmodeling"]
         # GUI frame
         # if self.runall.get() == 123:
         #     for module in modules:
@@ -551,18 +552,25 @@ class MainApp(ctk.CTk):
         #         self.main_frame.add_gui(module)
         #     print("All modules have run")
         #     self.sidebar_frame.sidebar_button_1.grid_remove()
-        try:
-            self.run_module(self.programstate.get())
-            self.main_frame.add_gui(modules[self.programstate.get()])
-            if modules[self.programstate.get()] == modules[-1]:
-                print("All simulations in pipeline are done")
-                self.sidebar_frame.sidebar_button_1.grid_remove()
-        except IndexError:
-            print("No modules left in pipeline")
+        if self.modules.empty():
+            print("\nNo modules left in pipeline")
             self.sidebar_frame.sidebar_button_1.grid_remove()
-        # self.tabs.select(self.programstate.get())
+            self.sidebar_frame.progress_bar.grid_remove()
+            return
+
+        currentmodule = self.modules.get()
+        if currentmodule.modulename() != "Meshing":
+            tid = threading.Thread(target=self.run_module, args=(currentmodule,))
+            tid.start()
+            #while tid.is_alive():
+                #print("Progress is " + str(currentmodule.getprogress()))
+                #self.sidebar_frame.progress_bar.set(0.8)
+                #self.sidebar_frame.progress_bar.set(next.getprogress)
+            pass
+        else:
+            self.run_module(currentmodule)
         self.programstate.set(self.programstate.get() + 1)
 
-    def run_module(self, modeltype):
-        self.modules[modeltype].runmodule()
-        pass
+    def run_module(self, module):
+        module.runmodule()
+        self.main_frame.add_gui(module.modulename())
