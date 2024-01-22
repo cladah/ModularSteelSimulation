@@ -1,95 +1,21 @@
 import os
+import time
 
-import numpy as np
-import h5py
 import matplotlib.pyplot as plt
-
-from HelpFile import *
-from Meshmodule import createMesh
-from Carbonitridingmodule import runcarbonitridingmodule
-from TTTmodule import runTTTmodule, runTTTmodelmodule
-from GUImodule import runguimodule, addgui
 from CGUImodule import MainApp
-from Postmodule import *
-from Quenchingmodule import runquenchingmodule
+
 from Testfile import *
-import tkinter as tk
-from tkinter import ttk
-import subprocess as sub
 import customtkinter as ctk
 from StructureFile import CalcModule
 
 
-
-def start():
-    data = read_input()
-    def runmodule():
-        print(" ")
-        if programstate.get() == 0 or runall.get() == 1:
-            createdatastreamcache()
-            createMesh()
-            addgui(tabs, "Mesh")
-            tabs.select(1)
-        if programstate.get() == 1 or runall.get() == 1:
-            runcarbonitridingmodule()
-            addgui(tabs, "Carbonitriding")
-            tabs.select(2)
-        if programstate.get() == 2 or runall.get() == 1:
-            runTTTmodule()
-            addgui(tabs, "TTT")
-            tabs.select(3)
-        if programstate.get() == 3 or runall.get() == 1:
-            runTTTmodelmodule()
-            addgui(tabs, "TTTmodel")
-            tabs.select(4)
-        if programstate.get() == 4 or runall.get() == 1:
-            runquenchingmodule()
-            removedatastreamcache()
-            addgui(tabs, "Quenching")
-            tabs.select(5)
-            button.destroy()
-        if programstate.get() > 4 or runall.get() == 1:
-            print("All simulations are done")
-        programstate.set(programstate.get()+1)
-    if not os.path.exists('Cachefiles/InputCache.json'):
-        createinputcache()
-    gui = tk.Tk()
-    gui.geometry("1200x1000")
-    gui.title("Quenching of steel")
-    header = tk.Frame(gui, height=10)
-    button = tk.Button(master=header, text="Continue", command=runmodule, padx=20, pady=10)
-    button.pack(side=tk.TOP, anchor=tk.NW, padx=20,pady=20)
-    composition = tk.Label(header, text="Composition of steel is:", pady=20)
-    composition.pack()
-    compstr = " ".join(
-        [i + "=" + str(data["Material"]["Composition"][i]) for i in data["Material"]["Composition"].keys()])
-    composition = tk.Label(header, text=compstr)
-    composition.pack()
-
-
-    header.pack(side="top", fill="both", expand=False)
-
-    # Add
-    tabs = ttk.Notebook(gui)
-    tabs.pack(side="top", fill="both", expand=True)
-
-    runguimodule(tabs)
-    sub.Popen()
-    #container = tk.Frame(gui)
-    #container.pack(side="top", fill="both", expand=True)
-    #container.grid_rowconfigure(0, weight=1)
-    #container.grid_columnconfigure(0, weight=1)
-
-    programstate = tk.IntVar(gui, 0)
-    runall = tk.IntVar(gui, 1)
-
-    gui.mainloop()
 def GUI():
     ctk.set_appearance_mode("dark")
     app = MainApp()
     app.mainloop()
     removedatastreamcache()
 def modelling():
+    import threading
     createdatastreamcache()
 
     modules = list()
@@ -99,15 +25,25 @@ def modelling():
     modules.append(CalcModule("TTTmodeling"))
     modules.append(CalcModule("Quenching"))
 
-    for module in modules:
-        module.runmodule()
+    for currentmodule in modules:
+        if currentmodule.modulename() != "Meshing":
+            tid = threading.Thread(target=runsinglemodule, args=(currentmodule,))
+            tid.start()
+            progressmonitor(tid, currentmodule)
+        else:
+            runsinglemodule(currentmodule)
 
     removedatastreamcache()
-def test():
-    ep1 = getaxisvalues("ep1")
-    xy = getaxisvalues("nodes")
-    fig = plt.plot(xy[:,0], ep1)
-    plt.show()
+
+def runsinglemodule(module):
+    module.runmodule()
+
+def progressmonitor(tid, module):
+    print(module.getprogress())
+    if tid.is_alive():
+        time.sleep(0.1)
+        progressmonitor(tid, module)
+
 
 if __name__ == "__main__":
     GUI()

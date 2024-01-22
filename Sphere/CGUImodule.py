@@ -99,7 +99,7 @@ class rightFrame(ctk.CTkFrame):
         self.tabs_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
         tab0 = self.tabs_frame.add("Input")
         tab0frame = infoTab(tab0)
-        tab0frame.grid(row=0, column=0, sticky="nsew")
+        tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         tab0.rowconfigure(0, weight=1)
         tab0.columnconfigure(0, weight=1)
 
@@ -115,35 +115,35 @@ class rightFrame(ctk.CTkFrame):
         if type == "Meshing":
             tab1 = self.tabs_frame.add("Mesh")
             tab1frame = meshTab(tab1)
-            tab1frame.grid(row=0, column=0, sticky="nsew")
+            tab1frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab1.rowconfigure(0, weight=1)
             tab1.columnconfigure(0, weight=1)
             self.tabs_frame.set("Mesh")
         elif type == "Carbonitriding":
             tab2 = self.tabs_frame.add("Carbonitriding")
             tab2frame = CNTab(tab2)
-            tab2frame.grid(row=0, column=0, sticky="nsew")
+            tab2frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab2.rowconfigure(0, weight=1)
             tab2.columnconfigure(0, weight=1)
             self.tabs_frame.set("Carbonitriding")
         elif type == "TTT":
             tab3 = self.tabs_frame.add("TTT diagrams")
             tab3frame = TTTTab(tab3)
-            tab3frame.grid(row=0, column=0, sticky="nsew")
+            tab3frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab3.rowconfigure(0, weight=1)
             tab3.columnconfigure(0, weight=1)
             self.tabs_frame.set("TTT diagrams")
         elif type == "TTTmodeling":
             tab4 = self.tabs_frame.add("TTTmodel")
             tab4frame = TTTmodelTab(tab4)
-            tab4frame.grid(row=0, column=0, sticky="nsew")
+            tab4frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab4.rowconfigure(0, weight=1)
             tab4.columnconfigure(0, weight=1)
             self.tabs_frame.set("TTTmodel")
         elif type == "Quenching":
             tab5 = self.tabs_frame.add("Quenching")
             tab5frame = QuenchingTab(tab5)
-            tab5frame.grid(row=0, column=0, sticky="nsew")
+            tab5frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab5.rowconfigure(0, weight=1)
             tab5.columnconfigure(0, weight=1)
             self.tabs_frame.set("Quenching")
@@ -153,7 +153,7 @@ class rightFrame(ctk.CTkFrame):
 
 class infoTab(ctk.CTkFrame):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
         import matplotlib as mpl
         from PIL import Image
         import matplotlib.pyplot as plt
@@ -193,11 +193,14 @@ class infoTab(ctk.CTkFrame):
         holdquench = holdCN + 30
         holdtemper = holdquench + 60
         holdend = holdtemper + 60
-        times = [0, 0, holdCN, holdCN + 10, holdquench, holdquench + 10, holdtemper, holdtemper + 10, holdend]
+        times = np.array([0, 0, holdCN, holdCN + 10, holdquench, holdquench + 10, holdtemper, holdtemper + 10, holdend]) / 60
         temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
-        fig = Figure(figsize=(5, 4), dpi=50)
-        plot1 = fig.add_subplot(111)
-        plot1.plot(times, temps)
+        fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
+        ax.plot(times, temps)
+        ax.set_xlabel('Time [min]')
+        ax.set_ylabel('Temperature [degC]')
+
+
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
         canvas.get_tk_widget().grid(row=2, column=0, sticky="nsew")
@@ -215,7 +218,7 @@ class meshTab(ctk.CTkFrame):
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
         mpl.rcParams["font.size"] = 32
         self.columnconfigure(0, weight=1)
         # self.rowconfigure(0, weight=1)
@@ -249,7 +252,7 @@ class meshTab(ctk.CTkFrame):
 
 
 class CNTab(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, fg_color="transparent"):
         super().__init__(master)
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
@@ -265,7 +268,7 @@ class CNTab(ctk.CTkFrame):
         plot1 = fig.add_subplot(111)
         plot1.plot(np.array(xyz)[:, 0] * 1000, wC, label='Carbon')
         plot1.plot(np.array(xyz)[:, 0] * 1000, wN, label='Nitrogen')
-        plot1.set_xlabel('radius [mm]')
+        plot1.set_xlabel('Radius [mm]')
         plot1.set_ylabel('Weight fraction [%]')
         plot1.legend()
         canvas = FigureCanvasTkAgg(fig, master=self)
@@ -279,7 +282,7 @@ class CNTab(ctk.CTkFrame):
 
 class TTTTab(ctk.CTkFrame):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
         import matplotlib as mpl
         import matplotlib.pyplot as plt
         from matplotlib.figure import Figure
@@ -332,7 +335,7 @@ class TTTTab(ctk.CTkFrame):
 
 class TTTmodelTab(ctk.CTkFrame):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
@@ -352,7 +355,7 @@ class TTTmodelTab(ctk.CTkFrame):
 
 class FEMresults(matplotlib.figure.Figure):
     def __init__(self, master, datatype):
-        super().__init__((10, 4), 50)
+        super().__init__((10, 4), 50, fg_color="transparent")
         self.master = master
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
@@ -464,6 +467,8 @@ class QuenchingTab(ctk.CTkFrame):
         strainaxis.legend()
         strainaxis.set_xticklabels([])
         strainaxis.set_yticklabels([])
+        strainaxis.set_xlabel('Radius [mm]')
+        strainaxis.set_ylabel('Strain [-]')
 
         straincanvas = FigureCanvasTkAgg(strainfigure, master=self)
         straincanvas.draw()
@@ -488,7 +493,6 @@ class QuenchingTab(ctk.CTkFrame):
 class MainApp(ctk.CTk):
     def __init__(self):
         from StructureFile import CalcModule
-        from multiprocessing import Process
         super().__init__()
         self.geometry("1200x1000")
         self.title("Quenching of steel")
@@ -535,8 +539,6 @@ class MainApp(ctk.CTk):
 
     def next_module(self):
         self.sidebar_frame.progress_bar.set(0.0)
-        import time
-        # Logging frame
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
         sys.stderr = logger
@@ -545,13 +547,6 @@ class MainApp(ctk.CTk):
             createdatastreamcache()
             print("Created a cache file from previous results\n")
 
-        # GUI frame
-        # if self.runall.get() == 123:
-        #     for module in modules:
-        #         self.run_module(modules.index(module))
-        #         self.main_frame.add_gui(module)
-        #     print("All modules have run")
-        #     self.sidebar_frame.sidebar_button_1.grid_remove()
         if self.modules.empty():
             print("\nNo modules left in pipeline")
             self.sidebar_frame.sidebar_button_1.grid_remove()
@@ -562,6 +557,7 @@ class MainApp(ctk.CTk):
         if currentmodule.modulename() != "Meshing":
             tid = threading.Thread(target=self.run_module, args=(currentmodule,))
             tid.start()
+            self.progressmonitor(tid, currentmodule)
             #while tid.is_alive():
                 #print("Progress is " + str(currentmodule.getprogress()))
                 #self.sidebar_frame.progress_bar.set(0.8)
@@ -569,8 +565,16 @@ class MainApp(ctk.CTk):
             pass
         else:
             self.run_module(currentmodule)
+            self.sidebar_frame.progress_bar.set(currentmodule.getprogress())
         self.programstate.set(self.programstate.get() + 1)
 
     def run_module(self, module):
         module.runmodule()
         self.main_frame.add_gui(module.modulename())
+
+    def progressmonitor(self, tid, module):
+        #print("Progress is " + str(module.getprogress()))
+        self.sidebar_frame.progress_bar.set(module.getprogress())
+        """ Monitor the download thread """
+        if tid.is_alive():
+            self.after(100, lambda: self.progressmonitor(tid, module))

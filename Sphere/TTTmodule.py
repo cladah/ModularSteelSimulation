@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from Sphere.Solvers.Thermocalc import *
@@ -40,15 +42,20 @@ def getTTTcompositions():
         TTTcompositions.append(tmpcomp)
     return TTTcompositions
 
-def runTTTmodule():
+def runTTTmodule(parent):
     from HelpFile import read_input, checkinput
     if checkinput('TTT'):
         print('Using precalculated TTT simulation')
         return
     print("\nTTT module")
     TTTcompositions = getTTTcompositions()
+    compnr = len(TTTcompositions)
+    i = 1
     for tmpcomp in TTTcompositions:
         runTTTcalc(tmpcomp)
+        parent.updateprogress(i/compnr)
+        i = i + 1
+
 
     return
 
@@ -117,14 +124,19 @@ def runTTTcalc(composition):
         phase["finish"] = finish
         TTTdata[ph] = phase
     addTTTdata(composition, TTTdata, "TTTdata")
-def runTTTmodelmodule():
+def runTTTmodelmodule(parent):
     print('\nTTT models module')
     if checkinput('ThermoFit'):
         print('Using precalculated phase transformation models')
         return
     TTTcompositions = getTTTcompositions()
+    compnr = len(TTTcompositions)
+    i = 1
     for tmpcomp in TTTcompositions:
         TTTfit(tmpcomp)
+        parent.updateprogress(i / compnr)
+        i = i + 1
+
     print("Models fitted to data")
     TTTinterpolatetonodes()
 

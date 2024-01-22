@@ -482,13 +482,14 @@ def resultconverter():
     adjustdatastream("evol", data[:, 5][indxcomsol], "nodes")
     adjustdatastream("edeve", data[:, 6][indxcomsol], "nodes")
 
-def runComsol():
+def runComsol(parent):
     directory = os.getcwd()
     savedirec = directory + '\\Resultfiles'
     client = mph.start()
     #pymodel = client.load("Resultfiles/Comsolmodel.mph")
     #model = pymodel.java
     modeldatatoComsolfiles()
+    parent.updateprogress(0.1)
     print("Opening Comsol multiphysics")
     #client = mph.start()
 
@@ -501,18 +502,22 @@ def runComsol():
         pymodel = client.create()
         model = pymodel.java
         model = setupComsol(model)
-    model.util.ModelUtil.showProgress(savedirec + "\\Comsolprogress.txt")
+    #model.util.ModelUtil.showProgress(savedirec + "\\Comsolprogress.txt")
     print("Adjusting model to input")
     model = adjustComsol(model)
+    parent.updateprogress(0.3)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,1,600)")
+    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
+    parent.updateprogress(0.9)
     print("Comsol model successfully ran")
     print("Exporting results")
     Comsolexport(model)
-    #client.clear()
+
+    client.clear()
     resultconverter()
+    parent.updateprogress(1.0)
     print("Comsol multiphysics closed")
 
 

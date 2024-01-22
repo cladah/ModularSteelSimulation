@@ -12,7 +12,7 @@ class CalcModule:
             print(list(self.data["Programs"].keys()))
             raise KeyError("Moduletype only takes arguments " + str(list(self.data["Programs"].keys())))
         self.run = run
-        self.progress = 0
+        self.progress = 0.0
     def modulename(self):
         return self.module
     def getprogress(self):
@@ -32,18 +32,19 @@ class CalcModule:
             createMesh(self)
         elif self.module == "Carbonitriding":
             from Carbonitridingmodule import runcarbonitridingmodule
-            runcarbonitridingmodule()
+            runcarbonitridingmodule(self)
         elif self.module == "TTT":
             from TTTmodule import runTTTmodule
-            runTTTmodule()
+            runTTTmodule(self)
         elif self.module == "TTTmodeling":
             from TTTmodule import runTTTmodelmodule
-            runTTTmodelmodule()
+            runTTTmodelmodule(self)
         elif self.module == "Quenching":
             from Quenchingmodule import runquenchingmodule
-            runquenchingmodule()
+            runquenchingmodule(self)
         else:
             print(self.module + " not implemented.")
+        self.updateprogress(1.0)
     def testingmodule(self):
         import time
         for i in range(1, 3):

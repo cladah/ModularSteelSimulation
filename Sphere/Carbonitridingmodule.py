@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from Sphere.Solvers.Thermocalc import *
@@ -41,8 +43,9 @@ class diffusionmodule():
         print("Carbonitriding modelue done")
 
 
-def runcarbonitridingmodule():
+def runcarbonitridingmodule(parent):
     print("Carbonitriding module")
+    parent.updateprogress(0.1)
 
     xyz = readdatastream('nodes')
     r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
@@ -63,12 +66,14 @@ def runcarbonitridingmodule():
             elementvalues = readdatastreamcache("Composition/" + element)
             adjustdatastream("Composition/" + element, elementvalues, "nodes")
         print("Carbonitriding modelue done")
+        parent.updateprogress(1.0)
         return
     if data["Programs"]["Carbonitriding"] == "TC":
         print('Running carbon-nitriding module with ThermoCalc')
         activityenv = TCequalibrium("env")
+        parent.updateprogress(0.2)
         composition = TCcarbonitriding(activityenv)
-
+        parent.updateprogress(0.9)
     else:
         raise KeyError(str(data["Programs"]["Carbonitriding"]) + ' not implemented for carbonitriding')
 
@@ -79,6 +84,7 @@ def runcarbonitridingmodule():
         calc_value = np.array(composition[1][element])
         nodevalues = interp(r, calc_xyz, calc_value) * 100
         adjustdatastream("Composition/" + element, nodevalues, "nodes")
+    parent.updateprogress(1.0)
     print("Carbonitriding modelue done")
 
 
