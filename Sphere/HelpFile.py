@@ -31,6 +31,14 @@ def adjustinputcache(model):
     json.dump(data, f, indent=2)
     f.close()
 
+def change_input(firstlvl, secondlvl, data):
+    import json
+    newdata = read_input()
+    newdata[firstlvl][secondlvl] = data
+
+    f = open('Cachefiles/Input.json', 'w')
+    json.dump(newdata, f, indent=2)
+    f.close()
 def checkruncondition(model):
     import json
     import numpy as np
@@ -135,6 +143,7 @@ def readdatastream(dataname, time=0):
 def savedatastream(filename):
     meshstream = meshio.read("Resultfiles/Datastream.xdmf")
     meshio.write(filename, meshstream)
+    createinputcache()
 
 def createdatastreamcache(filename=None):
     import shutil
@@ -156,7 +165,7 @@ def createdatastreamcache(filename=None):
 
     except:
         print("No datastream caches")
-        input("AAAAAA")
+
 def removedatastreamcache():
     import os
     try:

@@ -1,6 +1,42 @@
 import numpy as np
 from tc_python import *
 
+def getTTTcompositions():
+    from HelpFile import read_input, getaxisvalues
+    roundingTTT = 1
+    data = read_input()
+    TTTcompositions = list()
+    fullcomposition = dict()
+    for element in data['Material']['Composition'].keys():
+        fullcomposition[element] = getaxisvalues("Composition/" + element)
+    composition = data['Material']['Composition']
+
+    mesh = list()
+    # Trying to create grid of compositions
+    for element in data['Material']['Composition'].keys():
+        if composition[element] != fullcomposition[element][-1]:
+            if element == "C":
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
+            else:
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+            tmplist = [round(elem, roundingTTT) for elem in tmplist]
+            tmplist = list(set(tmplist)) # getting unique values
+            tmplist.sort()
+        else:
+            tmplist = [composition[element]]
+        mesh.append(tmplist)
+
+    g = np.meshgrid(*mesh)
+    positions = np.vstack(list(map(np.ravel, g)))
+    for compnr in range(len(positions[0, :])):  # The number 0 here is correlated to the coal as it varies the most
+        tmpcomp = dict()
+        i = 0
+        for element in data['Material']['Composition'].keys():
+            tmpcomp[element] = round(positions[i, compnr], roundingTTT)
+            i = i+1
+        TTTcompositions.append(tmpcomp)
+    return TTTcompositions
+
 def TCequalibrium(type):
     from HelpFile import read_input
     data = read_input()
@@ -23,6 +59,7 @@ def TCequalibrium(type):
         raise KeyError
 
     with TCPython() as start:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
         # create and configure a single equilibrium calculation
         calculation = (
             start
@@ -42,6 +79,7 @@ def TCequalibrium(type):
             calculation.set_phase_to_dormant(phase)
         for element in referencestates:
             calculation.with_reference_state(element,referencestates[element])
+        logging.getLogger("tc_python").setLevel(logging.INFO)
         calc_result = (calculation
                        .calculate()  # Aktiverar beräkningen
                        )
@@ -53,6 +91,7 @@ def TCcarbonitriding(activityair):
     from HelpFile import read_input
     data = read_input()
     with TCPython() as session:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
         system = (session
                   .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7", [data['Material']["Dependentmat"]] + list(data['Material']["Composition"]))
                   .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
@@ -69,18 +108,18 @@ def TCcarbonitriding(activityair):
         for element in data['Material']["Composition"]:
             austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
         austenite.with_composition_profile(austeniteprofile)
+
         calculation = (system
                       .with_isothermal_diffusion_calculation()
                       .with_reference_state("N", "GAS").with_reference_state("C", "GRAPHITE_A9")
                       .set_temperature(data['Thermo']["CNtemp"])
-                      .set_simulation_time(data['Thermo']["CNtime"] * 3600)
+                      .set_simulation_time(data['Thermo']["CNtime"])
                       .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
                                                      .set_activity_for_element('C', str(activityair[0]))
                                                      .set_activity_for_element('N', str(activityair[1])))
                       .with_spherical_geometry().remove_all_regions()
                       .add_region(austenite))
-
-
+        logging.getLogger("tc_python").setLevel(logging.INFO)
         result = calculation.calculate()
         mass_frac = dict()
         composition = []
@@ -130,6 +169,7 @@ def calculateCCT():
     referencestates = {"C": "Graphite_A9", "N": "GAS"}
 
     with TCPython() as start:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
         # create and configure a single equilibrium calculation
         calculation = (
             start
@@ -164,6 +204,7 @@ def calculateCCT():
             calculation.set_phase_to_dormant(phase)
         for element in referencestates:
             calculation.with_reference_state(element, referencestates[element])
+        logging.getLogger("tc_python").setLevel(logging.INFO)
         calc_result = (calculation
                        .calculate()  # Aktiverar beräkningen
                        )
@@ -327,6 +368,116 @@ def calculateFerrite(temperatures, composition):
             finishtime.append(calc_result.get_value_of("Ferrite finish"))
         #print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return starttime, halftime, finishtime
-def yieldStrength():
-    # Yield Strength
-    pass
+def calculateTTT(temperatures, composition):
+    print("TTT model")
+    from HelpFile import read_input
+    data = read_input()
+    database = "TCFE12"
+    kindatabase = "MOBFE7"
+    dependentmat = data['Material']["Dependentmat"]
+    # composition = data['Material']["Composition"]
+    phases = ["FCC_A1"]
+
+    with TCPython() as start:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
+
+        calculation = (
+            start
+            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
+                                                                      [dependentmat] + list(composition))
+            .deselect_phase("*")
+            .select_phase("FCC_A1")
+            .select_phase("BCC_A2")
+            .select_phase("CEMENTITE")
+            .get_system()
+            .with_property_model_calculation("TTT Diagram").set_temperature(1000).set_composition_unit(
+                CompositionUnit.MASS_PERCENT)
+            # .set_argument()
+        )
+        # TTT Diagram - arguments
+        # [2% austenite transformed, 50% austenite transformed, 98% austenite transformed, Bainite start (2%),
+        # Ferrite start (2%), Martensite 50%, Martensite 98%, Martensite start,
+        # Pearlite start (2%), Total ferrite start (2%), Total ferrite+cementite start (2%)]
+        for element in composition:
+            calculation.set_composition(element, composition[element])
+        logging.getLogger("tc_python").setLevel(logging.INFO)
+        calculation.set_argument("GrainSize", data["Thermo"]["GrainSize"])
+        calculation.set_argument("Austenitizing temperature", data["Thermo"]["Austenitizingtemp"])
+        print("Available arguments: {}".format(calculation.get_arguments()))
+        aust2, aust50, aust98, mart_start, mart_half, \
+            mart_end, perlite, bainite, ferrite, ferrite_cem = list(), list(), list(), \
+            list(), list(), list(), list(), list(), list(), list()
+        legend = ["2% austenite transformed","50% austenite transformed","98% austenite transformed",
+                  "Martensite start", "Martensite 50%", "Martensite 98%",
+                  "Pearlite start (2%)", "Bainite start (2%)", "Ferrite start (2%)", "Total ferrite+cementite start (2%)"]
+        for x in temperatures:
+            calc_result = (calculation.set_temperature(x)
+                           .calculate()  # Aktiverar beräkningen
+                           )
+            aust2.append(calc_result.get_value_of("2% austenite transformed"))
+            aust50.append(calc_result.get_value_of("50% austenite transformed"))
+            aust98.append(calc_result.get_value_of("98% austenite transformed"))
+            mart_start.append(calc_result.get_value_of("Martensite start"))
+            mart_half.append(calc_result.get_value_of("Martensite 50%"))
+            mart_end.append(calc_result.get_value_of("Martensite 98%"))
+            perlite.append(calc_result.get_value_of("Pearlite start (2%)"))
+            bainite.append(calc_result.get_value_of("Bainite start (2%)"))
+            ferrite.append(calc_result.get_value_of("Ferrite start (2%)"))
+            ferrite_cem.append(calc_result.get_value_of("Total ferrite+cementite start (2%)"))
+        TTT = [aust2, aust50, aust98, mart_start, mart_half, mart_end, perlite, bainite, ferrite, ferrite_cem]
+        print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+    return TTT, legend
+def testTC():
+    temperatures = [900, 800, 700, 600]
+    print("Ferrite model")
+    from HelpFile import read_input
+    data = read_input()
+    database = "TCFE12"
+    kindatabase = "MOBFE7"
+    composition = data["Material"]["Composition"]
+    dependentmat = data['Material']["Dependentmat"]
+    # composition = data['Material']["Composition"]
+    phases = ["FCC_A1"]
+
+    with TCPython() as start:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
+        # [Martensite Temperatures, Interfacial energy, T-Zero Temperature, Crack Susceptibility Coefficient,
+        # Pearlite, Spinodal, Critical Transformation Temperatures,
+        # Bainite, Phase Transition, Equilibrium, CCT Diagram, Coarsening - Ni,
+        # Ferrite, Equilibrium with Freeze-in Temperature,
+        # Martensite Fractions, Liquidus and Solidus Temperature, Equilibrium with Freeze-in Temperature - Ni,
+        # Antiphase Boundary Energy - Ni, Yield Strength, Driving Force, Coarsening, TTT Diagram]
+
+        calculation = (
+            start
+            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
+                                                                      [dependentmat] + list(composition))
+            .deselect_phase("*")
+            .select_phase("FCC_A1")
+            .select_phase("BCC_A2")
+            .select_phase("CEMENTITE")
+            .get_system()
+            .with_property_model_calculation("TTT Diagram").set_temperature(1000).set_composition_unit(
+                CompositionUnit.MASS_PERCENT)
+            # .set_argument()
+        )
+        # TTT Diagram - arguments
+        # [2% austenite transformed, 50% austenite transformed, 98% austenite transformed, Bainite start (2%),
+        # Ferrite start (2%), Martensite 50%, Martensite 98%, Martensite start,
+        # Pearlite start (2%), Total ferrite start (2%), Total ferrite+cementite start (2%)]
+        for element in composition:
+            calculation.set_composition(element, composition[element])
+        logging.getLogger("tc_python").setLevel(logging.INFO)
+        calculation.set_argument("GrainSize", data["Thermo"]["GrainSize"])
+        calculation.set_argument("Austenitizing temperature", data["Thermo"]["Austenitizingtemp"])
+        print("Available arguments: {}".format(calculation.get_arguments()))
+        starttime, halftime, finishtime = list(), list(), list()
+        for x in temperatures:
+            calc_result = (calculation.set_temperature(x)
+                           .calculate()  # Aktiverar beräkningen
+                           )
+            starttime.append(calc_result.get_value_of("Ferrite start"))
+            halftime.append(calc_result.get_value_of("Ferrite half"))
+            finishtime.append(calc_result.get_value_of("Ferrite finish"))
+        print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+    return starttime, halftime, finishtime

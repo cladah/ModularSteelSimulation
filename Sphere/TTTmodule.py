@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from Sphere.Solvers.Thermocalc import *
+from Sphere.Solvers.ThermocalcSolver import *
 from Sphere.Solvers.TTTmodelfit import *
 from HelpFile import *
 
@@ -33,7 +33,7 @@ def getTTTcompositions():
 
     g = np.meshgrid(*mesh)
     positions = np.vstack(list(map(np.ravel, g)))
-    for compnr in range(len(positions[0,:])): # The number 0 here is correlated to the coal as it varies the most
+    for compnr in range(len(positions[0, :])):  # The number 0 here is correlated to the coal as it varies the most
         tmpcomp = dict()
         i = 0
         for element in data['Material']['Composition'].keys():

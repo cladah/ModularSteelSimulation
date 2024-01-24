@@ -1,10 +1,10 @@
 import matplotlib.backends.backend_tkagg
-import matplotlib
 from HelpFile import *
 import sys
 import threading
 import logging
 import matplotlib as mpl
+from matplotlib.figure import Figure
 import customtkinter as ctk
 from queue import Queue
 
@@ -186,15 +186,15 @@ class infoTab(ctk.CTkScrollableFrame):
         quenchtemp = data["Thermo"]["quenchtemp"] - 273.15
         tempertemp = 400  # data["Thermo"]["tempertemp"]
         roomtemp = data["Thermo"]["quenchtemp"] - 273.15
-        holdCN = data["Thermo"]["CNtime"] * 60
-        holdquench = holdCN + 30
-        holdtemper = holdquench + 60
-        holdend = holdtemper + 60
-        times = np.array([0, 0, holdCN, holdCN + 10, holdquench, holdquench + 10, holdtemper, holdtemper + 10, holdend]) / 60
+        holdCN = data["Thermo"]["CNtime"]
+        holdquench = holdCN + 1800
+        holdtemper = holdquench + 1800
+        holdend = holdtemper + 1800
+        times = np.array([0, 0, holdCN, holdCN + 1800, holdquench, holdquench + 1800, holdtemper, holdtemper + 1800, holdend]) / 3600
         temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
         fig, ax = plt.subplots(figsize=(6, 10), dpi=50)
         ax.plot(times, temps)
-        ax.set_xlabel('Time [min]')
+        ax.set_xlabel('Time [h]')
         ax.set_ylabel('Temperature [degC]')
 
         canvas = FigureCanvasTkAgg(fig, master=self)
@@ -335,6 +335,7 @@ class TTTmodelTab(ctk.CTkFrame):
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
+
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         cord = getaxisvalues('nodes')
@@ -348,8 +349,7 @@ class TTTmodelTab(ctk.CTkFrame):
         toolbar.update()
         canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 
-
-class FEMresults(matplotlib.figure.Figure):
+class FEMresults(Figure):
     def __init__(self, master, datatype):
         super().__init__((10, 4), 50, fg_color="transparent")
         self.master = master
@@ -540,13 +540,15 @@ class MainApp(ctk.CTk):
         #sys.stderr = logger
 
         if self.programstate.get() == 0:
-            createdatastreamcache("Resultfiles/TestDatastream.xdmf")
+            createdatastreamcache()
             print("Created a cache file from previous results\n")
 
         if self.modules.empty():
             print("\nNo modules left in pipeline")
             self.sidebar_frame.sidebar_button_1.grid_remove()
             self.sidebar_frame.progress_bar.grid_remove()
+            savedatastream("Resultfiles/230124_1.xdmf")
+            print("Resultdata saved to " + "Resultfiles/230124_1.xdmf")
             return
 
         currentmodule = self.modules.get()
@@ -555,11 +557,13 @@ class MainApp(ctk.CTk):
             #tid.daemon = True
             tid.start()
             self.progressmonitor(tid, currentmodule)
+
         else:
+            tid = None
             self.run_module(currentmodule)
             self.sidebar_frame.progress_bar.set(currentmodule.getprogress())
         self.programstate.set(self.programstate.get() + 1)
-
+        data = read_input()
     def run_module(self, module):
         module.runmodule()
         self.main_frame.add_gui(module.modulename())
@@ -569,6 +573,7 @@ class MainApp(ctk.CTk):
         self.sidebar_frame.progress_bar.set(module.getprogress())
         """ Monitor the download thread """
         if tid.is_alive():
+            self.after(100, lambda: self.sidebar_frame.progress_bar.set(module.getprogress()))
             pass
             #self.after(1000, lambda: self.progressmonitor(tid, module))
             #self.after(100, lambda: self.sidebar_frame.progress_bar.set(module.getprogress()))

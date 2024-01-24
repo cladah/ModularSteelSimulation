@@ -1,0 +1,14 @@
+from ..StructureFile import NewCalcModule
+
+
+class Quenchingmodule(NewCalcModule):
+    def __init__(self):
+        super().__init__("Quenching")
+
+    def run(self):
+        from ..Solvers.ComsolSolver import runComsol
+
+        if self.program == "Comsol":
+            runComsol(self)
+        else:
+            raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")

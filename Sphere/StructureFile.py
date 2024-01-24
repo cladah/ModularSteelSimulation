@@ -1,5 +1,27 @@
-import threading
+class NewCalcModule:
+    def __init__(self, modulename, runcondition=True):
+        from HelpFile import read_input
+        self.data = read_input()
+        self.runcondition = runcondition
+        self.module = modulename
+        self.progress = 0.0
+        self.program = self.data["Programs"][modulename]
+        self.check_runcondition()
+    def modulename(self):
+        return self.module
 
+    def getprogress(self):
+        return self.progress
+
+    def updateprogress(self, progressvalue):
+        self.progress = progressvalue
+    def reset_runcondition(self):
+        self.runcondition = True
+
+    def check_runcondition(self):
+        from HelpFile import checkruncondition
+        self.runcondition = checkruncondition(self.module)
+        return self.runcondition
 
 class CalcModule:
     def __init__(self, moduletype, run=True):
@@ -47,7 +69,16 @@ class CalcModule:
             print(self.module + " not implemented.")
         self.updateprogress(1.0)
     def testingmodule(self):
-        import time
-        for i in range(1, 3):
-            time.sleep(5)
-            print(str(i * 5) + "sec")
+        from Solvers.ThermocalcSolver import calculateTTT
+        from HelpFile import read_input
+        import matplotlib.pyplot as plt
+        import numpy as np
+        data = read_input()
+        T = [900, 800, 700, 600, 500, 400, 300]
+        TTT, legend = calculateTTT(T, data["Material"]["Composition"])
+        print(np.shape(TTT))
+        print(TTT)
+        for i in range(len(TTT)):
+            plt.plot(TTT[i], T, lable=legend[i])
+        plt.legend()
+        plt.show()
