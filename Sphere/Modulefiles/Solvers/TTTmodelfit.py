@@ -1,6 +1,6 @@
-from HelpFile import *
+from Sphere.HelpFile import getTTTdata
+import numpy as np
 def JMAKfit(composition, phase):
-    import numpy as np
     TTTdata = getTTTdata(composition,"TTTdata")
     if TTTdata == None:
         raise KeyError("Can't find " + str(composition) + " in database")

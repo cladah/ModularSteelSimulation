@@ -6,6 +6,7 @@ from sqlitedict import SqliteDict
 import numpy as np
 
 
+
 def read_input():
     f = open('Cachefiles/Input.json', 'r')
     data = json.load(f)
@@ -50,7 +51,6 @@ def checkruncondition(model):
 
     modellist = list(indata["Rerun"].keys())
 
-
     # Check rerun criteria
     if indata["Rerun"]["All"] == True:
         return True
@@ -61,6 +61,8 @@ def checkruncondition(model):
         if m == model:
             break
 
+    if indata["Programs"][model] != cachedata["Programs"][model]:
+        return True
 
     if model == 'Meshing':
         if not os.path.isfile(pathlib.Path("Resultfiles/Datastream.xdmf")):
@@ -69,14 +71,14 @@ def checkruncondition(model):
             if indata[x] != cachedata[x]:
                 return True
     elif model == 'Carbonitriding':
-        for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
+        for x in ['Geometry', 'Material', 'Thermo']:
             if indata[x] != cachedata[x]:
                 return True
     elif model == 'TTT':
         for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
             if indata[x] != cachedata[x]:
                 return True
-    elif model == 'TTTmodeling':
+    elif model == 'Transformationmodels':
         for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
             if indata[x] != cachedata[x]:
                 return True
@@ -150,3 +152,38 @@ def analyseTTTdatabase():
     print("Compositions in database")
     for key in TTTdata.keys():
         print(TTTdata[key]["Composition"])
+
+def getTTTcompositions():
+    roundingTTT = 1
+    data = read_input()
+    TTTcompositions = list()
+    fullcomposition = dict()
+    for element in data['Material']['Composition'].keys():
+        fullcomposition[element] = getaxisvalues("Composition/" + element)
+    composition = data['Material']['Composition']
+
+    mesh = list()
+    # Trying to create grid of compositions
+    for element in data['Material']['Composition'].keys():
+        if composition[element] != fullcomposition[element][-1]:
+            if element == "C":
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
+            else:
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+            tmplist = [round(elem, roundingTTT) for elem in tmplist]
+            tmplist = list(set(tmplist)) # getting unique values
+            tmplist.sort()
+        else:
+            tmplist = [composition[element]]
+        mesh.append(tmplist)
+
+    g = np.meshgrid(*mesh)
+    positions = np.vstack(list(map(np.ravel, g)))
+    for compnr in range(len(positions[0, :])):  # The number 0 here is correlated to the coal as it varies the most
+        tmpcomp = dict()
+        i = 0
+        for element in data['Material']['Composition'].keys():
+            tmpcomp[element] = round(positions[i, compnr], roundingTTT)
+            i = i+1
+        TTTcompositions.append(tmpcomp)
+    return TTTcompositions

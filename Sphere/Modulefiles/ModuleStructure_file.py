@@ -1,5 +1,5 @@
 from Sphere.Datastream_file import read_input
-from Sphere.HelpFile import checkruncondition
+from Sphere.HelpFile import checkruncondition, adjustinputcache
 
 
 class CalcModule:
@@ -28,6 +28,7 @@ class CalcModule:
 
     def check_runcondition(self):
         self.runcondition = checkruncondition(self.module)
+        # Adjust run input in cache for other simulations?
         return self.runcondition
 
     def __str__(self):

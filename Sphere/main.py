@@ -8,6 +8,7 @@ from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
+from Modulefiles.Quenching_file import Quenchingmodule
 
 
 def GUI():
@@ -27,14 +28,14 @@ def modelling():
     modules.append(Meshingmodule())
     modules.append(Carbonitridingmodule())
     modules.append(TTTdiagrammodule())
-    #modules.append(CalcModule("TTTmodeling"))
-    #modules.append(CalcModule("Quenching"))
+    modules.append(Transformationmodelmodule())
+    #modules.append(Quenchingmodule())
 
     for currentmodule in modules:
         if currentmodule.modulename() != "Meshing":
             tid = threading.Thread(target=run_single_module, args=(currentmodule,))
             tid.start()
-            progressmonitor(tid, currentmodule)
+            progressmonitor(tid, currentmodule) # Making sure thread is done
         else:
             run_single_module(currentmodule)
     removedatastreamcache()

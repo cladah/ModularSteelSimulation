@@ -1,11 +1,11 @@
 import mph
 import os
-
+import csv
 import numpy as np
-from HelpFile import readresultfile, read_input, readdatastream, adjustdatastream, getaxisvalues
+from Sphere.HelpFile import readresultfile, read_input
+from Sphere.Datastream_file import readdatastream, adjustdatastream, getaxisvalues
 def modeldatatoComsolfiles():
     print("Adjusting phase transformation data to Comsol specifics")
-    import csv
     xyz = readdatastream("nodes")
     phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
     for phase in phases:
@@ -494,7 +494,7 @@ def runComsol(parent):
     #client = mph.start()
 
     print("Setting up model")
-    if 1==1:
+    if 1==0:
         pymodel = client.load("Resultfiles/Comsolmodel.mph")
         model = pymodel.java
         pass

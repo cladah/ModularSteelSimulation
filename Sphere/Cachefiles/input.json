@@ -1,11 +1,11 @@
 {
   "Rerun": {
     "All": false,
-    "Meshing": true,
+    "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,
-    "TTTmodeling": false,
-    "Quenching": false,
+    "Transformationmodels": true,
+    "Quenching": true,
     "Tempering": false,
     "Fatigue": false
   },
@@ -535,7 +535,7 @@
     "Coupling": "Stagg",
     "Carbonitriding": "TC",
     "TTT": "TC",
-    "TTTmodeling": "Python",
+    "Transformationmodels": "Python",
     "Quenching": "Comsol",
     "Thermal": "FCSx",
     "FEM": "Comsol",

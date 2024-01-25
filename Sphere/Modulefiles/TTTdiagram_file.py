@@ -12,6 +12,7 @@ class TTTdiagrammodule(CalcModule):
     def run(self):
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
+            print("TTT diagram module done\n")
             return
 
         if self.program == "TC":
@@ -23,6 +24,7 @@ class TTTdiagrammodule(CalcModule):
                 runTTTcalc(tmpcomp)
                 self.updateprogress(i / compnr)
                 i = i + 1
+            print("TTT diagram module done\n")
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
 
@@ -62,7 +64,7 @@ def runTTTcalc(composition):
         return
 
     Tsteps = np.linspace(260, 1000, 38)
-    phases = ["Ferrite", "Bainite", "Perlite","Martensite"]
+    phases = ["Ferrite", "Bainite", "Perlite", "Martensite"]
     TTTdata = dict()
     for ph in phases:
         if ph == "Ferrite":

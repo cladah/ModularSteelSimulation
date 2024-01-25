@@ -9,6 +9,13 @@ class Quenchingmodule(CalcModule):
         from Sphere.Modulefiles.Solvers.ComsolSolver import runComsol
 
         if self.program == "Comsol":
-            runComsol(self)
+            print('\nQuenching module')
+
+            if self.program == 'FCSx':
+                print('FeniCSx not implemented')
+                # rundocker(self)
+            elif self.program == 'Comsol':
+                print('Using COMSOL for FEM calculation')
+                runComsol(self)
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
