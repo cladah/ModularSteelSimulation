@@ -1,9 +1,12 @@
+import gmsh
+from Sphere.HelpFile import read_input
+import numpy as np
+import meshio
+import pygmsh
+
+
 def gmshsolver(parent):
     print('Meshing with Gmsh')
-    import gmsh
-    from HelpFile import read_input
-    import numpy as np
-    import meshio
 
     data = read_input()
     r = data['Geometry']['radius']
@@ -58,11 +61,11 @@ def gmshsolver(parent):
 
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
-    gmsh.write("Resultfiles/Mesh.vtk")
     print(*gmsh.logger.get(), sep="\n")
     gmsh.finalize()
     parent.updateprogress(0.8)
     meshdata = meshio.read("Resultfiles/Mesh.msh")
+
 
     # Creating datastream from mesh
     meshio.write("Resultfiles/Datastream.xdmf",
@@ -76,11 +79,6 @@ def gmshsolver(parent):
 
 def pygmshsolver(parent):
     print('Meshing with PyGmsh')
-    import pygmsh
-    from HelpFile import read_input
-    import numpy as np
-    import meshio
-    import gmsh
     data = read_input()
     r = data['Geometry']['radius']
     tmpgeo = [data['Geometry']['meshscaling'] ** i for i in range(data['Geometry']['nodes'] - 1)]

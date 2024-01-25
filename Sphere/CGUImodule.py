@@ -1,12 +1,11 @@
-import matplotlib.backends.backend_tkagg
 from HelpFile import *
 import sys
 import threading
 import logging
-import matplotlib as mpl
 from matplotlib.figure import Figure
 import customtkinter as ctk
 from queue import Queue
+import Datastream_file
 
 
 class PrintLogger(object):
@@ -97,13 +96,7 @@ class rightFrame(ctk.CTkFrame):
         tab0.columnconfigure(0, weight=1)
 
     def add_gui(self, type):
-        from HelpFile import readdatastream, getaxisvalues, getTTTdata, read_input
-        import numpy as np
         import matplotlib as mpl
-        import matplotlib.pyplot as plt
-        from matplotlib.figure import Figure
-        from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
-                                                       NavigationToolbar2Tk)
         mpl.rcParams["font.size"] = 32
         if type == "Meshing":
             tab1 = self.tabs_frame.add("Mesh")
@@ -148,11 +141,8 @@ class infoTab(ctk.CTkScrollableFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
         import matplotlib as mpl
-        from PIL import Image
         import matplotlib.pyplot as plt
-        from matplotlib.figure import Figure
-        from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
-                                                       NavigationToolbar2Tk)
+        from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
         data = read_input()
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -211,7 +201,6 @@ class meshTab(ctk.CTkFrame):
     def __init__(self, master):
         import matplotlib as mpl
         import matplotlib.pyplot as plt
-        from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
         super().__init__(master, fg_color="transparent")
@@ -279,8 +268,6 @@ class CNTab(ctk.CTkFrame):
 class TTTTab(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
@@ -488,7 +475,7 @@ class QuenchingTab(ctk.CTkFrame):
 
 class MainApp(ctk.CTk):
     def __init__(self):
-        from StructureFile import CalcModule
+        from Sphere.Oldfiles.StructureFile import CalcModule
         super().__init__()
         self.geometry("1400x1000")
         self.title("Quenching of steel")

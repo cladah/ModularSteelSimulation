@@ -1,16 +1,23 @@
-from StructureFile import NewCalcModule
+from .ModuleStructure_file import CalcModule
+from .Solvers.MeshSolvers import gmshsolver, pygmshsolver
+import meshio
 
 
-class Meshingmodule(NewCalcModule):
+class Meshingmodule(CalcModule):
     def __init__(self):
         super().__init__("Meshing")
 
     def run(self):
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
-            return
 
-        from Solvers.MeshSolvers import gmshsolver, pygmshsolver
+            meshdata = meshio.read("Cachefiles/Datastream.xdmf")
+            meshio.write("Resultfiles/Datastream.xdmf",
+                         meshio.Mesh(points=meshdata.points,
+                                     cells={"triangle": meshdata.get_cells_type("triangle")}))
+
+            print("Meshing module done\n")
+            return
 
         if self.program == "Gmsh":
             gmshsolver(self)

@@ -1,4 +1,4 @@
-from ..StructureFile import NewCalcModule
+from Sphere.Oldfiles.StructureFile import NewCalcModule
 
 
 class Temperingmodule(NewCalcModule):

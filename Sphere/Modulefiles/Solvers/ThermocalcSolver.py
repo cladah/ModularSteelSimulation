@@ -1,8 +1,11 @@
 import numpy as np
 from tc_python import *
+from Sphere.HelpFile import read_input
+from Sphere.Datastream_file import getaxisvalues
+
 
 def getTTTcompositions():
-    from HelpFile import read_input, getaxisvalues
+
     roundingTTT = 1
     data = read_input()
     TTTcompositions = list()
@@ -38,7 +41,6 @@ def getTTTcompositions():
     return TTTcompositions
 
 def TCequalibrium(type):
-    from HelpFile import read_input
     data = read_input()
     if type == "env":
         database = "SSUB6"
@@ -88,7 +90,6 @@ def TCequalibrium(type):
         return activityC, activityN
 
 def TCcarbonitriding(activityair):
-    from HelpFile import read_input
     data = read_input()
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.ERROR)
@@ -157,7 +158,6 @@ def setmaterial(data,type):
     return env_dep, env_comp
 
 def calculateCCT():
-    from HelpFile import read_input
     data = read_input()
 
     database = "TCFE12"
@@ -211,7 +211,6 @@ def calculateCCT():
         return
 def calculatePerlite(temperatures, composition):
     print("Perlite model")
-    from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
@@ -259,7 +258,6 @@ def calculatePerlite(temperatures, composition):
 
 def calculateBainite(temperatures, composition):
     print("Bainite model")
-    from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
@@ -296,7 +294,6 @@ def calculateBainite(temperatures, composition):
     return starttime, halftime, finishtime
 def calculateMartensite(composition):
     print("Martensite model")
-    from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
@@ -333,7 +330,6 @@ def calculateMartensite(composition):
 
 def calculateFerrite(temperatures, composition):
     print("Ferrite model")
-    from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
@@ -357,7 +353,7 @@ def calculateFerrite(temperatures, composition):
         for element in composition:
             calculation.set_composition(element, composition[element])
 
-        #print("Available arguments: {}".format(calculation.get_arguments()))
+        # print("Available arguments: {}".format(calculation.get_arguments()))
         starttime, halftime, finishtime = list(), list(), list()
         for x in temperatures:
             calc_result = (calculation.set_temperature(x)
@@ -366,11 +362,10 @@ def calculateFerrite(temperatures, composition):
             starttime.append(calc_result.get_value_of("Ferrite start"))
             halftime.append(calc_result.get_value_of("Ferrite half"))
             finishtime.append(calc_result.get_value_of("Ferrite finish"))
-        #print("Available result quantities: {}".format(calc_result.get_result_quantities()))
+        # print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return starttime, halftime, finishtime
 def calculateTTT(temperatures, composition):
     print("TTT model")
-    from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
@@ -409,7 +404,8 @@ def calculateTTT(temperatures, composition):
             list(), list(), list(), list(), list(), list(), list()
         legend = ["2% austenite transformed","50% austenite transformed","98% austenite transformed",
                   "Martensite start", "Martensite 50%", "Martensite 98%",
-                  "Pearlite start (2%)", "Bainite start (2%)", "Ferrite start (2%)", "Total ferrite+cementite start (2%)"]
+                  "Pearlite start (2%)", "Bainite start (2%)", "Ferrite start (2%)",
+                  "Total ferrite+cementite start (2%)"]
         for x in temperatures:
             calc_result = (calculation.set_temperature(x)
                            .calculate()  # Aktiverar beräkningen
@@ -427,10 +423,10 @@ def calculateTTT(temperatures, composition):
         TTT = [aust2, aust50, aust98, mart_start, mart_half, mart_end, perlite, bainite, ferrite, ferrite_cem]
         print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return TTT, legend
+
 def testTC():
     temperatures = [900, 800, 700, 600]
     print("Ferrite model")
-    from HelpFile import read_input
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"

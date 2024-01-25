@@ -1,7 +1,7 @@
-from StructureFile import NewCalcModule
+from .ModuleStructure_file import CalcModule
 
 
-class Transformationmodelmodule(NewCalcModule):
+class Transformationmodelmodule(CalcModule):
     def __init__(self):
         super().__init__("Quenching")
 
@@ -9,8 +9,6 @@ class Transformationmodelmodule(NewCalcModule):
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
             return
-
-        from ..Solvers.ComsolSolver import runComsol
 
         if self.program == "Python":
             print()

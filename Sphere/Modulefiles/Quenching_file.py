@@ -1,12 +1,12 @@
-from ..StructureFile import NewCalcModule
+from .ModuleStructure_file import CalcModule
 
 
-class Quenchingmodule(NewCalcModule):
+class Quenchingmodule(CalcModule):
     def __init__(self):
         super().__init__("Quenching")
 
     def run(self):
-        from ..Solvers.ComsolSolver import runComsol
+        from Sphere.Modulefiles.Solvers.ComsolSolver import runComsol
 
         if self.program == "Comsol":
             runComsol(self)

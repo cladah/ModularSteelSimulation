@@ -8,7 +8,7 @@ import meshio
 def createMesh(parent):
     if not checkruncondition('Mesh'):
         print('Using precalculated mesh')
-        meshdata = meshio.read("Cachefiles/Datastream.xdmf")
+        meshdata = meshio.read("../Cachefiles/Datastream.xdmf")
         meshio.write("Resultfiles/Datastream.xdmf",
                      meshio.Mesh(points=meshdata.points,
                                  cells={"triangle": meshdata.get_cells_type("triangle")}))
@@ -54,12 +54,12 @@ def pygmshmodule():
         mesh = geom.generate_mesh(dim=2)
 
 
-    meshio.write("Resultfiles/Mesh.nas", mesh)
+    meshio.write("../Resultfiles/Mesh.nas", mesh)
     #meshio.write("Resultfiles/Mesh.vtk", mesh)
     #meshio.write("Resultfiles/Mesh.msh", mesh)
 
     # Adding mesh data to datastream
-    meshdata = meshio.read("Resultfiles/Mesh.nas")
+    meshdata = meshio.read("../Resultfiles/Mesh.nas")
     meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))
@@ -113,18 +113,18 @@ def gmshmodule(parent):
     #gmsh.model.mesh.optimize()
     gmsh.model.mesh.generate(gdim)
     # ----------------------
-    gmsh.write("Resultfiles/Mesh.msh")
-    gmsh.write("Resultfiles/Mesh.vtk")
+    gmsh.write("../Resultfiles/Mesh.msh")
+    gmsh.write("../Resultfiles/Mesh.vtk")
     print(*gmsh.logger.get(), sep="\n")
     gmsh.finalize()
     parent.updateprogress(0.8)
-    meshdata = meshio.read("Resultfiles/Mesh.msh")
+    meshdata = meshio.read("../Resultfiles/Mesh.msh")
     # Creating datastream from mesh
     meshio.write("Resultfiles/Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))
     data = meshio.read("Resultfiles/Datastream.xdmf")
     # Writing nas file  with meshio
-    mesh = meshio.read("Resultfiles/Mesh.msh")
-    meshio.write("Resultfiles/Mesh.nas", mesh)
+    mesh = meshio.read("../Resultfiles/Mesh.msh")
+    meshio.write("../Resultfiles/Mesh.nas", mesh)
     parent.updateprogress(1.0)

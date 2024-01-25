@@ -1,10 +1,5 @@
-import time
-
-import numpy as np
-
-from Sphere.Solvers.ThermocalcSolver import *
+from Sphere.Modulefiles.Solvers.ThermocalcSolver import *
 from HelpFile import *
-import h5py
 from numpy import interp
 
 class diffusionmodule():

@@ -1,4 +1,4 @@
-from Solvers.ComsolSolver import setupComsol, runComsol, adjustComsol
+from Sphere.Modulefiles.Solvers.ComsolSolver import setupComsol, runComsol
 from HelpFile import read_input, checkruncondition, adjustinputcache
 import os
 def runquenchingmodule(parent):
@@ -15,7 +15,7 @@ def runquenchingmodule(parent):
         print('Using COMSOL for FEM calculation')
         runComsol(parent)
         return
-        if not os.path.exists('Resultfiles/Comsolmodel.mph'):
+        if not os.path.exists('../Resultfiles/Comsolmodel.mph'):
             setupComsol()
         else:
             print("Using previous setup model")

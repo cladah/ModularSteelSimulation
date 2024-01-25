@@ -51,25 +51,25 @@ class CalcModule:
             print("Testing module")
             self.testingmodule()
         elif self.module == "Meshing":
-            from Meshmodule import createMesh
+            from Sphere.Oldfiles.Meshmodule import createMesh
             createMesh(self)
         elif self.module == "Carbonitriding":
-            from Carbonitridingmodule import runcarbonitridingmodule
+            from Sphere.Oldfiles.Carbonitridingmodule import runcarbonitridingmodule
             runcarbonitridingmodule(self)
         elif self.module == "TTT":
-            from TTTmodule import runTTTmodule
+            from Sphere.Oldfiles.TTTmodule import runTTTmodule
             runTTTmodule(self)
         elif self.module == "TTTmodeling":
-            from TTTmodule import runTTTmodelmodule
+            from Sphere.Oldfiles.TTTmodule import runTTTmodelmodule
             runTTTmodelmodule(self)
         elif self.module == "Quenching":
-            from Quenchingmodule import runquenchingmodule
+            from Sphere.Oldfiles.Quenchingmodule import runquenchingmodule
             runquenchingmodule(self)
         else:
             print(self.module + " not implemented.")
         self.updateprogress(1.0)
     def testingmodule(self):
-        from Solvers.ThermocalcSolver import calculateTTT
+        from Sphere.Modulefiles.Solvers.ThermocalcSolver import calculateTTT
         from HelpFile import read_input
         import matplotlib.pyplot as plt
         import numpy as np

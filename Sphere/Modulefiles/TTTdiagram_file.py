@@ -1,7 +1,11 @@
-from StructureFile import NewCalcModule
+from .ModuleStructure_file import CalcModule
+from .Solvers.ThermocalcSolver import getTTTcompositions
+from Sphere.HelpFile import getTTTdata, addTTTdata
+from .Solvers.ThermocalcSolver import calculatePerlite, calculateBainite, calculateFerrite, calculateMartensite
+import numpy as np
 
 
-class TTTdiagrammodule(NewCalcModule):
+class TTTdiagrammodule(CalcModule):
     def __init__(self):
         super().__init__("TTT")
 
@@ -10,7 +14,6 @@ class TTTdiagrammodule(NewCalcModule):
             print("Using precalculated " + str(self.module) + " simulation")
             return
 
-        from ..Solvers.ThermocalcSolver import getTTTcompositions
         if self.program == "TC":
             print("\nTTT module")
             TTTcompositions = getTTTcompositions()
@@ -24,9 +27,7 @@ class TTTdiagrammodule(NewCalcModule):
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
 
 def runTTTcalc(composition):
-    from HelpFile import getTTTdata, addTTTdata
-    from Solvers.ThermocalcSolver import calculatePerlite, calculateBainite, calculateFerrite, calculateMartensite
-    import numpy as np
+
 
     # Take away values that are 0 EXCEPT N AND C!
     keys = composition.keys()

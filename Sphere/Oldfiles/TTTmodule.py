@@ -1,9 +1,5 @@
-import time
-
-import numpy as np
-
-from Sphere.Solvers.ThermocalcSolver import *
-from Sphere.Solvers.TTTmodelfit import *
+from Sphere.Modulefiles.Solvers.ThermocalcSolver import *
+from Sphere.Modulefiles.Solvers.TTTmodelfit import *
 from HelpFile import *
 
 
@@ -43,7 +39,7 @@ def getTTTcompositions():
     return TTTcompositions
 
 def runTTTmodule(parent):
-    from HelpFile import read_input, checkruncondition
+    from HelpFile import checkruncondition
     if not checkruncondition('TTT'):
         print('Using precalculated TTT simulation')
         return
@@ -153,7 +149,6 @@ def TTTfit(composition):
     addTTTdata(composition, modeldata, "Modeldata")
 
 def TTTinterpolatetonodes():
-    import matplotlib.pyplot as plt
     from scipy import interpolate
     data = read_input()
 
