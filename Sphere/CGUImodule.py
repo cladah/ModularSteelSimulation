@@ -5,7 +5,8 @@ import logging
 from matplotlib.figure import Figure
 import customtkinter as ctk
 from queue import Queue
-import Datastream_file
+import meshio
+from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream
 
 
 class PrintLogger(object):

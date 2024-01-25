@@ -21,6 +21,7 @@ def modelling():
     data = read_input()
     import threading
     createdatastreamcache(data["Datastream"]["Cachedirect"])
+    # resetdatastream()
 
     modules = list()
     modules.append(Meshingmodule())
