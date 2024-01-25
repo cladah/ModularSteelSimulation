@@ -29,7 +29,7 @@ def modelling():
     modules.append(Carbonitridingmodule())
     modules.append(TTTdiagrammodule())
     modules.append(Transformationmodelmodule())
-    #modules.append(Quenchingmodule())
+    modules.append(Quenchingmodule())
 
     for currentmodule in modules:
         if currentmodule.modulename() != "Meshing":

@@ -34,7 +34,7 @@ def modeldatatoComsolfiles():
             with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
                 ##with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as file:
                 writer = csv.writer(file)
-                r = [np.sqrt(xyz[j][0]**2+ xyz[j][1]**2) for j in range(len(xyz) - 1)]
+                r = [np.sqrt(xyz[j][0]**2 + xyz[j][1]**2) for j in range(len(xyz) - 1)]
                 if phase in ["Ferrite", "Perlite", "Bainite"]:
                     if not tmp1.all():
                         break
@@ -171,7 +171,7 @@ def setupComsol(model):
 
     # --------------- Setting up geometry and mesh ------------------#
     model.component("comp1").geom().create("geom1", 2)
-    model.component("comp1").geom("geom1").axisymmetric(True)
+    #model.component("comp1").geom("geom1").axisymmetric(True)
     model.component("comp1").mesh().create("mesh1")
     model.component("comp1").geom("geom1").run()
     model.component("comp1").mesh("mesh1").create("imp1", "Import")
@@ -405,6 +405,22 @@ def adjustComsol(model):
 
 def Comsolexport(model):
 
+    resultdata = ["solid.eel11", "solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33",
+                  "solid.sl11", "solid.sl12", "solid.sl22", "solid.sl23", "solid.sl13", "solid.sl33",
+                  "T", "audc.phase1.xi", "audc.phase2.xi", "audc.phase3.xi", "audc.phase4.xi", "audc.phase5.xi"]
+
+    model.result().export().create("data1", "Data")
+    model.result().export("data1").set("filename", os.getcwd() + "\\Resultfiles\\tmpComsol.txt")
+    model.result().export("data1").setIndex("looplevelinput", "all", 0)
+    model.result().export("data1").set("header", False)
+    for i in range(len(resultdata)):
+        model.result().export("data1").setIndex("expr", resultdata[i], 0)
+        model.result().export("data1").run()
+        print("Exported " + resultdata[i])
+
+
+
+
     model.result().export().create("data1", "Data")
     model.result().export("data1").set("expr", "audc.phase1.xi")
     model.result().export("data1").setIndex("expr", "audc.phase2.xi", 1)
@@ -413,7 +429,7 @@ def Comsolexport(model):
     model.result().export("data1").setIndex("expr", "audc.phase5.xi", 4)
     model.result().export("data1").set("descr", "Phase fraction")
     model.result().export("data1").set("unit", "1")
-    model.result().export("data1").set("filename", "C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Phasecomp.txt")
+    model.result().export("data1").set("filename", os.getcwd() + "\\Resultfiles\\Phasecomp.txt")
     model.result().export("data1").setIndex("looplevelinput", "last", 0)
     #model.result().export("data1").setIndex("looplevelindices", "1, 601", 0)
     model.result().export("data1").set("header", False)
@@ -439,8 +455,29 @@ def Comsolexport(model):
     model.result().export("data3").run()
     pass
 
+def addComsoldatadatastream():
+    directory = os.getcwd()
+    cachedirectory = directory + '\\Cachefiles'
+    savedirec = directory + '\\Resultfiles'
+    data = np.loadtxt(savedirec + "\\Phasecomp.txt")
+    nodes = readdatastream("nodes")
 
+    xdata = np.around(np.array(data)[:, 0], 8)
+    ydata = np.around(np.array(data)[:, 1], 8)
+    x = np.around(np.array(nodes[:, 0]), 8)
+    y = np.around(np.array(nodes[:, 1]), 8)
 
+    # Getting position of comsol nodes
+    indxcomsol = np.ones(len(nodes))
+    for i in range(len(nodes)):
+        for j in range(len(nodes)):
+            if x[j] == xdata[i]:
+                if y[j] == ydata[i]:
+                    indxcomsol[j] = i
+                    continue
+    indxcomsol = indxcomsol.astype(int)
+    t = [*range(0, 30, 1), *range(60, 600, 60)]
+    adjustdatastream("Austenite", data[:, 2][indxcomsol], "nodes")
 
 
 def resultconverter():
@@ -494,22 +531,24 @@ def runComsol(parent):
     #client = mph.start()
 
     print("Setting up model")
-    if 1==0:
+    if os.path.isfile("Resultfiles/Comsolmodel.mph"):
+        print("Comsolmodel.mph file exist")
         pymodel = client.load("Resultfiles/Comsolmodel.mph")
         model = pymodel.java
-        pass
     else:
+        print("Comsolmodel.mph file doesn't exist")
+        print("Creating Comsol model")
         pymodel = client.create()
         model = pymodel.java
         model = setupComsol(model)
     #model.util.ModelUtil.showProgress(savedirec + "\\Comsolprogress.txt")
     print("Adjusting model to input")
-    model = adjustComsol(model)
+    #model = adjustComsol(model)
     parent.updateprogress(0.3)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    model.study("std1").run()
-    model.save('Resultfiles/Comsolmodel')
+    #model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
+    #model.study("std1").run()
+    #model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
     print("Comsol model successfully ran")
     print("Exporting results")

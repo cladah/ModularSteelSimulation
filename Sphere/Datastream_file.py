@@ -12,13 +12,13 @@ def createdatastream():
         pass
 
 
-def adjustdatastream(dataname, data, type):
+def adjustdatastream(dataname, data, datapos="nodes", time=0):
     # Adding data to xdmf file
-    if type == "nodes":
+    if datapos == "nodes":
         meshstream = meshio.read("Resultfiles/Datastream.xdmf")
         meshstream.point_data[dataname] = data
         meshio.write("Resultfiles/Datastream.xdmf", meshstream)
-    elif type == "elements":
+    elif datapos == "elements":
         meshstream = meshio.read("Resultfiles/Datastream.xdmf")
         meshstream.cell_data[dataname] = data
         meshio.write("Resultfiles/Datastream.xdmf", meshstream)
