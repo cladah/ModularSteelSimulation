@@ -2,7 +2,7 @@ import time
 
 from CGUImodule import MainApp
 from Datastream_file import createdatastream, createdatastreamcache, removedatastreamcache, savedatastream
-from HelpFile import read_input
+from HelpFile import read_input, setupSimulation, createinputcache
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule
@@ -19,10 +19,13 @@ def GUI():
 
 
 def modelling():
+    setupSimulation()
+
     data = read_input()
     import threading
     createdatastreamcache(data["Datastream"]["Cachedirect"])
     # resetdatastream()
+    createinputcache()
 
     modules = list()
     modules.append(Meshingmodule())
@@ -35,7 +38,7 @@ def modelling():
         if currentmodule.modulename() != "Meshing":
             tid = threading.Thread(target=run_single_module, args=(currentmodule,))
             tid.start()
-            progressmonitor(tid, currentmodule) # Making sure thread is done
+            progressmonitor(tid, currentmodule)  # Making sure thread is done
         else:
             run_single_module(currentmodule)
     removedatastreamcache()

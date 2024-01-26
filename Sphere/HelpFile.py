@@ -187,3 +187,6 @@ def getTTTcompositions():
             i = i+1
         TTTcompositions.append(tmpcomp)
     return TTTcompositions
+
+def setupSimulation():
+    pass

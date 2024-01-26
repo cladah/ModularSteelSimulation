@@ -1,3 +1,5 @@
+import pathlib
+
 import mph
 import os
 import csv
@@ -164,8 +166,8 @@ def setupComsol(model):
         meshdirec = directory + '/Resultfiles/Mesh.nas'
         savedirec = directory + '/Resultfiles'
     else:
-        meshdirec = directory + '\\Resultfiles\\Mesh.nas'
-        savedirec = directory + '\\Resultfiles'
+        meshdirec = directory + '/Resultfiles/Mesh.nas'
+        savedirec = directory + '/Resultfiles'
 
     model.modelNode().create("comp1", True)
 
@@ -373,19 +375,19 @@ def adjustComsol(model):
             # model.func("E_A").set("table", "[]")
             if prop in ["tau","n"]:
                 model.func(prop + "_" + mat[0]).set("source", "file")
-                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "2")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 1)
             elif prop == "Ms":
                 model.func(prop + "_" + mat[0]).set("source", "file")
-                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "1")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
                 model.func(prop + "_" + mat[0]).setIndex("fununit", "K", 1)
             elif prop == "beta":
                 model.func(prop + "_" + mat[0]).set("source", "file")
-                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles\\" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "1")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
                 model.func(prop + "_" + mat[0]).setIndex("fununit", "1/K", 0)
@@ -410,56 +412,40 @@ def Comsolexport(model):
                   "T", "audc.phase1.xi", "audc.phase2.xi", "audc.phase3.xi", "audc.phase4.xi", "audc.phase5.xi"]
 
     model.result().export().create("data1", "Data")
-    model.result().export("data1").set("filename", os.getcwd() + "\\Resultfiles\\tmpComsol.txt")
+    model.result().export("data1").set("filename", "tmpComsol.csv")
     model.result().export("data1").setIndex("looplevelinput", "all", 0)
-    model.result().export("data1").set("header", False)
+    # model.result().export("data1").set("header", False)
     for i in range(len(resultdata)):
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
         model.result().export("data1").run()
         print("Exported " + resultdata[i])
 
 
+        with open(pathlib.Path(".").absolute() / "Resultfiles" / "tmpComsol.csv") as file:
+            csvreader = csv.reader(file)
+            for i in range(8):
+                next(csvreader)
+            time = next(csvreader)[2:]
+            time = [j.split("=")[1] for j in time]
+            j = 0
+            for line in csvreader:
+                test = line[2:]
+                print(test[0])
+                input("")
+                adjustdatastream(resultdata[i], np.float_(np.asarray(line[2:])), time=time[i])
+                j = j + 1
+            #print(file.readline())
+            #print(file.readline(10))
+    data = np.array([])
 
-
-    model.result().export().create("data1", "Data")
-    model.result().export("data1").set("expr", "audc.phase1.xi")
-    model.result().export("data1").setIndex("expr", "audc.phase2.xi", 1)
-    model.result().export("data1").setIndex("expr", "audc.phase3.xi", 2)
-    model.result().export("data1").setIndex("expr", "audc.phase4.xi", 3)
-    model.result().export("data1").setIndex("expr", "audc.phase5.xi", 4)
-    model.result().export("data1").set("descr", "Phase fraction")
-    model.result().export("data1").set("unit", "1")
-    model.result().export("data1").set("filename", os.getcwd() + "\\Resultfiles\\Phasecomp.txt")
-    model.result().export("data1").setIndex("looplevelinput", "last", 0)
-    #model.result().export("data1").setIndex("looplevelindices", "1, 601", 0)
-    model.result().export("data1").set("header", False)
-    model.result().export("data1").run()
-
-    model.result().export().create("data2", "Data")
-    model.result().export("data2").set("expr", "solid.mises")
-    model.result().export("data2").set("descr", "von Mises")
-    model.result().export("data2").set("unit", "MPa")
-    model.result().export("data2").set("filename","C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Stress.txt")
-    model.result().export("data2").setIndex("looplevelinput", "last", 0)
-    model.result().export("data2").set("header", False)
-    model.result().export("data2").run()
-
-    model.result().export().create("data3", "Data")
-    model.result().export("data3").set("expr", ["solid.ep1", "solid.ep2", "solid.ep3", "solid.evol", "solid.edeve"])
-    model.result().export("data3").set("descr", ["solid.ep1", "solid.ep2", "solid.ep3", "solid.evol", "solid.edeve"])
-    model.result().export("data3").set("unit", "1")
-    model.result().export("data3").set("filename",
-                                       "C:\\Users\\ClasD\\Documents\\GitHub\\SteelQuenchingFCSx\\Sphere\\Resultfiles\\Strain.txt")
-    model.result().export("data3").setIndex("looplevelinput", "last", 0)
-    model.result().export("data3").set("header", False)
-    model.result().export("data3").run()
-    pass
+    print("File is " + str(pathlib.Path('.').absolute() / 'Resultfiles' / 'tmpComsol.txt'))
+    # print(os.getcwd() + "/Resultfiles/tmpComsol.txt")
 
 def addComsoldatadatastream():
     directory = os.getcwd()
-    cachedirectory = directory + '\\Cachefiles'
-    savedirec = directory + '\\Resultfiles'
-    data = np.loadtxt(savedirec + "\\Phasecomp.txt")
+    cachedirectory = directory + '/Cachefiles'
+    savedirec = directory + '/Resultfiles'
+    data = np.loadtxt(savedirec + "/Phasecomp.txt")
     nodes = readdatastream("nodes")
 
     xdata = np.around(np.array(data)[:, 0], 8)
@@ -483,11 +469,11 @@ def addComsoldatadatastream():
 def resultconverter():
     import numpy as np
     directory = os.getcwd()
-    cachedirectory = directory + '\\Cachefiles'
-    savedirec = directory + '\\Resultfiles'
+    cachedirectory = directory + '/Cachefiles'
+    savedirec = directory + '/Resultfiles'
     nodes = readdatastream("nodes")
 
-    data = np.loadtxt(savedirec + "\\Phasecomp.txt")
+    data = np.loadtxt(savedirec + "/Phasecomp.txt")
     xdata = np.around(np.array(data)[:, 0], 8)
     ydata = np.around(np.array(data)[:, 1], 8)
     x = np.around(np.array(nodes[:, 0]), 8)
@@ -509,10 +495,10 @@ def resultconverter():
     adjustdatastream("Bainite", data[:, 5][indxcomsol], "nodes")
     adjustdatastream("Martensite", data[:, 6][indxcomsol], "nodes")
 
-    data = np.loadtxt(savedirec + "\\Stress.txt")
+    data = np.loadtxt(savedirec + "/Stress.txt")
     adjustdatastream("vonMises", data[:, 2][indxcomsol], "nodes")
 
-    data = np.loadtxt(savedirec + "\\Strain.txt")
+    data = np.loadtxt(savedirec + "/Strain.txt")
     adjustdatastream("ep1", data[:, 2][indxcomsol], "nodes")
     adjustdatastream("ep2", data[:, 3][indxcomsol], "nodes")
     adjustdatastream("ep3", data[:, 4][indxcomsol], "nodes")
@@ -521,7 +507,7 @@ def resultconverter():
 
 def runComsol(parent):
     directory = os.getcwd()
-    savedirec = directory + '\\Resultfiles'
+    savedirec = directory + '/Resultfiles'
     client = mph.start()
     #pymodel = client.load("Resultfiles/Comsolmodel.mph")
     #model = pymodel.java
@@ -541,7 +527,7 @@ def runComsol(parent):
         pymodel = client.create()
         model = pymodel.java
         model = setupComsol(model)
-    #model.util.ModelUtil.showProgress(savedirec + "\\Comsolprogress.txt")
+    #model.util.ModelUtil.showProgress(savedirec + "/Comsolprogress.txt")
     print("Adjusting model to input")
     #model = adjustComsol(model)
     parent.updateprogress(0.3)
@@ -555,7 +541,7 @@ def runComsol(parent):
     Comsolexport(model)
 
     client.clear()
-    resultconverter()
+    #resultconverter()
     parent.updateprogress(1.0)
     print("Comsol multiphysics closed")
 

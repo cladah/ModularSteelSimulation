@@ -6,8 +6,8 @@ import pathlib
 
 def createdatastream():
     try:
-        os.remove(os.getcwd() + "\Resultfiles\Datastream.h5")
-        os.remove(os.getcwd() + "\Resultfiles\Datastream.xdmf")
+        os.remove(os.getcwd() + "/Resultfiles/Datastream.h5")
+        os.remove(os.getcwd() + "/Resultfiles/Datastream.xdmf")
     except FileNotFoundError:
         pass
 
@@ -49,7 +49,7 @@ def savedatastream(filename):
         print("Datastream not saved. File in result folder.")
         return
     try:
-        meshstream = meshio.read(os.getcwd() + "\Resultfiles\Datastream.xdmf")
+        meshstream = meshio.read(os.getcwd() + "/Resultfiles/Datastream.xdmf")
         meshio.write(filename, meshstream)
         createinputcache()
         print("Saved datastream to " + filename)
@@ -59,23 +59,23 @@ def savedatastream(filename):
 
 def createdatastreamcache(filename=None):
     try:
-        os.remove(pathlib.Path("Cachefiles\\Datastream.h5"))
-        os.remove(pathlib.Path("Cachefiles\\Datastream.xdmf"))
+        os.remove("/Cachefiles/Datastream.h5")
+        os.remove("/Cachefiles/Datastream.xdmf")
     except FileNotFoundError:
         pass
 
     try:
         if filename is None or filename == "":
-            meshdata = meshio.read(pathlib.Path(os.getcwd() + "\\Resultfiles\\Datastream.xdmf"))
-            meshio.write("Cachefiles\\Datastream.xdmf", meshdata)
+            meshdata = meshio.read(pathlib.Path(os.getcwd() + "/Resultfiles/Datastream.xdmf"))
+            meshio.write("Cachefiles/Datastream.xdmf", meshdata)
         else:
             if filename.split(".")[1] in ["h5", "xdmf"]:
                 pass
             else:
                 raise FileNotFoundError
             filename = filename.split(".")[0]
-            meshdata = meshio.read(pathlib.Path(os.getcwd() + "\\" + filename + ".xdmf"))
-            meshio.write("Cachefiles\\Datastream.xdmf", meshdata)
+            meshdata = meshio.read(pathlib.Path(os.getcwd() + "/" + filename + ".xdmf"))
+            meshio.write("Cachefiles/Datastream.xdmf", meshdata)
         print("Datastream cache created\n")
 
     except meshio._exceptions.ReadError:
@@ -87,8 +87,8 @@ def createdatastreamcache(filename=None):
 
 def removedatastreamcache():
     try:
-        os.remove(os.getcwd() + "\Cachefiles\Datastream.h5")
-        os.remove(os.getcwd() + "\Cachefiles\Datastream.xdmf")
+        os.remove(os.getcwd() + "/Cachefiles/Datastream.h5")
+        os.remove(os.getcwd() + "/Cachefiles/Datastream.xdmf")
     except:
         print("No datastream caches")
 
