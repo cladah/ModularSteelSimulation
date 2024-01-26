@@ -418,28 +418,49 @@ def Comsolexport(model):
     for i in range(len(resultdata)):
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
         model.result().export("data1").run()
-        print("Exported " + resultdata[i])
 
 
         with open(pathlib.Path(".").absolute() / "Resultfiles" / "tmpComsol.csv") as file:
             csvreader = csv.reader(file)
-            for i in range(8):
+            for j in range(8):
                 next(csvreader)
             time = next(csvreader)[2:]
             time = [j.split("=")[1] for j in time]
             j = 0
-            for line in csvreader:
-                test = line[2:]
-                print(test[0])
-                input("")
-                adjustdatastream(resultdata[i], np.float_(np.asarray(line[2:])), time=time[i])
-                j = j + 1
-            #print(file.readline())
-            #print(file.readline(10))
-    data = np.array([])
+            data = []
+            # Get index
+            if i == 0:
+               indxComsol = 1
 
-    print("File is " + str(pathlib.Path('.').absolute() / 'Resultfiles' / 'tmpComsol.txt'))
+            for line in csvreader:
+                data.append(line[2:])
+                j = j + 1
+            data = np.array(data).astype(float)
+            print(np.shape(data))
+            print(np.shape(data[:, 0]))
+            input("")
+
+        for j in range(len(time)):
+            adjustdatastream(resultdata[i], data[:, j], time=time[j])
+        print("Exported " + resultdata[i])
     # print(os.getcwd() + "/Resultfiles/tmpComsol.txt")
+def getComsolindx(xdata,ydata):
+    nodes = readdatastream("nodes")
+    xdata = np.around(xdata, 8)
+    ydata = np.around(ydata, 8)
+    x = np.around(np.array(nodes[:, 0]), 8)
+    y = np.around(np.array(nodes[:, 1]), 8)
+
+    # Getting position of comsol nodes
+    indxcomsol = np.ones(len(nodes))
+    for i in range(len(nodes)):
+        for j in range(len(nodes)):
+            if x[j] == xdata[i]:
+                if y[j] == ydata[i]:
+                    indxcomsol[j] = i
+                    continue
+    indxcomsol = indxcomsol.astype(int)
+    return indxcomsol
 
 def addComsoldatadatastream():
     directory = os.getcwd()

@@ -548,7 +548,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "Resultfiles/230124_1.xdmf",
-    "Cachedirect": ""
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/230124_1.xdmf"
   }
 }
