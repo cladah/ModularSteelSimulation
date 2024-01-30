@@ -444,7 +444,7 @@ def Comsolexport(model):
             adjustdatastream(resultdata[i], data[:, j], time=time[j])
         print("Exported " + resultdata[i])
     # print(os.getcwd() + "/Resultfiles/tmpComsol.txt")
-def getComsolindx(xdata,ydata):
+def getComsolindx(xdata, ydata):
     nodes = readdatastream("nodes")
     xdata = np.around(xdata, 8)
     ydata = np.around(ydata, 8)

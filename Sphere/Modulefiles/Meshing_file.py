@@ -15,7 +15,11 @@ class Meshingmodule(CalcModule):
             meshio.write("Resultfiles/Datastream.xdmf",
                          meshio.Mesh(points=meshdata.points,
                                      cells={"triangle": meshdata.get_cells_type("triangle")}))
-
+            meshio.write("Resultfiles/TestStream.xdmf",
+                         meshio.Mesh(points=meshdata.points,
+                                     cells={"triangle": meshdata.get_cells_type("triangle")}))
+            with meshio.xdmf.TimeSeriesWriter("Resultfiles/TestStream.xdmf") as writer:
+                writer.write_points_cells(points=meshdata.points, cells={"triangle": meshdata.get_cells_type("triangle")})
             print("Meshing module done\n")
             return
 

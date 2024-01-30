@@ -1,5 +1,7 @@
 import time
 
+import meshio
+
 from CGUImodule import MainApp
 from Datastream_file import createdatastream, createdatastreamcache, removedatastreamcache, savedatastream
 from HelpFile import read_input, setupSimulation, createinputcache
@@ -10,6 +12,7 @@ from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
 
+import Testfile
 
 def GUI():
     ctk.set_appearance_mode("dark")
@@ -53,7 +56,10 @@ def progressmonitor(tid, module):
         progressmonitor(tid, module)
 
 if __name__ == "__main__":
-    modelling()
+    Testfile.read_data_from_xdmf("Resultfiles/Datastream.xdmf", 0)
+    #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf")
+
+    #modelling()
     # data = read_input()
     # createdatastreamcache(data["Datastream"]["Cachedirect"])
     # Meshingmodule().run()
