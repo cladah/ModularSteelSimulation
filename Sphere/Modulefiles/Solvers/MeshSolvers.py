@@ -68,7 +68,7 @@ def gmshsolver(parent):
 
 
     # Creating datastream from mesh
-    meshio.write("Resultfiles/Datastream.xdmf",
+    meshio.write("Datastream.xdmf",
                  meshio.Mesh(points=meshdata.points,
                              cells={"triangle": meshdata.get_cells_type("triangle")}))
 

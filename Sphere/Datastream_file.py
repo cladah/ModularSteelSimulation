@@ -3,58 +3,80 @@ import meshio
 from HelpFile import read_input, createinputcache
 import os
 import pathlib
+#import xdmf
 
 def createdatastream():
     try:
-        os.remove(os.getcwd() + "/Resultfiles/Datastream.h5")
-        os.remove(os.getcwd() + "/Resultfiles/Datastream.xdmf")
+        os.remove(os.getcwd() + "/Datastream.h5")
+        os.remove(os.getcwd() + "/Datastream.xdmf")
     except FileNotFoundError:
         pass
 
 
-def adjustdatastream(dataname, data, datapos="nodes", time=None):
+def adjustdatastream(dataname, data, datapos="nodes", t_data=0):
     # Adding data to xdmf file
-    meshstream = meshio.read("Resultfiles/Datastream.xdmf")
-    if datapos == "nodes":
-        if time != None:
-            with meshio.xdmf.TimeSeriesWriter("Resultfiles/TestStream.xdmf") as teststream:
-                teststream.write_points_cells(meshstream.points, meshstream.cells)
 
-                for name, array in meshstream.point_data.items():
-                    teststream.write_data(name, array)
-
-                    # Add existing field data
-                for name, array in meshstream.field_data.items():
-                    teststream.write_field_data(name, array)
-
-
-                teststream.write_data(t=time, point_data={dataname: data})
-            return
-        else:
-            with meshio.xdmf.TimeSeriesWriter("Resultfiles/TestStream.xdmf") as teststream:
-                teststream.write_points_cells(meshstream.points, meshstream.cells)
-
-                for name, array in meshstream.point_data.items():
-                    teststream.write_data(name, array)
-
-                    # Add existing field data
-                for name, array in meshstream.field_data.items():
-                    teststream.write_field_data(name, array)
-
-                teststream.write_data(t=time, point_data={dataname: data})
-            return
-        #     timewrite.write_data()
-        meshstream.point_data[dataname] = data
-        meshio.write("Resultfiles/Datastream.xdmf", meshstream)
-    elif datapos == "elements":
-        meshstream.cell_data[dataname] = data
-        meshio.write("Resultfiles/Datastream.xdmf", meshstream)
+    # meshstream = meshio.read("Datastream.xdmf")
+    # if time is None:
+    #     print("2")
+    #     if datapos == "nodes":
+    #         meshstream.point_data[dataname] = data
+    #         meshio.write("Datastream.xdmf", meshstream)
+    #     elif datapos == "elements":
+    #         meshstream.cell_data[dataname] = data
+    #         meshio.write("Datastream.xdmf", meshstream)
+    #     else:
+    #         raise KeyError("datastream missing nodes or elements")
+    # else:
+    try:
+        with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+            points, cells = reader.read_points_cells()
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
+    except meshio._exceptions.ReadError:
+        raise KeyError("No meshgrid for timeseries")
+    if t_data not in t_list:
+        t_list.append(t_data)
+        pd_list.append({dataname: data})
+        cd_list.append({})
     else:
-        raise KeyError("datastream missing nodes or elements")
-
+        indx = t_list.index(t_data)
+        pd_list[indx][dataname] = data
+    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
+        writer.write_points_cells(points, cells)
+        for i in range(len(t_list)):
+            writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
+    #print("Added " + str(dataname) + " to datastream")
+    return
 
 def readdatastream(dataname, time=0):
-    meshstream = meshio.read("Resultfiles/Datastream.xdmf")
+    try:
+        with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+            points, cells = reader.read_points_cells()
+            if dataname == "nodes":
+                return points
+            elif dataname == "elements":
+                return cells
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                if t == time:
+                    return point_data[dataname]
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
+    except meshio._exceptions.ReadError:
+        raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is "
+                       + str(pd_list[0].keys()))
+    return
+
+
+
+    meshstream = meshio.read("Datastream.xdmf")
     try:
         if dataname in meshstream.point_data.keys():
             data = meshstream.point_data[dataname]
@@ -76,7 +98,7 @@ def savedatastream(filename):
         print("Datastream not saved. File in result folder.")
         return
     try:
-        meshstream = meshio.read(os.getcwd() + "/Resultfiles/Datastream.xdmf")
+        meshstream = meshio.read(os.getcwd() + "/Datastream.xdmf")
         meshio.write(filename, meshstream)
         createinputcache()
         print("Saved datastream to " + filename)
@@ -93,7 +115,7 @@ def createdatastreamcache(filename=None):
 
     try:
         if filename is None or filename == "":
-            meshdata = meshio.read(pathlib.Path(os.getcwd() + "/Resultfiles/Datastream.xdmf"))
+            meshdata = meshio.read(pathlib.Path(os.getcwd() + "/Datastream.xdmf"))
             meshio.write("Cachefiles/Datastream.xdmf", meshdata)
         else:
             if filename.split(".")[1] in ["h5", "xdmf"]:

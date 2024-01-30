@@ -56,8 +56,9 @@ def progressmonitor(tid, module):
         progressmonitor(tid, module)
 
 if __name__ == "__main__":
-    Testfile.read_data_from_xdmf("Resultfiles/Datastream.xdmf", 0)
-    #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf")
+    modelling()
+    #Testfile.read_data_from_xdmf("Resultfiles/Test.xdmf", 0)
+    #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf", [], 0)
 
     #modelling()
     # data = read_input()

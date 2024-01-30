@@ -424,27 +424,31 @@ def Comsolexport(model):
             csvreader = csv.reader(file)
             for j in range(8):
                 next(csvreader)
+
             time = next(csvreader)[2:]
             time = [j.split("=")[1] for j in time]
             j = 0
             data = []
+            x = []
+            y = []
             # Get index
-            if i == 0:
-               indxComsol = 1
-
             for line in csvreader:
+                x.append(line[0])
+                y.append(line[1])
                 data.append(line[2:])
                 j = j + 1
             data = np.array(data).astype(float)
-            print(np.shape(data))
-            print(np.shape(data[:, 0]))
-            input("")
+
+            indx = getComsolindx(x, y)
 
         for j in range(len(time)):
-            adjustdatastream(resultdata[i], data[:, j], time=time[j])
+            #adjustdatastream(resultdata[i], data[:, j], t_data=time[j])
+            adjustdatastream(resultdata[i], data[indx, j], t_data=time[j])
         print("Exported " + resultdata[i])
     # print(os.getcwd() + "/Resultfiles/tmpComsol.txt")
 def getComsolindx(xdata, ydata):
+    xdata = np.array(xdata).astype(float)
+    ydata = np.array(ydata).astype(float)
     nodes = readdatastream("nodes")
     xdata = np.around(xdata, 8)
     ydata = np.around(ydata, 8)
