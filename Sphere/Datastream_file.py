@@ -163,8 +163,8 @@ def readdatastreamcache(dataname, t=0):
 def getaxisvalues(dataname, time=0):
     node_y = readdatastream('nodes')[:, 1]
     indx = np.where(node_y == 0)
-    y = readdatastream(dataname)[indx]
+    data = readdatastream(dataname)[indx]
     x = readdatastream('nodes')[:, 0][indx]
     indx = np.argsort(x)
-    y = np.array(y)[indx]
-    return y
+    data = np.array(data)[indx]
+    return data
