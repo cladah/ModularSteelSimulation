@@ -127,7 +127,7 @@ def TTTinterpolatetonodes():
             #
             Z1 = np.delete(Z1, dupindx, 0)
             Z2 = np.delete(Z2, dupindx, 0)
-            print(str(len(dupindx)) + " nr of duplicate grid points")
+            # print(str(len(dupindx)) + " nr of duplicate grid points")
             print(str(len(X)-len(dupindx)) + " nr of grid points used")
         else:
             pass
@@ -158,7 +158,7 @@ def TTTinterpolatetonodes():
         z2 = []
 
         print("Interpolating modeldata to gridpoints for " + phase)
-        print(np.shape(grid))
+        #print(np.shape(grid))
         for point in grid:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 points = [[t] + point for t in Tgrid]
@@ -188,10 +188,10 @@ def TTTinterpolatetonodes():
         else:
             saveresult("Modeldata", phase + "/KM/Ms", np.asarray(z1))
             saveresult("Modeldata", phase + "/KM/beta", np.asarray(z2))
-        print(Tgrid)
-        print(np.asarray(z1))
+        #print(Tgrid)
+        #print(np.asarray(z1))
 
-        input("")
+        #input("")
 
         print(phase + " added to node data")
     print("Modeldata interpolated to nodes")

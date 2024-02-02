@@ -3,6 +3,8 @@ from Sphere.HelpFile import read_input
 import numpy as np
 import meshio
 import pygmsh
+import vtk
+import pyvista
 
 
 def gmshsolver(parent):
@@ -61,20 +63,43 @@ def gmshsolver(parent):
 
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
+    gmsh.write("Resultfiles/Mesh.vtk")
+
     print(*gmsh.logger.get(), sep="\n")
     gmsh.finalize()
     parent.updateprogress(0.8)
-    meshdata = meshio.read("Resultfiles/Mesh.msh")
+    mesh = meshio.read("Resultfiles/Mesh.msh")
+    meshio.write("Resultfiles/Mesh.nas", mesh)
+
+
+    # -----------
+    # reader = vtk.vtkUnstructuredGridReader()
+    # reader.SetFileName("Resultfiles/Mesh.vtk")
+    # reader.Update()
+    #
+    # # Get the unstructured grid from the reader
+    # mesh = reader.GetOutput()
+    #
+    # writer = vtk.vtkXdmfWriter()
+    # writer.SetFileName("Datastream.xdmf")
+    # writer.SetInputData(mesh)
+    #
+    # # Write XDMF file
+    # writer.Write()
+    # ---------------------------------
+
 
 
     # Creating datastream from mesh
-    meshio.write("Datastream.xdmf",
-                 meshio.Mesh(points=meshdata.points,
-                             cells={"triangle": meshdata.get_cells_type("triangle")}))
+    # meshio.write("Datastream.xdmf",
+    #              meshio.Mesh(points=mesh.points,
+    #                          cells={"triangle": mesh.get_cells_type("triangle")}))
+
+    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
+        writer.write_points_cells(points=mesh.points, cells={"triangle": mesh.get_cells_type("triangle")})
 
     # Writing nas file with meshio (Needed for Comsol FEM solver)
-    mesh = meshio.read("Resultfiles/Mesh.msh")
-    meshio.write("Resultfiles/Mesh.nas", mesh)
+
     parent.updateprogress(1.0)
 
 def pygmshsolver(parent):

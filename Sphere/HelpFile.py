@@ -65,7 +65,7 @@ def checkruncondition(model):
         return True
 
     if model == 'Meshing':
-        if not os.path.isfile(pathlib.Path("Resultfiles/Datastream.xdmf")):
+        if not os.path.isfile(pathlib.Path("Datastream.xdmf")):
             return True
         for x in ['Geometry']:
             if indata[x] != cachedata[x]:

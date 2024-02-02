@@ -13,7 +13,7 @@ class Carbonitridingmodule(CalcModule):
             print("Using precalculated " + str(self.module) + " simulation")
             for element in self.data["Material"]["Composition"].keys():
                 elementvalues = readdatastreamcache("Composition/" + element)
-                adjustdatastream("Composition/" + element, elementvalues, "nodes")
+                adjustdatastream({"Composition/" + element: elementvalues}, "nodes")
             print("Carbonitriding module done\n")
             self.updateprogress(1.0)
             return
@@ -35,7 +35,7 @@ class Carbonitridingmodule(CalcModule):
             for element in composition[1].keys():
                 calc_value = np.array(composition[1][element])
                 nodevalues = interp(r, calc_xyz, calc_value) * 100
-                adjustdatastream("Composition/" + element, nodevalues, "nodes")
+                adjustdatastream({"Composition/" + element: nodevalues}, "nodes")
             self.updateprogress(1.0)
             print("Carbonitriding module done\n")
         else:

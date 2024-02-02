@@ -415,6 +415,8 @@ def Comsolexport(model):
     model.result().export("data1").set("filename", "tmpComsol.csv")
     model.result().export("data1").setIndex("looplevelinput", "all", 0)
     # model.result().export("data1").set("header", False)
+    data_dict = {}
+
     for i in range(len(resultdata)):
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
         model.result().export("data1").run()
@@ -441,10 +443,19 @@ def Comsolexport(model):
 
             indx = getComsolindx(x, y)
 
+
         for j in range(len(time)):
+            if str(time[j]) not in data_dict.keys():
+                data_dict[str(time[j])] = dict()
+            data_dict[str(time[j])][resultdata[i]] = data[indx, j]
+
             #adjustdatastream(resultdata[i], data[:, j], t_data=time[j])
-            adjustdatastream(resultdata[i], data[indx, j], t_data=time[j])
-        print("Exported " + resultdata[i])
+    # print(data_dict["1"])
+    # print(data_dict["1"].keys())
+    # input("")
+    for i in range(len(time)):
+        adjustdatastream(data_dict[str(time[i])], t_data=time[i])
+        print("Exported timestep " + time[i])
     # print(os.getcwd() + "/Resultfiles/tmpComsol.txt")
 def getComsolindx(xdata, ydata):
     xdata = np.array(xdata).astype(float)

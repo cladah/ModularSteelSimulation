@@ -3,7 +3,7 @@ import meshio
 from HelpFile import read_input, createinputcache
 import os
 import pathlib
-#import xdmf
+import vtk
 
 def createdatastream():
     try:
@@ -13,7 +13,7 @@ def createdatastream():
         pass
 
 
-def adjustdatastream(dataname, data, datapos="nodes", t_data=0):
+def adjustdatastream(data, datapos="nodes", t_data=0):
     # Adding data to xdmf file
 
     # meshstream = meshio.read("Datastream.xdmf")
@@ -29,6 +29,14 @@ def adjustdatastream(dataname, data, datapos="nodes", t_data=0):
     #         raise KeyError("datastream missing nodes or elements")
     # else:
     try:
+        if type(data) == dict:
+            pass
+        else:
+            raise TypeError
+    except TypeError:
+        raise KeyError("datatype for datastream storage should be a dict")
+
+    try:
         with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
             points, cells = reader.read_points_cells()
             pd_list, cd_list, t_list = list(), list(), list()
@@ -41,11 +49,12 @@ def adjustdatastream(dataname, data, datapos="nodes", t_data=0):
         raise KeyError("No meshgrid for timeseries")
     if t_data not in t_list:
         t_list.append(t_data)
-        pd_list.append({dataname: data})
+        pd_list.append(data)
         cd_list.append({})
     else:
         indx = t_list.index(t_data)
-        pd_list[indx][dataname] = data
+        for key in data.keys():
+            pd_list[indx][key] = data[key]
     with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
         writer.write_points_cells(points, cells)
         for i in range(len(t_list)):
@@ -95,11 +104,23 @@ def readdatastream(dataname, time=0):
 
 def savedatastream(filename):
     if filename is None or filename == "":
-        print("Datastream not saved. File in result folder.")
+        print("Datastream not saved. File in main folder.")
         return
     try:
-        meshstream = meshio.read(os.getcwd() + "/Datastream.xdmf")
-        meshio.write(filename, meshstream)
+        with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+            points, cells = reader.read_points_cells()
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
+        with meshio.xdmf.TimeSeriesWriter(filename) as writer:
+            writer.write_points_cells(points, cells)
+            for i in range(len(t_list)):
+                writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
+        #meshstream = meshio.read(os.getcwd() + "/Datastream.xdmf")
+        #meshio.write(filename, meshstream)
         createinputcache()
         print("Saved datastream to " + filename)
     except meshio._exceptions.ReadError:
@@ -108,23 +129,41 @@ def savedatastream(filename):
 
 def createdatastreamcache(filename=None):
     try:
-        os.remove("/Cachefiles/Datastream.h5")
-        os.remove("/Cachefiles/Datastream.xdmf")
+        os.remove("Datastream_Cache.h5")
+        os.remove("Datastream_Cache.xdmf")
+        print("Old cache datastream removed")
     except FileNotFoundError:
         pass
 
     try:
         if filename is None or filename == "":
-            meshdata = meshio.read(pathlib.Path(os.getcwd() + "/Datastream.xdmf"))
-            meshio.write("Cachefiles/Datastream.xdmf", meshdata)
+            with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+                points, cells = reader.read_points_cells()
+                pd_list, cd_list, t_list = list(), list(), list()
+                for k in range(reader.num_steps):
+                    t, point_data, cell_data = reader.read_data(k)
+                    t_list.append(t)
+                    pd_list.append(point_data)
+                    cd_list.append(cell_data)
         else:
             if filename.split(".")[1] in ["h5", "xdmf"]:
                 pass
             else:
                 raise FileNotFoundError
             filename = filename.split(".")[0]
-            meshdata = meshio.read(pathlib.Path(os.getcwd() + "/" + filename + ".xdmf"))
-            meshio.write("Cachefiles/Datastream.xdmf", meshdata)
+            print("Using " + filename + ".xdmf as cache file")
+            with meshio.xdmf.TimeSeriesReader(pathlib.Path(os.getcwd() + "/" + filename + ".xdmf")) as reader:
+                points, cells = reader.read_points_cells()
+                pd_list, cd_list, t_list = list(), list(), list()
+                for k in range(reader.num_steps):
+                    t, point_data, cell_data = reader.read_data(k)
+                    t_list.append(t)
+                    pd_list.append(point_data)
+                    cd_list.append(cell_data)
+        with meshio.xdmf.TimeSeriesWriter("Datastream_Cache.xdmf") as writer:
+            writer.write_points_cells(points, cells)
+            for i in range(len(t_list)):
+                writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
         print("Datastream cache created\n")
 
     except meshio._exceptions.ReadError:
@@ -136,35 +175,46 @@ def createdatastreamcache(filename=None):
 
 def removedatastreamcache():
     try:
-        os.remove(os.getcwd() + "/Cachefiles/Datastream.h5")
-        os.remove(os.getcwd() + "/Cachefiles/Datastream.xdmf")
+        os.remove(os.getcwd() + "/Cachefiles/Datastream_Cache.h5")
+        os.remove(os.getcwd() + "/Cachefiles/Datastream_Cache.xdmf")
     except:
         print("No datastream caches")
 
 
-def readdatastreamcache(dataname, t=0):
-    meshstream = meshio.read("Cachefiles/Datastream.xdmf")
+def readdatastreamcache(dataname, time=0):
     try:
-        if dataname in meshstream.point_data.keys():
-            data = meshstream.point_data[dataname]
-        elif dataname in meshstream.cell_data.keys():
-            data = meshstream.cell_data[dataname]
-        elif dataname == "nodes":
-            data = meshstream.points
-        elif dataname == "elements":
-            data = meshstream.cells
-        else:
-            raise KeyError()
-        return data
+        with meshio.xdmf.TimeSeriesReader("Datastream_Cache.xdmf") as reader:
+            points, cells = reader.read_points_cells()
+            if dataname == "nodes":
+                return points
+            elif dataname == "elements":
+                return cells
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                if t == time:
+                    return point_data[dataname]
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
     except:
-        raise KeyError("Datastream "+str(dataname)+" doesn't exist in cache file. Data that exist is " + str(*list(meshstream.point_data.keys())) + " and " + str(*list(meshstream.cell_data.keys())))
-
+        raise KeyError("Datastream " + str(dataname) + " doesn't exist in datastream file. Data that exist is "
+                   + str(pd_list[0].keys()))
 
 def getaxisvalues(dataname, time=0):
     node_y = readdatastream('nodes')[:, 1]
     indx = np.where(node_y == 0)
     data = readdatastream(dataname)[indx]
     x = readdatastream('nodes')[:, 0][indx]
+
+    # Sorting data in order from x=min(x) to x=max(x)
     indx = np.argsort(x)
     data = np.array(data)[indx]
     return data
+def resetdatastream():
+    try:
+        os.remove("Datastream.h5")
+        os.remove("Datastream.xdmf")
+        print("Old datastream removed\n")
+    except FileNotFoundError:
+        pass

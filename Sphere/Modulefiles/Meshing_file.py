@@ -11,12 +11,16 @@ class Meshingmodule(CalcModule):
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
 
-            meshdata = meshio.read("Cachefiles/Datastream.xdmf")
-            meshio.write("Datastream.xdmf",
-                         meshio.Mesh(points=meshdata.points,
-                                     cells={"triangle": meshdata.get_cells_type("triangle")}))
+            #meshdata = meshio.read("Datastream_Cache.xdmf")
+
+            with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+                points, cells = reader.read_points_cells()
+
+            # meshio.write("Datastream.xdmf",
+            #              meshio.Mesh(points=points,
+            #                          cells={"triangle": cells.get_cells_type("triangle")}))
             with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-                writer.write_points_cells(points=meshdata.points, cells={"triangle": meshdata.get_cells_type("triangle")})
+                writer.write_points_cells(points=points, cells=cells)
             print("Meshing module done\n")
             return
 

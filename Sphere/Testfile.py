@@ -1,6 +1,5 @@
 import meshio
 
-
 def add_data_to_xdmf(filename, data, time):
 
     # Load the existing XDMF file if it exists
@@ -31,22 +30,4 @@ def add_data_to_xdmf(filename, data, time):
 
 
 def read_data_from_xdmf(filename, time):
-    with meshio.xdmf.TimeSeriesReader(filename) as reader:
-        # Read mesh information
-
-        # Read point data for the specified time
-        points, cells = reader.read_points_cells()
-        for k in range(reader.num_steps):
-            t, point_data, cell_data = reader.read_data(k)
-            print(1)
-        # data = reader.read_data(time=time)
-
-        print(f"Data read for time {time} from {filename}")
-
-        return
-    try:
-        pass
-
-    except FileNotFoundError:
-        print(f"File {filename} not found.")
-        return None
+    pass

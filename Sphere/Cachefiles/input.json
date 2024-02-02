@@ -501,7 +501,7 @@
     "Austenitizingtemp": 1073.15,
     "CNtemp": 1073.15,
     "CNenv": "Methane",
-    "CNtime": 86400,
+    "CNtime": 600,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,
@@ -549,6 +549,6 @@
   },
   "Datastream": {
     "Savedirect": "",
-    "Cachedirect": "Resultfiles/230124_1.xdmf"
+    "Cachedirect": "020224_1.xdmf"
   }
 }
