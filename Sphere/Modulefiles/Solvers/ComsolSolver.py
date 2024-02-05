@@ -410,7 +410,8 @@ def Comsolexport(model):
     resultdata = ["solid.eel11", "solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33",
                   "solid.sl11", "solid.sl12", "solid.sl22", "solid.sl23", "solid.sl13", "solid.sl33",
                   "T", "audc.phase1.xi", "audc.phase2.xi", "audc.phase3.xi", "audc.phase4.xi", "audc.phase5.xi"]
-
+    resultnames = ["eel11", "eel12", "eel22", "eel23", "eel13", "eel33", "sl11", "sl12", "sl22", "sl23", "sl13",
+                   "sl33", "T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]
     model.result().export().create("data1", "Data")
     model.result().export("data1").set("filename", "tmpComsol.csv")
     model.result().export("data1").setIndex("looplevelinput", "all", 0)
@@ -433,6 +434,7 @@ def Comsolexport(model):
             data = []
             x = []
             y = []
+
             # Get index
             for line in csvreader:
                 x.append(line[0])
@@ -440,23 +442,17 @@ def Comsolexport(model):
                 data.append(line[2:])
                 j = j + 1
             data = np.array(data).astype(float)
-
             indx = getComsolindx(x, y)
 
 
         for j in range(len(time)):
             if str(time[j]) not in data_dict.keys():
                 data_dict[str(time[j])] = dict()
-            data_dict[str(time[j])][resultdata[i]] = data[indx, j]
+            data_dict[str(time[j])][resultnames[i]] = data[indx, j]
 
-            #adjustdatastream(resultdata[i], data[:, j], t_data=time[j])
-    # print(data_dict["1"])
-    # print(data_dict["1"].keys())
-    # input("")
     for i in range(len(time)):
         adjustdatastream(data_dict[str(time[i])], t_data=time[i])
         print("Exported timestep " + time[i])
-    # print(os.getcwd() + "/Resultfiles/tmpComsol.txt")
 def getComsolindx(xdata, ydata):
     xdata = np.array(xdata).astype(float)
     ydata = np.array(ydata).astype(float)

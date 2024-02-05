@@ -56,7 +56,7 @@ def gmshsolver(parent):
                                           -data['Geometry']['meshscaling'])
 
     # Defining element order
-    # gmsh.model.mesh.set_order(2)
+    gmsh.model.mesh.set_order(2)
 
     # Generating mesh
     gmsh.model.mesh.generate(gdim)

@@ -4,11 +4,10 @@ import meshio
 import vtk
 import pyvista
 import numpy as np
-from vtkmodules import vtkIOXdmf2
 
 from CGUImodule import MainApp
 from Datastream_file import createdatastream, createdatastreamcache, removedatastreamcache, savedatastream
-from HelpFile import read_input, setupSimulation, createinputcache
+from HelpFile import read_input, setupSimulation, createinputcache, change_input
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule
@@ -31,6 +30,8 @@ def modelling():
     data = read_input()
 
     createdatastreamcache(data["Datastream"]["Cachedirect"])
+
+
     # resetdatastream()
     createinputcache()
 
@@ -48,6 +49,8 @@ def modelling():
             progressmonitor(tid, currentmodule)  # Making sure thread is done
         else:
             run_single_module(currentmodule)
+
+
     removedatastreamcache()
     savedatastream(data["Datastream"]["Savedirect"])
 
@@ -128,7 +131,7 @@ if __name__ == "__main__":
     #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf", [], 0)
 
 
-    modelling()
+    GUI()
     #xmdftesting()
 
 

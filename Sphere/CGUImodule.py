@@ -6,7 +6,12 @@ from matplotlib.figure import Figure
 import customtkinter as ctk
 from queue import Queue
 import meshio
-from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream
+from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream, getnamesdatastream
+from Modulefiles.Meshing_file import Meshingmodule
+from Modulefiles.Carbonitriding_file import Carbonitridingmodule
+from Modulefiles.TTTdiagram_file import TTTdiagrammodule
+from Modulefiles.Transformationmodel_file import Transformationmodelmodule
+from Modulefiles.Quenching_file import Quenchingmodule
 
 
 class PrintLogger(object):
@@ -210,8 +215,7 @@ class meshTab(ctk.CTkFrame):
         # self.rowconfigure(0, weight=1)
         # self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        grid = meshio.read("Resultfiles/Datastream.xdmf")
-        nodes = grid.points
+        nodes = readdatastream("nodes")
 
         self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(len(nodes)), pady=10)
         self.nodenr.grid(row=0, column=0, sticky="nsew")
@@ -391,6 +395,9 @@ class QuenchingTab(ctk.CTkFrame):
 
         azm = np.linspace(0, 2 * np.pi, 30)
         r, th = np.meshgrid(cord[:, 0], azm)
+
+        print(getnamesdatastream())
+
         aust = [getaxisvalues("Austenite") for i in range(30)]
         mart = [getaxisvalues("Martensite") for i in range(30)]
 
@@ -476,7 +483,7 @@ class QuenchingTab(ctk.CTkFrame):
 
 class MainApp(ctk.CTk):
     def __init__(self):
-        from Sphere.Oldfiles.StructureFile import CalcModule
+
         super().__init__()
         self.geometry("1400x1000")
         self.title("Quenching of steel")
@@ -506,11 +513,12 @@ class MainApp(ctk.CTk):
         self.programstate = ctk.IntVar(self, 0)
         #self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
         self.modules = Queue()
-        self.modules.put(CalcModule("Meshing"))
-        self.modules.put(CalcModule("Carbonitriding"))
-        self.modules.put(CalcModule("TTT"))
-        self.modules.put(CalcModule("TTTmodeling"))
-        #self.modules.put(CalcModule("Quenching"))
+        self.modules.put(Meshingmodule())
+        self.modules.put(Carbonitridingmodule())
+        self.modules.put(TTTdiagrammodule())
+        self.modules.put(Transformationmodelmodule())
+        self.modules.put(Quenchingmodule())
+
     def test(self):
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
@@ -535,8 +543,8 @@ class MainApp(ctk.CTk):
             print("\nNo modules left in pipeline")
             self.sidebar_frame.sidebar_button_1.grid_remove()
             self.sidebar_frame.progress_bar.grid_remove()
-            savedatastream("Resultfiles/230124_1.xdmf")
-            print("Resultdata saved to " + "Resultfiles/230124_1.xdmf")
+            savedatastream("230124_1.xdmf")
+            print("Resultdata saved to " + "230124_1.xdmf")
             return
 
         currentmodule = self.modules.get()
@@ -553,7 +561,7 @@ class MainApp(ctk.CTk):
         self.programstate.set(self.programstate.get() + 1)
         data = read_input()
     def run_module(self, module):
-        module.runmodule()
+        module.run()
         self.main_frame.add_gui(module.modulename())
 
     def progressmonitor(self, tid, module):

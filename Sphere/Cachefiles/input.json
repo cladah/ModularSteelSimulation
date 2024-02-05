@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": false,
+    "All": true,
     "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,
@@ -501,7 +501,7 @@
     "Austenitizingtemp": 1073.15,
     "CNtemp": 1073.15,
     "CNenv": "Methane",
-    "CNtime": 600,
+    "CNtime": 36000,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,
@@ -549,6 +549,6 @@
   },
   "Datastream": {
     "Savedirect": "",
-    "Cachedirect": "020224_1.xdmf"
+    "Cachedirect": "Resultfiles/050224_2.xdmf"
   }
 }
