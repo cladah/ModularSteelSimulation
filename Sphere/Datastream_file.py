@@ -99,10 +99,18 @@ def adjustdatastream(data, datapos="nodes", t_data=0):
 
 def getnamesdatastream():
     with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+        points, cells = reader.read_points_cells()
         for k in range(reader.num_steps):
             t, point_data, cell_data = reader.read_data(k)
             datanames = point_data.keys()
             return datanames
+
+
+    # with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+    #     for k in range(reader.num_steps):
+    #         t, point_data, cell_data = reader.read_data(k)
+    #         datanames = point_data.keys()
+    #         return datanames
 
 def readdatastream(dataname, time=0):
     try:
@@ -120,6 +128,9 @@ def readdatastream(dataname, time=0):
                 t_list.append(t)
                 pd_list.append(point_data)
                 cd_list.append(cell_data)
+            if time == -1:
+                maxindx = t_list.index(np.max(t_list))
+                return pd_list[maxindx][dataname]
     except meshio._exceptions.ReadError:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is "
                        + str(pd_list[0].keys()))
@@ -176,6 +187,7 @@ def createdatastreamcache(filename=None):
                     t_list.append(t)
                     pd_list.append(point_data)
                     cd_list.append(cell_data)
+            print("Using Datastream.xdmf as cache file")
         else:
             if filename.split(".")[1] in ["h5", "xdmf"]:
                 pass
@@ -235,7 +247,7 @@ def readdatastreamcache(dataname, time=0):
 def getaxisvalues(dataname, time=0):
     node_y = readdatastream('nodes')[:, 1]
     indx = np.where(node_y == 0)
-    data = readdatastream(dataname)[indx]
+    data = readdatastream(dataname, time)[indx]
     x = readdatastream('nodes')[:, 0][indx]
 
     # Sorting data in order from x=min(x) to x=max(x)

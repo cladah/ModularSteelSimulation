@@ -22,19 +22,7 @@ def modeldatatoComsolfiles():
             tmpnames = ["Ms", "beta"]
 
         for i in [0, 1]:
-            #     with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as f:
-            #         if not tmp1.all():
-            #             break
-            #         if i == 0:
-            #             for j in range(len(tmp1)-1):
-            #                 for k in range(len(tmpT)-1):
-            #                     f.write(" ".join(np.str([xyz[j][0],xyz[j][1],tmpT[k],tmp1[j][k]])) + "\n")
-            #         else:
-            #             for j in range(len(tmp2)-1):
-            #                 for k in range(len(tmpT) - 1):
-            #                     f.write(" ".join([xyz[j][0],xyz[j][1],tmpT[k],tmp2[j][k]]) + "\n")
             with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
-                ##with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".txt", 'w') as file:
                 writer = csv.writer(file)
                 r = [np.sqrt(xyz[j][0]**2 + xyz[j][1]**2) for j in range(len(xyz) - 1)]
                 if phase in ["Ferrite", "Perlite", "Bainite"]:
@@ -60,33 +48,33 @@ def modeldatatoComsolfiles():
     pass
 def setupComsolSolver(model):
     print("Setting upp Comsol model")
-    model.sol("sol1").study("std1");
-    model.study("std1").feature("time").set("notlistsolnum", 1);
-    model.study("std1").feature("time").set("notsolnum", "auto");
-    model.study("std1").feature("time").set("listsolnum", 1);
-    model.study("std1").feature("time").set("solnum", "auto");
-    model.sol("sol1").feature().remove("t1");
-    model.sol("sol1").feature().remove("v1");
-    model.sol("sol1").feature().remove("st1");
-    model.sol("sol1").create("st1", "StudyStep");
-    model.sol("sol1").feature("st1").set("study", "std1");
-    model.sol("sol1").feature("st1").set("studystep", "time");
-    model.sol("sol1").create("v1", "Variables");
-    model.sol("sol1").feature("v1").feature("comp1_audc_phase1_xi").set("scalemethod", "manual");
-    model.sol("sol1").feature("v1").feature("comp1_audc_etripc13").set("scalemethod", "manual");
-    model.sol("sol1").feature("v1").feature("comp1_audc_etripc11").set("scalemethod", "manual");
-    model.sol("sol1").feature("v1").feature("comp1_audc_etripc33").set("scalemethod", "manual");
-    model.sol("sol1").feature("v1").feature("comp1_audc_phase5_xi").set("scalemethod", "manual");
-    model.sol("sol1").feature("v1").feature("comp1_u").set("scalemethod", "manual");
-    model.sol("sol1").feature("v1").feature("comp1_audc_phase1_xi").set("scaleval", "1");
-    model.sol("sol1").feature("v1").feature("comp1_audc_etripc13").set("scaleval", "1e-3");
-    model.sol("sol1").feature("v1").feature("comp1_audc_etripc11").set("scaleval", "1e-3");
-    model.sol("sol1").feature("v1").feature("comp1_audc_etripc33").set("scaleval", "1e-3");
-    model.sol("sol1").feature("v1").feature("comp1_audc_phase5_xi").set("scaleval", "1");
-    model.sol("sol1").feature("v1").feature("comp1_u").set("scaleval", "1e-2*0.01414213562373095");
-    model.sol("sol1").feature("v1").set("control", "time");
-    model.sol("sol1").create("t1", "Time");
-    model.sol("sol1").feature("t1").set("tlist", "range(0,0.1,10)");
+    model.sol("sol1").study("std1")
+    model.study("std1").feature("time").set("notlistsolnum", 1)
+    model.study("std1").feature("time").set("notsolnum", "auto")
+    model.study("std1").feature("time").set("listsolnum", 1)
+    model.study("std1").feature("time").set("solnum", "auto")
+    model.sol("sol1").feature().remove("t1")
+    model.sol("sol1").feature().remove("v1")
+    model.sol("sol1").feature().remove("st1")
+    model.sol("sol1").create("st1", "StudyStep")
+    model.sol("sol1").feature("st1").set("study", "std1")
+    model.sol("sol1").feature("st1").set("studystep", "time")
+    model.sol("sol1").create("v1", "Variables")
+    model.sol("sol1").feature("v1").feature("comp1_audc_phase1_xi").set("scalemethod", "manual")
+    model.sol("sol1").feature("v1").feature("comp1_audc_etripc13").set("scalemethod", "manual")
+    model.sol("sol1").feature("v1").feature("comp1_audc_etripc11").set("scalemethod", "manual")
+    model.sol("sol1").feature("v1").feature("comp1_audc_etripc33").set("scalemethod", "manual")
+    model.sol("sol1").feature("v1").feature("comp1_audc_phase5_xi").set("scalemethod", "manual")
+    model.sol("sol1").feature("v1").feature("comp1_u").set("scalemethod", "manual")
+    model.sol("sol1").feature("v1").feature("comp1_audc_phase1_xi").set("scaleval", "1")
+    model.sol("sol1").feature("v1").feature("comp1_audc_etripc13").set("scaleval", "1e-3")
+    model.sol("sol1").feature("v1").feature("comp1_audc_etripc11").set("scaleval", "1e-3")
+    model.sol("sol1").feature("v1").feature("comp1_audc_etripc33").set("scaleval", "1e-3")
+    model.sol("sol1").feature("v1").feature("comp1_audc_phase5_xi").set("scaleval", "1")
+    model.sol("sol1").feature("v1").feature("comp1_u").set("scaleval", "1e-2*0.01414213562373095")
+    model.sol("sol1").feature("v1").set("control", "time")
+    model.sol("sol1").create("t1", "Time")
+    model.sol("sol1").feature("t1").set("tlist", "range(0,0.1,10)")
     model.sol("sol1").feature("t1").set("plot", "off");
     model.sol("sol1").feature("t1").set("plotgroup", "pg1");
     model.sol("sol1").feature("t1").set("plotfreq", "tout");
@@ -347,6 +335,10 @@ def setupComsol(model):
     return model
 
 def adjustComsol(model):
+    print("Importing mesh to Comsol model")
+    model.component("comp1").mesh("mesh1").feature("imp1").importData()
+    model.component("comp1").mesh("mesh1").run()
+
     print("Adding phase transformation models to Comsol model")
     #JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
     #JMAK_P = readresultfile("TTT_surface.hdf5","Perlite/JMAK")
@@ -462,6 +454,8 @@ def getComsolindx(xdata, ydata):
     x = np.around(np.array(nodes[:, 0]), 8)
     y = np.around(np.array(nodes[:, 1]), 8)
 
+    # Length correct?
+
     # Getting position of comsol nodes
     indxcomsol = np.ones(len(nodes))
     for i in range(len(nodes)):
@@ -561,12 +555,12 @@ def runComsol(parent):
         model = setupComsol(model)
     #model.util.ModelUtil.showProgress(savedirec + "/Comsolprogress.txt")
     print("Adjusting model to input")
-    #model = adjustComsol(model)
+    model = adjustComsol(model)
     parent.updateprogress(0.3)
     print("Running model")
-    #model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    #model.study("std1").run()
-    #model.save('Resultfiles/Comsolmodel')
+    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
+    model.study("std1").run()
+    model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
     print("Comsol model successfully ran")
     print("Exporting results")

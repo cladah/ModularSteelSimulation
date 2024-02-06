@@ -1,3 +1,5 @@
+import numpy as np
+
 from HelpFile import *
 import sys
 import threading
@@ -216,12 +218,13 @@ class meshTab(ctk.CTkFrame):
         # self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
         nodes = readdatastream("nodes")
+        elements = readdatastream("elements")
 
         self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(len(nodes)), pady=10)
         self.nodenr.grid(row=0, column=0, sticky="nsew")
         # self.choices = ctk.CTkComboBox(self, values=["test 1", "test 2"])
         # self.choices.grid(row=0, column=0, padx=20, pady=10, sticky="nsew")
-        self.elnr = ctk.CTkLabel(self, text="Number of elements: " + str(len(nodes)), pady=0)
+        self.elnr = ctk.CTkLabel(self, text="Number of elements: " + str(len(elements[0])), pady=0)
         self.elnr.grid(row=1, column=0, sticky="nsew")
 
         fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
@@ -380,9 +383,10 @@ class QuenchingTab(ctk.CTkFrame):
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                        NavigationToolbar2Tk)
-        self.columnconfigure(0, weight=1)
+        #self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
-        cord = getaxisvalues('nodes')
+        self.columnconfigure(0, weight=1)
+        #self.rowconfigure(0, weight=1)
 
         def combobox_callback(choice):
             widgets = self.grid_slaves(row=1, column=0)
@@ -391,100 +395,152 @@ class QuenchingTab(ctk.CTkFrame):
                     widget.grid_remove()
             canvas[choice]._tkcanvas.grid(row=1, column=0, sticky="nsew")
 
-        fig = Figure(figsize=(10, 4), dpi=50)
-
-        azm = np.linspace(0, 2 * np.pi, 30)
-        r, th = np.meshgrid(cord[:, 0], azm)
-
-        print(getnamesdatastream())
-
-        aust = [getaxisvalues("Austenite") for i in range(30)]
-        mart = [getaxisvalues("Martensite") for i in range(30)]
-
-        # sfig1 = fig.add_subplot(121, projection="polar")
-        # sfig2 = fig.add_subplot(122, projection="polar")
-
-        subfigs = fig.subfigures(1, 2)
-
-        ax1 = subfigs[0].add_subplot(projection="polar")
-        plot1 = ax1.pcolormesh(th, r, aust)
-        ax1.set_xticklabels([])
-        ax1.set_yticklabels([])
-
-        ax2 = subfigs[1].add_subplot(projection="polar")
-        plot2 = ax2.pcolormesh(th, r, mart)
-        ax2.set_xticklabels([])
-        ax2.set_yticklabels([])
-
-        fig.colorbar(plot1, ax=subfigs[0].get_axes(), label="Austenite fraction")
-        fig.colorbar(plot2, ax=subfigs[1].get_axes(), label="Martensite fraction")
-        plot1.set_clim(0, 1)
-        plot2.set_clim(0, 1)
-
+        aust = getaxisvalues("Austenite", time=-1)
+        mart = getaxisvalues("Martensite", time=-1)
+        fer = getaxisvalues("Ferrite", time=-1)
+        per = getaxisvalues("Perlite", time=-1)
+        bai = getaxisvalues("Bainite", time=-1)
+        xyz = getaxisvalues("nodes")
+        fig = Figure(figsize=(5, 4), dpi=50)
+        plot1 = fig.add_subplot(111)
+        plot1.plot(np.array(xyz)[:, 0] * 1000, aust, label="Austenite")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, fer, label="Ferrite")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, per, label="Perlite")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, bai, label="Bainite")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, mart, label="Martensite")
+        plot1.set_xlabel('Radius [mm]')
+        plot1.set_ylabel('Phase fraction [-]')
+        plot1.legend()
+        plot1.title.set_text('Phase fraction after 600s')
         phasecanvas = FigureCanvasTkAgg(fig, master=self)
         phasecanvas.draw()
         phasecanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
         toolbar = NavigationToolbar2Tk(phasecanvas, self, pack_toolbar=False)
         toolbar.grid(row=2, column=0, sticky="nsew")
         toolbar.update()
-        phasecanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+        phasecanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
 
-        fig2 = Figure(figsize=(10, 4), dpi=50)
-        vonMises = [getaxisvalues("vonMises") for i in range(30)]
-
-        ax3 = fig2.add_subplot(projection="polar")
-        plot3 = ax3.pcolormesh(th, r, vonMises)
-        ax3.set_xticklabels([])
-        ax3.set_yticklabels([])
-
-        fig2.colorbar(plot3, ax=fig2.get_axes())
-
-        stresscanvas = FigureCanvasTkAgg(fig2, master=self)
+        s1 = getaxisvalues("sl11", time=-1)
+        s2 = getaxisvalues("sl22", time=-1)
+        s3 = getaxisvalues("sl33", time=-1)
+        xyz = getaxisvalues("nodes")
+        fig = Figure(figsize=(5, 4), dpi=50)
+        plot1 = fig.add_subplot(111)
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="First principal")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s2)*1e-6, label="Second principal")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s3)*1e-6, label="Third principal")
+        plot1.set_xlabel('Radius [mm]')
+        plot1.set_ylabel('Stress [MPa]')
+        plot1.legend()
+        plot1.title.set_text('Phase fraction after 600s')
+        stresscanvas = FigureCanvasTkAgg(fig, master=self)
         stresscanvas.draw()
         stresscanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
-        toolbar = NavigationToolbar2Tk(stresscanvas, self, pack_toolbar=False)
+        toolbar = NavigationToolbar2Tk(phasecanvas, self, pack_toolbar=False)
         toolbar.grid(row=2, column=0, sticky="nsew")
         toolbar.update()
-        # stresscanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
+        #stresscanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 
-        strainfigure = Figure(figsize=(10, 4), dpi=50)
-        ep1 = getaxisvalues("ep1")
-        ep2 = getaxisvalues("ep2")
-        ep3 = getaxisvalues("ep3")
-        strainaxis = strainfigure.add_subplot()
-        strainaxis.plot(cord[:, 0], ep1, label="First principal strain")
-        strainaxis.plot(cord[:, 0], ep2, label="Second principal strain")
-        strainaxis.plot(cord[:, 0], ep3, label="Third principal strain")
-        strainaxis.legend()
-        strainaxis.set_xticklabels([])
-        strainaxis.set_yticklabels([])
-        strainaxis.set_xlabel('Radius [mm]')
-        strainaxis.set_ylabel('Strain [-]')
-
-        straincanvas = FigureCanvasTkAgg(strainfigure, master=self)
-        straincanvas.draw()
-        straincanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
-        toolbar = NavigationToolbar2Tk(straincanvas, self, pack_toolbar=False)
-        toolbar.grid(row=2, column=0, sticky="nsew")
-        toolbar.update()
-
+        # def combobox_callback(choice):
+        #     widgets = self.grid_slaves(row=1, column=0)
+        #     if len(widgets) != 0:
+        #         for widget in widgets:
+        #             widget.grid_remove()
+        #     canvas[choice]._tkcanvas.grid(row=1, column=0, sticky="nsew")
+        #
+        # fig = Figure(figsize=(10, 4), dpi=50)
+        #
+        # azm = np.linspace(0, 2 * np.pi, 30)
+        # r, th = np.meshgrid(cord[:, 0], azm)
+        #
+        # aust = [getaxisvalues("Austenite", time=-1) for i in range(30)]
+        # mart = [getaxisvalues("Martensite", time=-1) for i in range(30)]
+        #
+        # # sfig1 = fig.add_subplot(121, projection="polar")
+        # # sfig2 = fig.add_subplot(122, projection="polar")
+        #
+        # subfigs = fig.subfigures(1, 2)
+        #
+        # ax1 = subfigs[0].add_subplot(projection="polar")
+        # plot1 = ax1.pcolormesh(th, r, aust)
+        # ax1.set_xticklabels([])
+        # ax1.set_yticklabels([])
+        #
+        # ax2 = subfigs[1].add_subplot(projection="polar")
+        # plot2 = ax2.pcolormesh(th, r, mart)
+        # ax2.set_xticklabels([])
+        # ax2.set_yticklabels([])
+        #
+        # fig.colorbar(plot1, ax=subfigs[0].get_axes(), label="Austenite fraction")
+        # fig.colorbar(plot2, ax=subfigs[1].get_axes(), label="Martensite fraction")
+        # plot1.set_clim(0, 1)
+        # plot2.set_clim(0, 1)
+        #
+        # phasecanvas = FigureCanvasTkAgg(fig, master=self)
+        # phasecanvas.draw()
+        # phasecanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
+        # toolbar = NavigationToolbar2Tk(phasecanvas, self, pack_toolbar=False)
+        # toolbar.grid(row=2, column=0, sticky="nsew")
+        # toolbar.update()
+        # phasecanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+        #
+        # fig2 = Figure(figsize=(10, 4), dpi=50)
+        # vonMises = [getaxisvalues("vonMises") for i in range(30)]
+        #
+        # ax3 = fig2.add_subplot(projection="polar")
+        # plot3 = ax3.pcolormesh(th, r, vonMises)
+        # ax3.set_xticklabels([])
+        # ax3.set_yticklabels([])
+        #
+        # fig2.colorbar(plot3, ax=fig2.get_axes())
+        #
+        # stresscanvas = FigureCanvasTkAgg(fig2, master=self)
+        # stresscanvas.draw()
+        # stresscanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
+        # toolbar = NavigationToolbar2Tk(stresscanvas, self, pack_toolbar=False)
+        # toolbar.grid(row=2, column=0, sticky="nsew")
+        # toolbar.update()
+        # # stresscanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
+        #
+        # strainfigure = Figure(figsize=(10, 4), dpi=50)
+        # ep1 = getaxisvalues("ep1",time=-1)
+        # ep2 = getaxisvalues("ep2",time=-1)
+        # ep3 = getaxisvalues("ep3",time=-1)
+        # strainaxis = strainfigure.add_subplot()
+        # strainaxis.plot(cord[:, 0], ep1, label="First principal strain")
+        # strainaxis.plot(cord[:, 0], ep2, label="Second principal strain")
+        # strainaxis.plot(cord[:, 0], ep3, label="Third principal strain")
+        # strainaxis.legend()
+        # strainaxis.set_xticklabels([])
+        # strainaxis.set_yticklabels([])
+        # strainaxis.set_xlabel('Radius [mm]')
+        # strainaxis.set_ylabel('Strain [-]')
+        #
+        # straincanvas = FigureCanvasTkAgg(strainfigure, master=self)
+        # straincanvas.draw()
+        # straincanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
+        # toolbar = NavigationToolbar2Tk(straincanvas, self, pack_toolbar=False)
+        # toolbar.grid(row=2, column=0, sticky="nsew")
+        # toolbar.update()
+        #
         canvas = dict()
-        canvas["von Mises stress"] = stresscanvas
         canvas["Phase fractions"] = phasecanvas
-        canvas["Principal strain"] = straincanvas
+        # canvas["Strain"] = straincanvas
+        canvas["Stress"] = stresscanvas
         # test = FEMresults(self, "vonMises")
         #test.show()
         combobox = ctk.CTkComboBox(master=self,
                                    values=list(canvas.keys()),
                                    command=combobox_callback)
         combobox.grid(row=0, column=0, sticky="nsew")
-        # print("combobox dropdown clicked:", choice)
+        # # print("combobox dropdown clicked:", choice)
 
 
 class MainApp(ctk.CTk):
     def __init__(self):
 
         super().__init__()
+        self.wm_iconbitmap("GUIfiles/Ballbearing.ico")
         self.geometry("1400x1000")
         self.title("Quenching of steel")
 
@@ -518,6 +574,8 @@ class MainApp(ctk.CTk):
         self.modules.put(TTTdiagrammodule())
         self.modules.put(Transformationmodelmodule())
         self.modules.put(Quenchingmodule())
+        self.input = read_input()
+
 
     def test(self):
         logger = PrintLogger(self.sidebar_frame.log_widget)
@@ -530,23 +588,23 @@ class MainApp(ctk.CTk):
             print(str(i * 5) + "sec")
 
     def next_module(self):
+        self.sidebar_frame.sidebar_button_1.configure(state=ctk.DISABLED)
         self.sidebar_frame.progress_bar.set(0.0)
         logger = PrintLogger(self.sidebar_frame.log_widget)
         sys.stdout = logger
         #sys.stderr = logger
 
+
         if self.programstate.get() == 0:
-            createdatastreamcache()
-            print("Created a cache file from previous results\n")
+            createdatastreamcache(self.input["Datastream"]["Cachedirect"])
 
         if self.modules.empty():
             print("\nNo modules left in pipeline")
             self.sidebar_frame.sidebar_button_1.grid_remove()
             self.sidebar_frame.progress_bar.grid_remove()
-            savedatastream("230124_1.xdmf")
-            print("Resultdata saved to " + "230124_1.xdmf")
+            savedatastream(self.input["Datastream"]["Savedirect"])
+            print("Resultdata saved to " + self.input["Datastream"]["Savedirect"])
             return
-
         currentmodule = self.modules.get()
         if currentmodule.modulename() != "Meshing":
             tid = threading.Thread(target=self.run_module, args=(currentmodule,))
@@ -558,6 +616,7 @@ class MainApp(ctk.CTk):
             tid = None
             self.run_module(currentmodule)
             self.sidebar_frame.progress_bar.set(currentmodule.getprogress())
+            self.sidebar_frame.sidebar_button_1.configure(state=ctk.NORMAL)
         self.programstate.set(self.programstate.get() + 1)
         data = read_input()
     def run_module(self, module):
@@ -569,7 +628,6 @@ class MainApp(ctk.CTk):
         self.sidebar_frame.progress_bar.set(module.getprogress())
         """ Monitor the download thread """
         if tid.is_alive():
-            self.after(100, lambda: self.sidebar_frame.progress_bar.set(module.getprogress()))
-            pass
-            #self.after(1000, lambda: self.progressmonitor(tid, module))
-            #self.after(100, lambda: self.sidebar_frame.progress_bar.set(module.getprogress()))
+            self.after(1000, lambda: self.progressmonitor(tid, module))
+        else:
+            self.sidebar_frame.sidebar_button_1.configure(state=ctk.NORMAL)

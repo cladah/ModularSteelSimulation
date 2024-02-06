@@ -6,7 +6,8 @@ import pyvista
 import numpy as np
 
 from CGUImodule import MainApp
-from Datastream_file import createdatastream, createdatastreamcache, removedatastreamcache, savedatastream
+from Datastream_file import createdatastream, createdatastreamcache, removedatastreamcache, savedatastream, \
+    readdatastream, readdatastreamcache, getnamesdatastream
 from HelpFile import read_input, setupSimulation, createinputcache, change_input
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
@@ -63,77 +64,32 @@ def progressmonitor(tid, module):
         progressmonitor(tid, module)
 
 def xmdftesting():
+    data = read_input()
+    createdatastreamcache(data["Datastream"]["Cachedirect"])
 
-    # modules = list()
-    # modules.append(Meshingmodule())
-    # for currentmodule in modules:
-    #     if currentmodule.modulename() != "Meshing":
-    #         tid = threading.Thread(target=run_single_module, args=(currentmodule,))
-    #         tid.start()
-    #         progressmonitor(tid, currentmodule)  # Making sure thread is done
-    #     else:
-    #         run_single_module(currentmodule)
-    vtk_array = vtk.vtkDoubleArray()
-    vtk_array.SetArray(np.linspace(0, 1, 2029), 2029, 0)
-    vtk_array.SetObjectName("Testdata")
-
-    print("time " + str(vtk_array.GetMTime()))
-    new_grid = vtk.vtkDataObject()
-    vtk.vtkXdmfDataArray()
-
-    writer2 = vtk.vtkXMLUnstructuredGridWriter()
-    reader = vtk.vtkXdmfReader()
-    reader.SetFileName("Datastream.xdmf")
-    reader.Update(0)
-    info = reader.GetOutputInformation(0)
-    print(info)
-    #info = reader.GetOutputInformation(0)
-    #print(reader.GetPointArrayName(0))
-    #reader = xdmf.XdmfReader.New()
-    #print(info)
-    grid = reader.GetOutput()
-    # grid.GetBlock(1).GetPointData().AddArray(vtk_array)
-    # print(grid)
-    nrnodes = grid.GetNumberOfPoints()
-
-    print(grid.GetBlock(1).GetUpdateTime())
-    data = grid.GetBlock(1).GetPointData().GetNumberOfArrays()
-    # data = [grid.GetPointData().GetArray("Composition/C").GetValue(i) for i in range(nrnodes)]
-    print(nrnodes)
-    print(data)
-    key = vtk.vtkInformationIntegerKey.MakeKey("time", "time")
-    timestep = vtk.vtkInformation()
-    timestep.SetObjectName("Time")
-    timestep.Set(key, 1)
-    testobj = vtk.vtkFieldData()
-    testobj.SetObjectName("Time2")
-    testann = vtk.vtkAnnotation()
-    testann.SetInformation(timestep)
-    # testobj.SetTuple(np.array([1,2,3]))
-
-    #testobj.SetTuple(1)
-    grid.GetBlock(1).SetInformation(timestep)
-    grid.GetBlock(1).SetFieldData(testobj)
-    writer = vtk.vtkXdmfWriter()
-    writer.SetFileName("Datastream.xdmf")
-    writer.SetInputData(grid)
-    writer.Write()
-    # Write the updated XDMF file
-
-
-
-    #reader.UpdateTimeStep(0)
-
+    with meshio.xdmf.TimeSeriesReader("Datastream_Cache.xdmf") as reader:
+        points, cells = reader.read_points_cells()
+        pd_list, cd_list, t_list = list(), list(), list()
+        for k in range(reader.num_steps):
+            t, point_data, cell_data = reader.read_data(k)
+            t_list.append(t)
+            pd_list.append(point_data)
+            cd_list.append(cell_data)
+        print("Points")
+        print(cells[0].data)
+        print(cell_data)
+        print("Data list")
+        print(pd_list[1].keys())
+        #print(readdatastream("Austenite", time=-1))
 
 if __name__ == "__main__":
     #Testfile.read_data_from_xdmf("Resultfiles/230124_2.xdmf", 0)
     #Testfile.read_data_from_xdmf("Resultfiles/Test.xdmf", 0)
     #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf", [], 0)
 
-
+    # modelling()
     GUI()
-    #xmdftesting()
-
+    # xmdftesting()
 
 
 

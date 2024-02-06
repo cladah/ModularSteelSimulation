@@ -1,3 +1,5 @@
+import os
+
 from .ModuleStructure_file import CalcModule
 from .Solvers.MeshSolvers import gmshsolver, pygmshsolver
 import meshio
@@ -17,6 +19,8 @@ class Meshingmodule(CalcModule):
             # meshio.write("Datastream.xdmf",
             #              meshio.Mesh(points=points,
             #                          cells={"triangle": cells.get_cells_type("triangle")}))
+            os.remove("Datastream.xdmf")
+            os.remove("Datastream.h5")
             with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
                 writer.write_points_cells(points=points, cells=cells)
             print("Meshing module done\n")

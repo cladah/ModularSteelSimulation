@@ -3,8 +3,7 @@ from Sphere.HelpFile import read_input
 import numpy as np
 import meshio
 import pygmsh
-import vtk
-import pyvista
+import os
 
 
 def gmshsolver(parent):
@@ -27,7 +26,7 @@ def gmshsolver(parent):
 
     # Adding three points
     gmsh.model.occ.addPoint(0, 0, 0, 1)
-    gmsh.model.occ.addPoint(r * np.cos(np.pi / 12), r * np.sin(np.pi / 12), 0, lc, 2)
+    gmsh.model.occ.addPoint(r * np.cos(np.pi / 24), r * np.sin(np.pi / 24), 0, lc, 2)
     gmsh.model.occ.addPoint(r, 0, 0, lc, 3)
 
     # Adding lines and a curveloop between points
@@ -56,15 +55,19 @@ def gmshsolver(parent):
                                           -data['Geometry']['meshscaling'])
 
     # Defining element order
-    gmsh.model.mesh.set_order(2)
+
+    # gmsh.model.mesh.set_order(2)
+    # gmsh.model.mesh.recombine()
 
     # Generating mesh
     gmsh.model.mesh.generate(gdim)
 
+    #
+    gmsh.model.mesh.setOrder(2)
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
     gmsh.write("Resultfiles/Mesh.vtk")
-
+    #print(gmsh.model.mesh.setOrder())
     print(*gmsh.logger.get(), sep="\n")
     gmsh.finalize()
     parent.updateprogress(0.8)
@@ -94,7 +97,6 @@ def gmshsolver(parent):
     # meshio.write("Datastream.xdmf",
     #              meshio.Mesh(points=mesh.points,
     #                          cells={"triangle": mesh.get_cells_type("triangle")}))
-
     with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
         writer.write_points_cells(points=mesh.points, cells={"triangle": mesh.get_cells_type("triangle")})
 
