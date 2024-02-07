@@ -4,7 +4,6 @@ import json
 import h5py
 from sqlitedict import SqliteDict
 import numpy as np
-from Datastream_file import getaxisvalues
 
 
 def read_input():
