@@ -220,6 +220,10 @@ class meshTab(ctk.CTkFrame):
         nodes = readdatastream("nodes")
         elements = readdatastream("elements")
 
+        print(elements)
+        print(elements[0])
+        print(len(elements[0]))
+
         self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(len(nodes)), pady=10)
         self.nodenr.grid(row=0, column=0, sticky="nsew")
         # self.choices = ctk.CTkComboBox(self, values=["test 1", "test 2"])

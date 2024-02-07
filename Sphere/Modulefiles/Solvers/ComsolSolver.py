@@ -407,6 +407,8 @@ def Comsolexport(model):
     model.result().export().create("data1", "Data")
     model.result().export("data1").set("filename", "tmpComsol.csv")
     model.result().export("data1").setIndex("looplevelinput", "all", 0)
+    model.result().export("data1").set("resolution", "custom")
+    model.result().export("data1").set("lagorder", "2")
     # model.result().export("data1").set("header", False)
     data_dict = {}
 

@@ -87,8 +87,8 @@ if __name__ == "__main__":
     #Testfile.read_data_from_xdmf("Resultfiles/Test.xdmf", 0)
     #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf", [], 0)
 
-    # modelling()
-    GUI()
+    modelling()
+    # GUI()
     # xmdftesting()
 
 

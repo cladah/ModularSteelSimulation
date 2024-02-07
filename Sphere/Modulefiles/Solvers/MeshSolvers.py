@@ -92,14 +92,14 @@ def gmshsolver(parent):
     # ---------------------------------
 
 
-
     # Creating datastream from mesh
     # meshio.write("Datastream.xdmf",
     #              meshio.Mesh(points=mesh.points,
     #                          cells={"triangle": mesh.get_cells_type("triangle")}))
+    len(mesh.get_cells_type("triangle6"))
     with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-        writer.write_points_cells(points=mesh.points, cells={"triangle": mesh.get_cells_type("triangle")})
-
+        writer.write_points_cells(points=mesh.points, cells={"triangle6": mesh.get_cells_type("triangle6")})
+        writer.write_data(0, cell_data={})
     # Writing nas file with meshio (Needed for Comsol FEM solver)
 
     parent.updateprogress(1.0)
