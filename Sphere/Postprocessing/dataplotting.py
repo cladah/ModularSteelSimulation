@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from HelpFile import readresultfile, getTTTdata
+from .HelpFile import readresultfile, getTTTdata
 from scipy import interpolate
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 def plotJMAK(phasename,filename):
     T = readresultfile(filename, phasename+"/JMAK/T")
     tau = readresultfile(filename, phasename + "/JMAK/tau")
@@ -56,3 +58,32 @@ def plotKM(phasename,filename):
     plt.plot(xpoints, [M50, M50], label =phasename + ' half (50%)')
     plt.plot(xpoints, [M98, M98], label =phasename + ' start (98%)')
     plt.xscale("log")
+
+def showMeshPlot(nodes, elements):
+
+    x = nodes[:, 0]
+    y = nodes[:, 1]
+
+    #https://stackoverflow.com/questions/49640311/matplotlib-unstructered-quadrilaterals-instead-of-triangles
+    def quatplot(y, z, quatrangles, ax=None, **kwargs):
+
+        if not ax: ax=plt.gca()
+        yz = np.c_[y, z]
+        verts= yz[quatrangles]
+        pc = mpl.collections.PolyCollection(verts, **kwargs)
+        ax.add_collection(pc)
+        ax.autoscale()
+
+    plt.figure()
+    plt.gca().set_aspect('equal')
+
+    quatplot(x, y, np.asarray(elements), color="crimson", facecolor="None")
+    # if nodes:
+    #     plt.plot(x, y, marker="o", ls="", color="crimson")
+
+    plt.title('This is the plot for: quad')
+    plt.xlabel('Y Axis')
+    plt.ylabel('Z Axis')
+
+
+    plt.show()

@@ -15,6 +15,7 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
+from Postprocessing.PostprocessHelp import plotcompare
 
 import Testfile
 
@@ -26,10 +27,12 @@ def GUI():
 
 def looping():
     setupSimulation()
-    differentin = [["Material", "Composition", {"C": 0.2,"N": 0.025,"Cr": 1.6,"Mn": 0.5,"Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.5,"N": 0.025,"Cr": 1.6,"Mn": 0.5,"Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 1.0,"N": 0.025,"Cr": 1.6,"Mn": 0.5,"Ni": 1.5,"Mo": 0.3,"Si": 0.2}]]
-    saveloc = ["Test1.xmdf", "Test2.xmdf", "Test3.xmdf"]
+    differentin = [["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.0, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 0.4,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.0,"Mo": 0.3,"Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 0.5,"Mo": 0.3,"Si": 0.2}]]
+    saveloc = ["Cr_16.xdmf", "Cr_10.xdmf", "Cr_04.xdmf", "Ni_10.xdmf", "Ni_05.xdmf"]
     i = 0
     for a in differentin:
         change_input(*a)
@@ -44,15 +47,10 @@ def looping():
         modules.append(Carbonitridingmodule())
         modules.append(TTTdiagrammodule())
         modules.append(Transformationmodelmodule())
-        modules.append(Quenchingmodule())
+        #modules.append(Quenchingmodule())
 
         for currentmodule in modules:
-            if currentmodule.modulename() != "Meshing":
-                tid = threading.Thread(target=run_single_module, args=(currentmodule,))
-                tid.start()
-                progressmonitor(tid, currentmodule)  # Making sure thread is done
-            else:
-                run_single_module(currentmodule)
+            currentmodule.run()
 
         removedatastreamcache()
         savedatastream(saveloc[i])
@@ -64,8 +62,6 @@ def modelling():
     data = read_input()
 
     createdatastreamcache(data["Datastream"]["Cachedirect"])
-
-
     # resetdatastream()
     createinputcache()
 
@@ -74,15 +70,15 @@ def modelling():
     modules.append(Carbonitridingmodule())
     modules.append(TTTdiagrammodule())
     modules.append(Transformationmodelmodule())
-    modules.append(Quenchingmodule())
+    # modules.append(Quenchingmodule())
 
     for currentmodule in modules:
-        if currentmodule.modulename() != "Meshing":
-            tid = threading.Thread(target=run_single_module, args=(currentmodule,))
-            tid.start()
-            progressmonitor(tid, currentmodule)  # Making sure thread is done
-        else:
-            run_single_module(currentmodule)
+        # if currentmodule.modulename() != "Meshing":
+        #     tid = threading.Thread(target=run_single_module, args=(currentmodule,))
+        #     tid.start()
+        #     progressmonitor(tid, currentmodule)  # Making sure thread is done
+        # else:
+        run_single_module(currentmodule)
 
 
     removedatastreamcache()
@@ -116,17 +112,16 @@ def xmdftesting():
         #print(readdatastream("Austenite", time=-1))
 
 if __name__ == "__main__":
-    #Testfile.read_data_from_xdmf("Resultfiles/230124_2.xdmf", 0)
-    #Testfile.read_data_from_xdmf("Resultfiles/Test.xdmf", 0)
-    #Testfile.add_data_to_xdmf("Resultfiles/Datastream.xdmf", [], 0)
-
-    looping()
+    modelling()
+    # looping()
     # GUI()
     # xmdftesting()
 
 
+    # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
 
-    #print(np.max(data))
+
+    # print(np.max(data))
     # data = read_input()
     # createdatastreamcache(data["Datastream"]["Cachedirect"])
     # Meshingmodule().run()

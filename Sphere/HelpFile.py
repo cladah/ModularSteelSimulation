@@ -17,6 +17,12 @@ def createinputcache():
     json.dump(data, f, indent=2)
     f.close()
 
+def createresultinput(filename):
+    f = open("Resultfiles/" + filename + ".json", "w")
+    data = read_input()
+    json.dump(data, f, indent=2)
+    f.close()
+
 def adjustinputcache(model):
     f = open('Cachefiles/Input.json', 'r')
     indata = json.load(f)
@@ -40,6 +46,20 @@ def change_input(firstlvl, secondlvl, data):
     f = open('Cachefiles/Input.json', 'w')
     json.dump(newdata, f, indent=2)
     f.close()
+
+def inputfile(filename):
+    f = open(filename, 'r')
+    newdata = json.load(f)
+    f.close()
+    f = open("Setup/ReferenceInput", 'r')
+    reference = json.load(f)
+    f.close()
+
+
+    if newdata.keys() == reference.keys():
+        f = open('Cachefiles/Input.json', 'w')
+        json.dump(newdata, f, indent=2)
+        f.close()
 def checkruncondition(model):
     f = open('Cachefiles/Input.json', 'r')
     indata = json.load(f)
@@ -117,15 +137,16 @@ def addTTTdata(compdata, data, type):
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
     for oldkey in TTTdata.keys():
         if compdata == TTTdata[oldkey]["Composition"]:
-            if type in TTTdata[oldkey].keys():
-                print(type + " for that composition is already stored in database")
-                return
-            print(type + " added to database for " + str(compdata))
+            # if type in TTTdata[oldkey].keys():
+            #     print(type + " for that composition is already stored in database")
+            #     return
+
             tmpdict = TTTdata[oldkey]
             tmpdict[type] = data
             TTTdata[oldkey] = tmpdict
             TTTdata.commit()
             TTTdata.close()
+            print(type + " added to database for " + str(compdata))
             return
     print("Composition not in TTT database")
     TTTdata[str(len(TTTdata) + 1)] = {type:data,"Composition":compdata}

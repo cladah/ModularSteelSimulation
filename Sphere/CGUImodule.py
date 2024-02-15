@@ -141,6 +141,7 @@ class rightFrame(ctk.CTkFrame):
             tab5.rowconfigure(0, weight=1)
             tab5.columnconfigure(0, weight=1)
             self.tabs_frame.set("Quenching")
+            #self.tabs_frame.tab("TTTmodel")
         elif type == "End":
             pass
 
@@ -220,9 +221,9 @@ class meshTab(ctk.CTkFrame):
         nodes = readdatastream("nodes")
         elements = readdatastream("elements")
 
-        print(elements)
-        print(elements[0])
-        print(len(elements[0]))
+        # print(elements)
+        # print(elements[0])
+        # print(len(elements[0]))
 
         self.nodenr = ctk.CTkLabel(self, text="Number of nodes: " + str(len(nodes)), pady=10)
         self.nodenr.grid(row=0, column=0, sticky="nsew")
@@ -232,12 +233,31 @@ class meshTab(ctk.CTkFrame):
         self.elnr.grid(row=1, column=0, sticky="nsew")
 
         fig, ax = plt.subplots(figsize=(5, 4), dpi=50)
+
+        yz = np.c_[nodes[:, 0] * 1000, nodes[:, 1]* 1000]
+        #print(elements[0].data)
+
         cmap = mpl.colors.ListedColormap("lightgray")
+        # reordering vert
+        elemdata = elements[0].data
+        elemdata = [e[[0, 3, 1, 4, 2, 5]] for e in elemdata]
+        #print(elemdata)
+        #verts = yz[elements[0].data]
+        verts = yz[elemdata]
+        #print(verts)
+        pc = mpl.collections.PolyCollection(verts, color="lightgray", edgecolor="k")
+        #print(pc)
+        ax.add_collection(pc)
+
+
         c = np.ones(len(nodes))
-        ax.tripcolor(nodes[:, 0] * 1000, nodes[:, 1] * 1000, c, edgecolor="k", cmap=cmap)
+        #ax.tripcolor(nodes[:, 0] * 1000, nodes[:, 1] * 1000, c, edgecolor="k", cmap=cmap)
         fig.gca().set_aspect('equal')
         ax.set_xlabel('[mm]')
         ax.set_ylabel('[mm]')
+        ax.set_xlim([-np.max(nodes[:, 0]*1000)*0.1, np.max(nodes[:, 0]*1000)*1.1])
+        ax.set_ylim([-np.max(nodes[:, 1]*1000)*0.1, np.max(nodes[:, 1]*1000)*1.1])
+
 
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
@@ -300,32 +320,39 @@ class TTTTab(ctk.CTkFrame):
         colorlist = ["green", "blue", "orange", "red"]
         i = 0
         for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-            plot1.plot(TTTcore[phase]["start"][1], TTTcore[phase]["start"][0], label=phase, color=colorlist[i])
-            plot1.plot(TTTcore[phase]["finish"][1], TTTcore[phase]["finish"][0], linestyle="dashed",
+            plot1.plot(TTTcore[phase]["start"][1], np.array(TTTcore[phase]["start"][0])-273.15, label=phase, color=colorlist[i])
+            plot1.plot(TTTcore[phase]["finish"][1], np.array(TTTcore[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
             i = i + 1
         plot1.set_xscale('log')
         plot1.title.set_text('Core TTT')
         plot1.legend(loc="upper right")
+        plot1.set_xlabel('Time [s]')
+        plot1.set_ylabel('Temperature [degC]')
+        plot1.set_ylim([0, 900])
+
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
         i = 0
         for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-            plot2.plot(TTTsurf[phase]["start"][1], TTTsurf[phase]["start"][0], label=phase, color=colorlist[i])
-            plot2.plot(TTTsurf[phase]["finish"][1], TTTsurf[phase]["finish"][0], linestyle="dashed",
+            plot2.plot(TTTsurf[phase]["start"][1], np.array(TTTsurf[phase]["start"][0])-273.15, label=phase, color=colorlist[i])
+            plot2.plot(TTTsurf[phase]["finish"][1], np.array(TTTsurf[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
             i = i + 1
         plot2.set_xscale('log')
         plot2.title.set_text('Surface TTT')
+        plot2.set_xlabel('Time [s]')
+        plot2.set_ylabel('Temperature [degC]')
         plot2.legend(loc="upper right")
+        plot2.set_ylim([0, 900])
 
-        canvas = FigureCanvasTkAgg(fig, master=self)
-        canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
-        toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
+        self.canvas = FigureCanvasTkAgg(fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        toolbar = NavigationToolbar2Tk(self.canvas, self, pack_toolbar=False)
         toolbar.grid(row=1, column=0, sticky="nsew")
         toolbar.update()
-        canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+        self.canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 
 
 class TTTmodelTab(ctk.CTkFrame):
@@ -545,7 +572,7 @@ class MainApp(ctk.CTk):
 
         super().__init__()
         self.wm_iconbitmap("GUIfiles/Ballbearing.ico")
-        self.geometry("1400x1000")
+        self.geometry("1800x1000")
         self.title("Quenching of steel")
 
         # Setting weights

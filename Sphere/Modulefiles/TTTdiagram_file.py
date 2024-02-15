@@ -29,8 +29,6 @@ class TTTdiagrammodule(CalcModule):
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
 
 def runTTTcalc(composition):
-
-
     # Take away values that are 0 EXCEPT N AND C!
     keys = composition.keys()
     for key in keys:
@@ -56,14 +54,14 @@ def runTTTcalc(composition):
         phase["start"] = start
         phase["half"] = half
         phase["finish"] = finish
-        print(TTTdata)
-        print(phase)
+        #print(TTTdata)
+        #print(phase)
         TTTdata["Martensite"] = phase
 
         addTTTdata(composition, TTTdata, "TTTdata")
         return
 
-    Tsteps = np.linspace(260, 1000, 38)
+    Tsteps = np.linspace(0, 1000, 41) + 273.15
     phases = ["Ferrite", "Bainite", "Perlite", "Martensite"]
     TTTdata = dict()
     for ph in phases:

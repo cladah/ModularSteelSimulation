@@ -20,8 +20,19 @@ def getTTTcompositions():
         if composition[element] != fullcomposition[element][-1]:
             if element == "C":
                 tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
+                if round(tmplist[0], 1) > 0:
+                    tmplist = np.concatenate([[tmplist[0] - 0.1], tmplist])
+                tmplist = np.concatenate([tmplist, [tmplist[-1] + 0.1]])
+            elif element == "N":
+                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+                if round(tmplist[0], 1) > 0:
+                    tmplist = np.concatenate([[tmplist[0] - 0.1], tmplist])
+                tmplist = np.concatenate([tmplist, [tmplist[-1]+0.1]])
             else:
                 tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+
+
+
             tmplist = [round(elem, roundingTTT) for elem in tmplist]
             tmplist = list(set(tmplist)) # getting unique values
             tmplist.sort()
@@ -117,7 +128,7 @@ def TCcarbonitriding(activityair):
                       .set_simulation_time(data['Thermo']["CNtime"])
                       .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
                                                      .set_activity_for_element('C', str(activityair[0]))
-                                                     .set_activity_for_element('N', str(activityair[1])))
+                                                     .set_activity_for_element('N', str(activityair[1]))) # CHANGED
                       .with_spherical_geometry().remove_all_regions()
                       .add_region(austenite))
         logging.getLogger("tc_python").setLevel(logging.INFO)

@@ -26,10 +26,10 @@ def JMAKfit(composition, phase):
             # add if to take 98% or 50% lines as references.
             if np.isnan(finish[1][k]):
                 tmpn = np.log(np.log(0.98) / np.log(0.50)) / np.log(start[1][i] / half[1][j])
-                tmptau = - start[1][i] / (-np.log(0.98)) ** (1 / tmpn)
+                tmptau = start[1][i] / (-np.log(0.98)) ** (1 / tmpn)
             else:
                 tmpn = np.log(np.log(0.98) / np.log(0.02)) / np.log(start[1][i] / finish[1][k])
-                tmptau = - start[1][i] / (-np.log(0.98)) ** (1 / tmpn)
+                tmptau = start[1][i] / (-np.log(0.98)) ** (1 / tmpn)
             n = np.append(n, tmpn)
             tau = np.append(tau, tmptau)
             Tlist = np.append(Tlist, x)
