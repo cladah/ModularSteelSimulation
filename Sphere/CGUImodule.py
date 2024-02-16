@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 import customtkinter as ctk
 from queue import Queue
 import meshio
-from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream, getnamesdatastream
+from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream, getnamesdatastream, gethistoryvalues
 from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
@@ -529,15 +529,15 @@ class QuenchingTab(ctk.CTkFrame):
         toolbar.update()
         phasecanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
 
-        s1 = getaxisvalues("sl11", time=-1)
-        s2 = getaxisvalues("sl22", time=-1)
-        s3 = getaxisvalues("sl33", time=-1)
+        s1 = getaxisvalues("vonMises", time=-1)
+        # s2 = getaxisvalues("sl22", time=-1)
+        # s3 = getaxisvalues("sl33", time=-1)
         xyz = getaxisvalues("nodes")
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="First principal")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s2)*1e-6, label="Second principal")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s3)*1e-6, label="Third principal")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="von-Mises stress")
+        # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s2)*1e-6, label="Second principal")
+        # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s3)*1e-6, label="Third principal")
         plot1.set_xlabel('Radius [mm]')
         plot1.set_ylabel('Stress [MPa]')
         plot1.legend()
@@ -549,6 +549,54 @@ class QuenchingTab(ctk.CTkFrame):
         toolbar.grid(row=2, column=0, sticky="nsew")
         toolbar.update()
         #stresscanvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+
+
+        # TTT with temp
+        Tgrid = np.linspace(0, 1000, 100)
+        fig = Figure(figsize=(10, 4), dpi=50)
+        plot1 = fig.add_subplot(111)
+        plot1.set_xlim([0.1, 1.E12])
+        colorlist = ["green", "blue", "orange", "red"]
+        i = 0
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Perlite"]:
+                z1 = getaxisvalues("JMAK_tau_" + phase)[0]
+                z2 = getaxisvalues("JMAK_n_" + phase)[0]
+                p1 = np.poly1d(z1)
+                p2 = np.poly1d(z2)
+                # Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(np.exp(p2(Tgrid)))
+                # Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(np.exp(p2(Tgrid)))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
+                indx = [j for j, v in enumerate(Z98) if v < 1E12]
+                Z98 = Z98[indx]
+                Z02 = Z02[indx]
+                X = Tgrid[indx]
+                plot1.plot(Z02, X - 273.15, label=phase,
+                           color=colorlist[i])
+                plot1.plot(Z98, X - 273.15, linestyle="dashed",
+                           color=colorlist[i])
+            i = i + 1
+        timex, tempsurf = gethistoryvalues("T", -1)
+        timex, tempcore = gethistoryvalues("T", 0)
+        plot1.plot(timex, np.array(tempcore) - 273.15, label="Temperature core",
+                   color="black")
+        plot1.plot(timex, np.array(tempsurf) - 273.15, label="Temperature surface", linestyle="dashed",
+                   color="black")
+        plot1.set_xscale('log')
+        plot1.title.set_text('Surface TTT')
+        plot1.set_xlabel('Time [s]')
+        plot1.set_ylabel('Temperature [degC]')
+        plot1.legend(loc="upper right")
+        plot1.set_ylim([0, 900])
+
+        TTTcanvas = FigureCanvasTkAgg(fig, master=self)
+        TTTcanvas.draw()
+        TTTcanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
+        toolbar = NavigationToolbar2Tk(TTTcanvas, self, pack_toolbar=False)
+        toolbar.grid(row=2, column=0, sticky="nsew")
+        toolbar.update()
+
 
         # def combobox_callback(choice):
         #     widgets = self.grid_slaves(row=1, column=0)
@@ -636,12 +684,13 @@ class QuenchingTab(ctk.CTkFrame):
         canvas["Phase fractions"] = phasecanvas
         # canvas["Strain"] = straincanvas
         canvas["Stress"] = stresscanvas
+        canvas["Temprature history"] = TTTcanvas
         # test = FEMresults(self, "vonMises")
         #test.show()
         combobox = ctk.CTkComboBox(master=self,
                                    values=list(canvas.keys()),
                                    command=combobox_callback)
-        combobox.grid(row=0, column=0, sticky="nsew")
+        combobox.grid(row=0, column=0, pady=(10, 10), sticky="nsew")
         # # print("combobox dropdown clicked:", choice)
 
 

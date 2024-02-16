@@ -17,8 +17,7 @@ from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
 from Postprocessing.PostprocessHelp import plotcompare
 
-import Testfile
-
+from Testfile import testdatastream
 def GUI():
     ctk.set_appearance_mode("dark")
     app = MainApp()
@@ -128,7 +127,7 @@ if __name__ == "__main__":
     # looping()
     GUI()
     # xmdftesting()
-
+    # testdatastream()
 
     # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
 

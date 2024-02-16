@@ -374,14 +374,15 @@ def setupComsol(model):
         model.component("comp1").material(phase).propertyGroup("Enu").set("nu", "0.3")
         model.component("comp1").material(phase).propertyGroup().create("ElastoplasticModel", "Elastoplastic material model")
         model.component("comp1").material(phase).propertyGroup("ElastoplasticModel").set("sigmags", "Sy_" + ph + "(T)")
+        model.component("comp1").material(phase).propertyGroup("ElastoplasticModel").set("Et", "h_" + ph + "(T)")
 
     # --------------- Adding physics ------------------#
     model.component("comp1").physics().create("solid", "SolidMechanics", "geom1")
     model.component("comp1").physics("solid").feature("lemm1").create("plsty1", "Plasticity", 2)
     model.component("comp1").physics("solid").feature("lemm1").feature("plsty1")\
         .set("IsotropicHardeningModel", "LinearIsotropicHardening")
-    model.component("comp1").physics("solid").feature("lemm1").feature("plsty1").set("Et_mat", "userdef")
-    model.component("comp1").physics("solid").feature("lemm1").feature("plsty1").set("Et", "100E9")
+    # model.component("comp1").physics("solid").feature("lemm1").feature("plsty1").set("Et_mat", "userdef")
+    # model.component("comp1").physics("solid").feature("lemm1").feature("plsty1").set("Et", "100E9")
     model.component("comp1").physics("solid").prop("d").set("d", data["Geometry"]["thickness"])
 
     model.component("comp1").physics().create("ht", "HeatTransfer", "geom1")
@@ -429,6 +430,14 @@ def setupComsol(model):
     model.component("comp1").physics("audc").feature("phase5").selection().all()
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
     model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(sqrt(x^2+y^2))")
+
+    for i in range(1, 6):
+        model.component("comp1").physics("audc").feature("phase" + str(i)).set("IsotropicHardeningModel",
+                                                                       "LinearIsotropicHardening")
+    for i in range(1, 5):
+        model.component("comp1").physics("audc").feature("ptran" + str(i)).set("recovery", True)
+
+    model.component("comp1").material("audcmat").propertyGroup("ElastoplasticModel").set("Et", "h_A(T)")
 
     # --------------- Adjusting properties
     model.component("comp1").physics("ht").prop("ShapeProperty").set("order_temperature", "1")
@@ -509,6 +518,13 @@ def setupComsol(model):
     # {{"temperature", "9000[degC]"}, {"strainreferencetemperature", "900[degC]"}});
     # model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("Tref", "900[degC]");
 
+    model.component("comp1").common().create("minpt1", "CommonInputDef")
+    model.component("comp1").common("minpt1").set("quantity", "strainreferencetemperature")
+    model.component("comp1").common("minpt1").set("value", str(data["Thermo"]["CNtemp"]) + "[K]")
+    model.component("comp1").common("minpt1").selection().set(1)
+
+    model.component("comp1").physics("solid").feature("lemm1").create("iss1", "InitialStressandStrain", 2)
+
 
     #model = setupComsolSolver(model)
     model.save('Resultfiles/Comsolmodel')
@@ -534,7 +550,12 @@ def adjustComsol(model):
     model.func("htc").setIndex("fununit", "W/(m^2*K)", 0)
 
     # Carbonnitriding temperature
-    model.component("comp1").physics("ht").feature("init1").set("Tinit", "900[degC]")
+    model.component("comp1").physics("ht").feature("init1").set("Tinit", str(data["Thermo"]["CNtemp"]) + "[K]")
+    model.component("comp1").physics("audc").prop("HeatTransfer").set("minput_temperature_src", "root.comp1.T")
+    model.common("cminpt").set("modified", ("strainreferencetemperature", str(data["Thermo"]["CNtemp"]) + "[K]"))
+    # model.common("cminpt").set("modified", "temperature", str(data["Thermo"]["CNtemp"]) + "[degC]")
+    # model.common("cminpt").set("modified", "temperature", str(data["Thermo"]["CNtemp"]) + "[degC]", "strainreferencetemperature", str(data["Thermo"]["CNtemp"]) + "[degC]")
+    model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("Tref", str(data["Thermo"]["CNtemp"]) + "[K]")
     materialprop = ["E","Cp","k","Sy", "alpha_k", "h"]
     materials = ["Austenite","Ferrite","Perlite","Bainite","Martensite"]
     propunit = ["GPa", "J/(kg*K)", "W/(m*K)", "MPa", "1/K", "GPa"] # h = GPa
@@ -623,7 +644,7 @@ def Comsolexport(model):
     model.result().export("data1").set("lagorder", "2")
     # model.result().export("data1").set("header", False)
     data_dict = {}
-    indx = []
+    indx = ""
     for i in range(len(resultdata)):
         print("Exporting " + str(resultnames[i]))
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
@@ -649,7 +670,7 @@ def Comsolexport(model):
                 data.append(line[2:])
                 j = j + 1
             data = np.array(data).astype(float)
-            if indx == []:
+            if isinstance(indx, str):
                 indx = getComsolindx(x, y)
 
 
@@ -661,15 +682,15 @@ def Comsolexport(model):
     # data_dict as [time][name]
     save_dict = dict()
     for j in range(len(time)):
-        stress = data_dict[str(time[j])]["solid.sl11"]
-        for a in ["solid.sl12", "solid.sl22", "solid.sl23", "solid.sl13", "solid.sl33"]:
+        stress = data_dict[str(time[j])]["sl11"]
+        for a in ["sl12", "sl22", "sl23", "sl13", "sl33"]:
             stress = np.column_stack((stress, data_dict[str(time[j])][a]))
-        strain = data_dict["solid.eel11"]
-        for a in ["solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33"]:
+        strain = data_dict[str(time[j])]["eel11"]
+        for a in ["eel12", "eel22", "eel23", "eel13", "eel33"]:
             strain = np.column_stack((strain, data_dict[str(time[j])][a]))
         vM = []
         for s in stress:
-            vM.append(s[0]^2+s[0]*s[2]+s[0]*s[5]+s[2]^2+ s[2]*s[5]+s[5]^2- 3*(s[1]^2+s[3]^2+s[4]^2))
+            vM.append(np.sqrt(s[0]**2+s[0]*s[2]+s[0]*s[5]+s[2]**2+ s[2]*s[5]+s[5]**2- 3*(s[1]**2+s[3]**2+s[4]**2)))
         if str(time[j]) not in save_dict.keys():
             save_dict[str(time[j])] = dict()
         save_dict[str(time[j])]["Stress"] = stress
@@ -793,8 +814,8 @@ def runComsol(parent):
     model = adjustComsol(model)
     parent.updateprogress(0.3)
     print("Running model")
-    #model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
+    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
+    # model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)

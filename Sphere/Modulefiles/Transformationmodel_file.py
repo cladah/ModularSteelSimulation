@@ -289,7 +289,7 @@ def TTTpolyfit():
 
                     import matplotlib.pyplot as plt
                     # z2 = [0.3]
-                    z2 = [1.0]
+                    z2 = [0.5]
                     z1 = np.polyfit(T[indx], np.log(tau[indx]), polynomial)
                     #z2 = np.polyfit(T[indx], np.log(n[indx]), 0)
                     # z2 = [0.4]

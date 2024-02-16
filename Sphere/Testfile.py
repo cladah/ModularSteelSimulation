@@ -1,5 +1,7 @@
 import meshio
-
+from Datastream_file import *
+from HelpFile import read_input
+from Modulefiles.TTTdiagram_file import runTTTcalc
 def add_data_to_xdmf(filename, data, time):
 
     # Load the existing XDMF file if it exists
@@ -31,3 +33,21 @@ def add_data_to_xdmf(filename, data, time):
 
 def read_data_from_xdmf(filename, time):
     pass
+
+def testdatastream():
+    print(gethistoryvalues("T", 0))
+
+def createTTTdiagram_loop():
+    data = read_input()
+    composition = data["Material"]["Composition"]
+    compositions = list()
+    Cvariation = np.arange(0, 2.1, 0.1)
+    Nvariation = np.arange(0, 1.5, 0.1)
+    for i in Cvariation:
+        for j in Nvariation:
+            tmpcomp = composition.copy()
+            tmpcomp["Composition/C"] = i
+            tmpcomp["Composition/N"] = j
+            compositions.append(tmpcomp)
+    for comp in compositions:
+        runTTTcalc(comp)

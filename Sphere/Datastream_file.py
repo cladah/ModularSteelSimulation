@@ -61,7 +61,7 @@ def createdatastream():
         pass
 
 
-def adjustdatastream(data, datapos="nodes", t_data=0):
+def adjustdatastream(data, datapos="nodes", t_data=0.0):
     # Adding data to xdmf file
     try:
         if type(data) == dict:
@@ -266,6 +266,20 @@ def getaxisvalues(dataname, time=0):
     indx = np.argsort(x)
     data = np.array(data)[indx]
     return data
+def gethistoryvalues(dataname, position):
+    with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+        points, cells = reader.read_points_cells()
+        if dataname == "nodes":
+            return points
+        elif dataname == "elements":
+            return cells
+        pd_list, t_list = list(), list()
+        for k in range(reader.num_steps):
+            t, point_data, cell_data = reader.read_data(k)
+            if dataname in point_data.keys():
+                t_list.append(t)
+                pd_list.append(point_data[dataname][position])
+    return t_list, pd_list
 def resetdatastream():
     try:
         os.remove("Datastream.h5")
