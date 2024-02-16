@@ -13,12 +13,12 @@ class Transformationmodelmodule(CalcModule):
     def run(self):
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
-            precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Perlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
-                          "JMAK_n_Perlite",
-                          "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
-            for pre in precalcinp:
-                values = readdatastreamcache(pre)
-                adjustdatastream({pre: values}, "nodes")
+            # precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Perlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
+            #               "JMAK_n_Perlite",
+            #               "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
+            # for pre in precalcinp:
+            #     values = readdatastreamcache(pre)
+            #     adjustdatastream({pre: values}, "nodes")
             print("Phase transformation model module done\n")
             return
 
@@ -44,7 +44,8 @@ def runTTTmodelmodule(parent):
 
     print("Models fitted to data")
     TTTpolyfit()
-    #TTTinterpolatetonodes()
+
+    # TTTinterpolatetonodes()
 
 def TTTfit(composition):
     phases = ["Ferrite","Perlite","Bainite","Martensite"]
@@ -73,7 +74,7 @@ def TTTinterpolatetonodes():
     compositions = newcomp.copy()
 
     for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-    #for phase in ["Martensite"]:
+    # for phase in ["Martensite"]:
         Z1 = list()
         Z2 =list()
         X = []
@@ -149,10 +150,13 @@ def TTTinterpolatetonodes():
             tmpX.sort()
             newX.append(tmpX)
 
-        newZ1 = np.array(Z1).reshape(np.shape(np.meshgrid(*newX, indexing='ij')[0]))
-        newZ2 = np.array(Z2).reshape(np.shape(np.meshgrid(*newX, indexing='ij')[0]))
+        # print(newX)
+        # print(Z1[1])
 
-
+        newZ1 = np.transpose(np.array(Z1).reshape(np.shape(np.transpose(np.meshgrid(*newX, indexing='ij')[0]))))
+        newZ2 = np.transpose(np.array(Z2).reshape(np.shape(np.transpose(np.meshgrid(*newX, indexing='ij')[0]))))
+        # print(newZ1[1,0,0,0,0,0,0])
+        # input("")
         # import matplotlib.pyplot as plt
         # indx = [i for i, v in enumerate(Z1[0:41]) if v < 1E12]
         # indx = [np.min(indx)-1]+indx + [np.max(indx)+1]
@@ -173,7 +177,8 @@ def TTTinterpolatetonodes():
         # plt.show()
         # input("STOP")
 
-        Tgrid = np.linspace(0, 975, 40) + 273.15
+        #Tgrid = np.linspace(0, 975, 40) + 273.15
+        Tgrid = np.linspace(0, 975, 20) + 273.15
         grid = list()
         for element in data["Material"]["Composition"].keys():
             if len(grid) == 0:
@@ -186,25 +191,29 @@ def TTTinterpolatetonodes():
 
         print("Interpolating modeldata to gridpoints for " + phase)
         #print(np.shape(grid))
+        newgrid = list()
         for point in grid:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
+
                 points = [[t] + point for t in Tgrid]
+                tmppoints = list()
+                for tmppoint in points:
+                    tmppoint = [tmppoint[0]] + [round(tmppoint[k], 4) for k in range(1, 3)] + [round(tmppoint[k], 1) for k in
+                                                                       range(3, len(tmppoint))]
+                    tmppoints.append(tmppoint)
+                newgrid.append(tmppoints)
             else:
-                points = [point]
-            tmpz1 = list()
-            tmpz2 = list()
-            for p in points:
-                indx = points.index(p)
-                p = [round(p[i], 1) for i in range(len(p))]
-                points[indx] = p
-            tmpz1 = tmpz1 + list(interpolate.interpn(newX, newZ1, points))
-            tmpz2 = tmpz2 + list(interpolate.interpn(newX, newZ2, points))
-            #for p in points:
-            #    p = [round(p[i], 1) for i in range(len(p))]
-            #    tmpz1 = tmpz1 + list(interpolate.interpn(newX, newZ1, p))
-            #    tmpz2 = tmpz2 + list(interpolate.interpn(newX, newZ2, p))
-            z1.append(tmpz1)
-            z2.append(tmpz2)
+                # points = [point]
+                tmppoint = [round(point[k], 4) for k in range(0, 2)] + [round(point[k], 1) for k in
+                                                                       range(2, len(point))]
+                newgrid.append([tmppoint])
+
+
+        # print(np.shape(newgrid))
+        # print(newX)
+        # print(np.shape(newZ1))
+        z1 = list(interpolate.interpn(newX, newZ1, newgrid))
+        z2 = list(interpolate.interpn(newX, newZ2, newgrid))
 
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             #z1 = np.nan_to_num(z1,nan=-1E12)
@@ -258,28 +267,53 @@ def TTTpolyfit():
                 n = TTTdata[phase][2]  # n
 
                 # Checking the values for tau and n. If all nan, n = 1, tau = 1E12
+                taumax = 1E12
                 if np.isnan(n).all():
-                    n = np.nan_to_num(n, nan=1)
+                    n = np.nan_to_num(n, nan=1.)
                 else:
                     n = np.nan_to_num(n, nan=float(np.nanmean(n)))
-                tau = np.nan_to_num(tau, nan=1E12)
-                tau[tau > 1E12] = 1E12
+                tau = np.nan_to_num(tau, nan=taumax)
+                tau[tau > taumax] = taumax
 
-                indx = [i for i, v in enumerate(tau) if v < 1E12]
+                indx = [i for i, v in enumerate(tau) if v < taumax]
                 # print(indx)
-                if len(indx) == 0:
-                    z1 = np.array([0, 0, 1E12])
-                    z2 = np.array([0, 0, 1])
-                else:
-                    indx = [np.min(indx) - 1] + indx + [np.max(indx) + 1]
-                    z1 = np.polyfit(T[indx], np.log(tau[indx]), 2)
-                    z2 = np.polyfit(T[indx], np.log(n[indx]), 2)
+                polynomial = 4
 
+                if len(indx) == 0:
+                    z1 = np.concatenate([np.zeros(5), [taumax]])
+                    z2 = np.concatenate([np.zeros(5), [1.]])
+                else:
+                    indx = [np.min(indx) - 1] + indx
+                    if np.max(indx) < len(T)-1:
+                        indx = indx + [np.max(indx) + 1]
+
+                    import matplotlib.pyplot as plt
+                    # z2 = [0.3]
+                    z2 = [1.0]
+                    z1 = np.polyfit(T[indx], np.log(tau[indx]), polynomial)
+                    #z2 = np.polyfit(T[indx], np.log(n[indx]), 0)
+                    # z2 = [0.4]
+                    #z2 = [0.001]
+                    # print(z2)
+                    while len(z1) < 6:
+                        z1 = [0] + list(z1)
+                    while len(z2) < 6:
+                        z2 = [0] + list(z2)
+                    z1 = np.array(z1)
+                    z2 = np.array(z2)
+                                    # CHANGED TO 4 INSTEAD OF 2
+                    # z1 = np.polyfit(T[indx], tau[indx], 2)
+                    # z2 = np.polyfit(T[indx], n[indx], 2)
+
+                    # ptest = np.poly1d(z2)
+                    # plt.plot(ptest(T[indx]), T[indx])
+                    # plt.plot(np.log(n[indx]), T[indx])
+                    # plt.show()
             else:  # Martensite
                 z1 = [TTTdata[phase][0]]  # Ms
                 z2 = [TTTdata[phase][1]]  # beta
                 # Checking the values for tau and n if all nan, Ms = 0, beta = 0.01
-                z1 = np.nan_to_num(z1, nan=0.)
+                z1 = np.nan_to_num(z1, nan=173.15)
                 z2 = np.nan_to_num(z2, nan=0.01)
 
             # print(z1)
@@ -296,7 +330,6 @@ def TTTpolyfit():
             else:
                 X = x.copy()
             # TTT data points
-
             if isinstance(Z1, str):
                 Z1 = z1.copy()
                 Z2 = z2.copy()
@@ -348,6 +381,7 @@ def TTTpolyfit():
             # Z1[:, i] = [j for j in range(len(Z1[0]))]
             # len(interX)
             Z1[:, i] = Z1[:, i][[0,7,14,1,8,15,2,9,16,3,10,17,4,11,18,5,12,19,6,13,20]]
+            Z2[:, i] = Z2[:, i][[0, 7, 14, 1, 8, 15, 2, 9, 16, 3, 10, 17, 4, 11, 18, 5, 12, 19, 6, 13, 20]]
 
             interZ1 = np.array(Z1[:, i]).reshape(np.shape(np.meshgrid(*interX, indexing='ij')[0]))
             interZ2 = np.array(Z2[:, i]).reshape(np.shape(np.meshgrid(*interX, indexing='ij')[0]))
@@ -387,11 +421,12 @@ def TTTpolyfit():
         if len(res1) == len(Z1[0]):
             res1 = res1.transpose()
             res2 = res2.transpose()
+        # print(type(res1[1]))
+        # print(np.shape(res1))
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             adjustdatastream({"JMAK_tau_" + phase: np.array(res1)})
             adjustdatastream({"JMAK_n_" + phase: np.array(res2)})
         else:
-            print(np.sort(res1))
             adjustdatastream({"KM_Ms_" + phase: np.array(res1)})
             adjustdatastream({"KM_b_" + phase: np.array(res2)})
         print(phase + " transformation model added to datastream")

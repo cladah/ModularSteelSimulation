@@ -93,10 +93,10 @@ def progressmonitor(tid, module):
         progressmonitor(tid, module)
 
 def xmdftesting():
-    data = read_input()
-    createdatastreamcache(data["Datastream"]["Cachedirect"])
 
-    with meshio.xdmf.TimeSeriesReader("Datastream_Cache.xdmf") as reader:
+    t_data = 0
+
+    with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
         points, cells = reader.read_points_cells()
         pd_list, cd_list, t_list = list(), list(), list()
         for k in range(reader.num_steps):
@@ -104,17 +104,29 @@ def xmdftesting():
             t_list.append(t)
             pd_list.append(point_data)
             cd_list.append(cell_data)
-        print("Points")
-        print(cells[0].data)
-        print(cell_data)
-        print("Data list")
-        print(pd_list[1].keys())
-        #print(readdatastream("Austenite", time=-1))
+    print(len(pd_list[0]["Composition/C"]))
+    print(np.array(np.ones((len(pd_list[0]["Composition/C"]), 5))))
+
+    data = {"ones":np.array(np.ones((len(pd_list[0]["Composition/C"]), 5)))}
+    data = {"ones":np.array([[1,1,1,1,1,1] for i in range(len(pd_list[0]["Composition/C"]))])}
+    if t_data not in t_list:
+        t_list.append(t_data)
+        pd_list.append(data)
+        cd_list.append({})
+    else:
+        indx = t_list.index(t_data)
+        for key in data.keys():
+            pd_list[indx][key] = data[key]
+
+    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
+        writer.write_points_cells(points, cells)
+        for i in range(len(t_list)):
+            writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
 
 if __name__ == "__main__":
-    modelling()
+    # modelling()
     # looping()
-    # GUI()
+    GUI()
     # xmdftesting()
 
 

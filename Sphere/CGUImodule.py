@@ -127,7 +127,7 @@ class rightFrame(ctk.CTkFrame):
             tab3.rowconfigure(0, weight=1)
             tab3.columnconfigure(0, weight=1)
             self.tabs_frame.set("TTT diagrams")
-        elif type == "TTTmodeling":
+        elif type == "Transformationmodels":
             tab4 = self.tabs_frame.add("TTTmodel")
             tab4frame = TTTmodelTab(tab4)
             tab4frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -189,8 +189,8 @@ class infoTab(ctk.CTkScrollableFrame):
         holdquench = holdCN + 1800
         holdtemper = holdquench + 1800
         holdend = holdtemper + 1800
-        times = np.array([0, 0, holdCN, holdCN + 1800, holdquench, holdquench + 1800, holdtemper, holdtemper + 1800, holdend]) / 3600
-        temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, tempertemp, tempertemp, roomtemp, roomtemp]
+        times = np.array([0, 0, holdCN, holdCN + 1800, holdquench, holdquench + 1800, holdend]) / 3600
+        temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, roomtemp, roomtemp]
         fig, ax = plt.subplots(figsize=(6, 10), dpi=50)
         ax.plot(times, temps)
         ax.set_xlabel('Time [h]')
@@ -364,8 +364,86 @@ class TTTmodelTab(ctk.CTkFrame):
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-        cord = getaxisvalues('nodes')
+
+        Tgrid = np.linspace(0,1000,100)
         fig = Figure(figsize=(10, 4), dpi=50)
+        plot1 = fig.add_subplot(121)
+        plot1.set_xlim([0.1, 1.E12])
+        colorlist = ["green", "blue", "orange", "red"]
+        i = 0
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Perlite"]:
+                z1 = getaxisvalues("JMAK_tau_" + phase)[0]
+                z2 = getaxisvalues("JMAK_n_" + phase)[0]
+                p1 = np.poly1d(z1)
+                p2 = np.poly1d(z2)
+                # Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(np.exp(p2(Tgrid)))
+                # Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(np.exp(p2(Tgrid)))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
+                indx = [i for i, v in enumerate(Z98) if v < 1E12]
+                Z98 = Z98[indx]
+                Z02 = Z02[indx]
+                X = Tgrid[indx]
+                plot1.plot(Z02, X - 273.15, label=phase,
+                           color=colorlist[i])
+                plot1.plot(Z98, X - 273.15, linestyle="dashed",
+                           color=colorlist[i])
+
+            else:
+                z1 = getaxisvalues("KM_Ms_" + phase)[0]
+                z2 = getaxisvalues("KM_b_" + phase)[0]
+                start = z1 + np.log(0.98) / z2 - 273.15
+                finish = z1 + np.log(0.02) / z2 - 273.15
+                plot1.plot([0.1, 1E12], [start, start], label=phase,
+                           color=colorlist[i])
+                plot1.plot([0.1, 1E12], [finish, finish], linestyle="dashed",
+                           color=colorlist[i])
+            i = i + 1
+        plot1.set_xscale('log')
+        plot1.title.set_text('Core TTT')
+        plot1.legend(loc="upper right")
+        plot1.set_xlabel('Time [s]')
+        plot1.set_ylabel('Temperature [degC]')
+        plot1.set_ylim([0, 900])
+
+        plot2 = fig.add_subplot(122)
+        plot2.set_xlim([0.1, 1.E12])
+        i = 0
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Perlite"]:
+                z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
+                z2 = getaxisvalues("JMAK_n_" + phase)[-1]
+                p1 = np.poly1d(z1)
+                p2 = np.poly1d(z2)
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
+                indx = [i for i, v in enumerate(Z98) if v < 1E12]
+                Z98 = Z98[indx]
+                Z02 = Z02[indx]
+                X = Tgrid[indx]
+                plot2.plot(Z02, X - 273.15, label=phase,
+                           color=colorlist[i])
+                plot2.plot(Z98, X - 273.15, linestyle="dashed",
+                           color=colorlist[i])
+
+            else:
+                z1 = getaxisvalues("KM_Ms_" + phase)[-1]
+                z2 = getaxisvalues("KM_b_" + phase)[-1]
+                start = z1 + np.log(0.98)/z2 - 273.15
+                finish = z1 + np.log(0.02)/z2 - 273.15
+                plot2.plot([0.1, 1E12], [start, start], label=phase,
+                           color=colorlist[i])
+                plot2.plot([0.1,1E12], [finish, finish], linestyle="dashed",
+                           color=colorlist[i])
+            i = i + 1
+
+        plot2.set_xscale('log')
+        plot2.title.set_text('Surface TTT')
+        plot2.set_xlabel('Time [s]')
+        plot2.set_ylabel('Temperature [degC]')
+        plot2.legend(loc="upper right")
+        plot2.set_ylim([0, 900])
 
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()

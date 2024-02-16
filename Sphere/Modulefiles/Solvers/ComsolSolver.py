@@ -7,7 +7,7 @@ import numpy as np
 from Sphere.HelpFile import readresultfile, read_input
 from Sphere.Datastream_file import readdatastream, adjustdatastream, getaxisvalues
 def modeldatatoComsolfiles():
-    print("Adjusting phase transformation data to Comsol specifics")
+    # print("Adjusting phase transformation data to Comsol specifics")
     # xyz = readdatastream("nodes")
     # phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
     # for phase in phases:
@@ -20,7 +20,9 @@ def modeldatatoComsolfiles():
     #         tmp1 = readresultfile("Modeldata", phase + "/KM/Ms")
     #         tmp2 = readresultfile("Modeldata", phase + "/KM/beta")
     #         tmpnames = ["Ms", "beta"]
-    #
+    #     # print(len(tmpT))
+    #     # print(len(tmp1))
+    #     # print(len(tmp2))
     #     for i in [0, 1]:
     #         with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
     #             writer = csv.writer(file)
@@ -46,6 +48,10 @@ def modeldatatoComsolfiles():
     #                         writer.writerow([r[j], tmp2[j][0]])
     #     print(str(phase) + " data written to csv files")
     # pass
+
+
+
+
     print("Adjusting phase transformation data to Comsol specifics")
     r = getaxisvalues("nodes")[:,0]
     phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
@@ -68,13 +74,13 @@ def modeldatatoComsolfiles():
                 writer = csv.writer(file)
 
                 for j in range(len(r)):
-                    print(tmpz[j])
+                    #print(tmpz[j])
                     if isinstance(tmpz[j], list) or isinstance(tmpz[j], np.ndarray):
                         row = [r[j]] + list(tmpz[j])
                     else:
                         row = [r[j]] + [tmpz[j]]
                     writer.writerow(row)
-
+        print(str(phase) + " data written to csv files")
 
 def setupComsolSolver_plastic(model):
     model.sol("sol1").study("std1");
@@ -348,6 +354,10 @@ def setupComsol(model):
             model.nodeGroup(phase).add("func", "tau_"+ph)
             model.func().create("n_"+ph, "Interpolation")
             model.nodeGroup(phase).add("func", "n_"+ph)
+            model.func().create("atau" + "_" + ph, "Analytic")
+            model.nodeGroup(phase).add("func", "atau_" + ph)
+            model.func().create("an" + "_" + ph, "Analytic")
+            model.nodeGroup(phase).add("func", "an_" + ph)
 
     model.func().create("htc", "Interpolation")
     # --------------- Setting up material ------------------#
@@ -394,24 +404,24 @@ def setupComsol(model):
     model.component("comp1").physics("audc").feature("phase2").set("phaseMaterial", "Ferrite")
     model.component("comp1").physics("audc").feature("phase2").selection().all()
     model.component("comp1").physics("audc").feature("ptran1").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "tau_F(sqrt(x^2+y^2),T)")
-    model.component("comp1").physics("audc").feature("ptran1").set("njmak", "n_F(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran1").set("taujmak", "atau_F(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran1").set("njmak", "an_F(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran1").set("trip", True)
 
     # Perlite
     model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Perlite")
     model.component("comp1").physics("audc").feature("phase3").selection().all()
     model.component("comp1").physics("audc").feature("ptran2").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "tau_P(sqrt(x^2+y^2),T)")
-    model.component("comp1").physics("audc").feature("ptran2").set("njmak", "n_P(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "atau_P(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran2").set("njmak", "an_P(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran2").set("trip", True)
 
     # Bainite
     model.component("comp1").physics("audc").feature("phase4").set("phaseMaterial", "Bainite")
     model.component("comp1").physics("audc").feature("phase4").selection().all()
     model.component("comp1").physics("audc").feature("ptran3").set("ptModel", "JMAK")
-    model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "tau_B(sqrt(x^2+y^2),T)")
-    model.component("comp1").physics("audc").feature("ptran3").set("njmak", "n_B(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran3").set("taujmak", "atau_B(sqrt(x^2+y^2),T)")
+    model.component("comp1").physics("audc").feature("ptran3").set("njmak", "an_B(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran3").set("trip", True)
 
     # Martensite
@@ -525,21 +535,44 @@ def adjustComsol(model):
             materialprop = ["E", "Cp", "k", "Sy", "alpha_k", "h", "Ms","beta"]
         for prop in materialprop:
             # model.func("E_A").set("table", "[]")
-            if prop in ["tau","n"]:
+            if prop in ["tau", "n"]:
+                # model.func(prop + "_" + mat[0]).set("source", "file")
+                # model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
+                # model.func(prop + "_" + mat[0]).set("nargs", "2")
+                # model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
+                # model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 1)
+
+
+
+
                 model.func(prop + "_" + mat[0]).set("source", "file")
                 model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
-                model.func(prop + "_" + mat[0]).set("nargs", "2")
+                model.func(prop + "_" + mat[0]).set("nargs", "1")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
-                model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 1)
-                # model.func("tau_F").setIndex("funcs", "tau_F1", 0, 0)
-                # model.func("tau_F").setIndex("funcs", "tau_F2", 1, 0);
-                # model.func("tau_F").setIndex("funcs", 2, 1, 1);
-                # model.func("tau_F").setIndex("funcs", "tau_F3", 2, 0);
-                # model.func("tau_F").setIndex("funcs", 3, 2, 1);
-                # model.func().create("an1", "Analytic");
-                # model.nodeGroup("Ferrite").add("func", "an1");
-                # model.func("an1").set("funcname", "tau_F");
-                # model.func("an1").set("expr", "tau_F1(r)*T^2+tau_F2(r)*T+tau_F3(r)");
+                model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "1", 0, 0)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "2", 1, 0)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", "2", 1, 1)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "3", 2, 0)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", "3", 2, 1)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "4", 3, 0)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", "4", 3, 1)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "5", 4, 0)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", "5", 4, 1)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "6", 5, 0)
+                model.func(prop + "_" + mat[0]).setIndex("funcs", "6", 5, 1)
+
+                model.nodeGroup(mat).add("func","a" + prop + "_" + mat[0])
+                explist = []
+                for i in range(6):
+                    tmpstr = prop + "_" + mat[0] + str(i + 1) + "(x)" + "*T^" + str(5-i)
+                    explist.append(tmpstr)
+                expstr = " + ".join(explist)
+                if prop == "tau":
+                    model.func("a" + prop + "_" + mat[0]).set("expr", "exp(" + expstr + ")")
+                else:
+                    model.func("a" + prop + "_" + mat[0]).set("expr", expstr)
+                model.func("a" + prop + "_" + mat[0]).set("args", "x, T")
+
             elif prop == "Ms":
                 model.func(prop + "_" + mat[0]).set("source", "file")
                 model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
@@ -612,6 +645,9 @@ def Comsolexport(model):
             if str(time[j]) not in data_dict.keys():
                 data_dict[str(time[j])] = dict()
             data_dict[str(time[j])][resultnames[i]] = data[indx, j]
+    for a in ["solid.sl11", "solid.sl12", "solid.sl22", "solid.sl23", "solid.sl13", "solid.sl33"]:
+        stress = data_dict[a]
+    save_dict = {}
 
     for i in range(len(time)):
         adjustdatastream(data_dict[str(time[i])], t_data=time[i])
@@ -729,7 +765,7 @@ def runComsol(parent):
     model = adjustComsol(model)
     parent.updateprogress(0.3)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
+    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,200)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
