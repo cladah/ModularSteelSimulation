@@ -712,7 +712,6 @@ class MainApp(ctk.CTk):
             self.sidebar_frame.sidebar_button_1.grid_remove()
             self.sidebar_frame.progress_bar.grid_remove()
             savedatastream(self.input["Datastream"]["Savedirect"])
-            print("Resultdata saved to " + self.input["Datastream"]["Savedirect"])
             return
         currentmodule = self.modules.get()
         if currentmodule.modulename() != "Meshing":

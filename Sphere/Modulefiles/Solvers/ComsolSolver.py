@@ -498,6 +498,16 @@ def setupComsol(model):
     #model.component("comp1").multiphysics("lht1").active(False)
     #model.component("comp1").multiphysics("ptstr1").active(False)
 
+    # TEMPERATURE!
+
+    # model.common("cminpt").set("modified", new
+    # String[][]
+    # {{"temperature", "9000[degC]"}});
+    # model.common("cminpt")
+    # .set("modified", new
+    # String[][]
+    # {{"temperature", "9000[degC]"}, {"strainreferencetemperature", "900[degC]"}});
+    # model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("Tref", "900[degC]");
 
 
     #model = setupComsolSolver(model)
@@ -613,8 +623,9 @@ def Comsolexport(model):
     model.result().export("data1").set("lagorder", "2")
     # model.result().export("data1").set("header", False)
     data_dict = {}
-
+    indx = []
     for i in range(len(resultdata)):
+        print("Exporting " + str(resultnames[i]))
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
         model.result().export("data1").run()
 
@@ -638,19 +649,36 @@ def Comsolexport(model):
                 data.append(line[2:])
                 j = j + 1
             data = np.array(data).astype(float)
-            indx = getComsolindx(x, y)
+            if indx == []:
+                indx = getComsolindx(x, y)
 
 
         for j in range(len(time)):
             if str(time[j]) not in data_dict.keys():
                 data_dict[str(time[j])] = dict()
             data_dict[str(time[j])][resultnames[i]] = data[indx, j]
-    for a in ["solid.sl11", "solid.sl12", "solid.sl22", "solid.sl23", "solid.sl13", "solid.sl33"]:
-        stress = data_dict[a]
-    save_dict = {}
 
+    # data_dict as [time][name]
+    save_dict = dict()
+    for j in range(len(time)):
+        stress = data_dict[str(time[j])]["solid.sl11"]
+        for a in ["solid.sl12", "solid.sl22", "solid.sl23", "solid.sl13", "solid.sl33"]:
+            stress = np.column_stack((stress, data_dict[str(time[j])][a]))
+        strain = data_dict["solid.eel11"]
+        for a in ["solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33"]:
+            strain = np.column_stack((strain, data_dict[str(time[j])][a]))
+        vM = []
+        for s in stress:
+            vM.append(s[0]^2+s[0]*s[2]+s[0]*s[5]+s[2]^2+ s[2]*s[5]+s[5]^2- 3*(s[1]^2+s[3]^2+s[4]^2))
+        if str(time[j]) not in save_dict.keys():
+            save_dict[str(time[j])] = dict()
+        save_dict[str(time[j])]["Stress"] = stress
+        save_dict[str(time[j])]["Strain"] = strain
+        for a in ["T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]:
+            save_dict[str(time[j])][a] = data_dict[str(time[j])][a]
+        save_dict[str(time[j])]["vonMises"] = np.array(vM)
     for i in range(len(time)):
-        adjustdatastream(data_dict[str(time[i])], t_data=time[i])
+        adjustdatastream(save_dict[str(time[i])], t_data=time[i])
         print("Exported timestep " + time[i])
 def getComsolindx(xdata, ydata):
     xdata = np.array(xdata).astype(float)
@@ -765,7 +793,8 @@ def runComsol(parent):
     model = adjustComsol(model)
     parent.updateprogress(0.3)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,200)")
+    #model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
