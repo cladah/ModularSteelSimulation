@@ -11,6 +11,15 @@ def read_input():
     data = json.load(f)
     f.close()
     return data
+
+def reset_input():
+    f = open('Cachefiles/Input_ref.json', 'r')
+    data = json.load(f)
+    f.close()
+
+    f = open('Cachefiles/Input.json', 'w')
+    json.dump(data, f, indent=2)
+    f.close()
 def createinputcache():
     f = open('Cachefiles/InputCache.json', 'w')
     data = read_input()

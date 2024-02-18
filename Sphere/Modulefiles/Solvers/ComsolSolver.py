@@ -409,6 +409,7 @@ def setupComsol(model):
     model.component("comp1").physics("audc").feature("ptran1").set("njmak", "an_F(sqrt(x^2+y^2),T)")
     #model.component("comp1").physics("audc").feature("ptran1").set("trip", True)
 
+
     # Perlite
     model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Perlite")
     model.component("comp1").physics("audc").feature("phase3").selection().all()
@@ -626,6 +627,10 @@ def adjustComsol(model):
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "degC", 0)
                 model.func(prop + "_" + mat[0]).setIndex("fununit", propunit[materialprop.index(prop)], 0)
 
+    if "Ferrite" in data["FEM"]["Phases"]:
+        model.component("comp1").physics("audc").feature("ptran1").active(True)
+    else:
+        model.component("comp1").physics("audc").feature("ptran1").active(False)
 
     model.save('Resultfiles/Comsolmodel')
     return model

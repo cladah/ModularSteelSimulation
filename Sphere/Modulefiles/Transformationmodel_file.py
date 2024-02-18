@@ -13,12 +13,12 @@ class Transformationmodelmodule(CalcModule):
     def run(self):
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
-            # precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Perlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
-            #               "JMAK_n_Perlite",
-            #               "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
-            # for pre in precalcinp:
-            #     values = readdatastreamcache(pre)
-            #     adjustdatastream({pre: values}, "nodes")
+            precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Perlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
+                          "JMAK_n_Perlite",
+                          "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
+            for pre in precalcinp:
+                values = readdatastreamcache(pre)
+                adjustdatastream({pre: values}, "nodes")
             print("Phase transformation model module done\n")
             return
 
@@ -380,11 +380,11 @@ def TTTpolyfit():
         for i in range(len(Z1[0])):
             # Z1[:, i] = [j for j in range(len(Z1[0]))]
             # len(interX)
-            Z1[:, i] = Z1[:, i][[0,7,14,1,8,15,2,9,16,3,10,17,4,11,18,5,12,19,6,13,20]]
-            Z2[:, i] = Z2[:, i][[0, 7, 14, 1, 8, 15, 2, 9, 16, 3, 10, 17, 4, 11, 18, 5, 12, 19, 6, 13, 20]]
+            #Z1[:, i] = Z1[:, i][[0,7,14,1,8,15,2,9,16,3,10,17,4,11,18,5,12,19,6,13,20]]
+            #Z2[:, i] = Z2[:, i][[0, 7, 14, 1, 8, 15, 2, 9, 16, 3, 10, 17, 4, 11, 18, 5, 12, 19, 6, 13, 20]]
 
-            interZ1 = np.array(Z1[:, i]).reshape(np.shape(np.meshgrid(*interX, indexing='ij')[0]))
-            interZ2 = np.array(Z2[:, i]).reshape(np.shape(np.meshgrid(*interX, indexing='ij')[0]))
+            interZ1 = np.transpose(np.array(Z1[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
+            interZ2 = np.transpose(np.array(Z2[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
             # print(np.shape(interZ1))
             # print(str(interZ1[0, 0, 0, 0, 0, 0, 0]) + " should be 703.899")
             # print(str(interZ1[1, 0, 0, 0, 0, 0, 0]) + " should be 665.26")

@@ -42,12 +42,12 @@ def createTTTdiagram_loop():
     composition = data["Material"]["Composition"]
     compositions = list()
     Cvariation = np.arange(0, 2.1, 0.1)
-    Nvariation = np.arange(0, 1.5, 0.1)
+    Nvariation = np.arange(0, 1.6, 0.1)
     for i in Cvariation:
         for j in Nvariation:
             tmpcomp = composition.copy()
-            tmpcomp["Composition/C"] = i
-            tmpcomp["Composition/N"] = j
+            tmpcomp["C"] = i
+            tmpcomp["N"] = j
             compositions.append(tmpcomp)
     for comp in compositions:
         runTTTcalc(comp)

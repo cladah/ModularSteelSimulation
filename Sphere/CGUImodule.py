@@ -324,6 +324,7 @@ class TTTTab(ctk.CTkFrame):
             plot1.plot(TTTcore[phase]["finish"][1], np.array(TTTcore[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
             i = i + 1
+        plot1.grid()
         plot1.set_xscale('log')
         plot1.title.set_text('Core TTT')
         plot1.legend(loc="upper right")
@@ -339,6 +340,7 @@ class TTTTab(ctk.CTkFrame):
             plot2.plot(TTTsurf[phase]["finish"][1], np.array(TTTsurf[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
             i = i + 1
+        plot2.grid()
         plot2.set_xscale('log')
         plot2.title.set_text('Surface TTT')
         plot2.set_xlabel('Time [s]')
@@ -369,9 +371,10 @@ class TTTmodelTab(ctk.CTkFrame):
         fig = Figure(figsize=(10, 4), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
-        colorlist = ["green", "blue", "orange", "red"]
+        #colorlist = ["green", "blue", "orange", "red"]
+        colorlist = ["blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[0]
                 z2 = getaxisvalues("JMAK_n_" + phase)[0]
@@ -400,6 +403,7 @@ class TTTmodelTab(ctk.CTkFrame):
                 plot1.plot([0.1, 1E12], [finish, finish], linestyle="dashed",
                            color=colorlist[i])
             i = i + 1
+        plot1.grid()
         plot1.set_xscale('log')
         plot1.title.set_text('Core TTT')
         plot1.legend(loc="upper right")
@@ -410,7 +414,7 @@ class TTTmodelTab(ctk.CTkFrame):
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
                 z2 = getaxisvalues("JMAK_n_" + phase)[-1]
@@ -437,7 +441,7 @@ class TTTmodelTab(ctk.CTkFrame):
                 plot2.plot([0.1,1E12], [finish, finish], linestyle="dashed",
                            color=colorlist[i])
             i = i + 1
-
+        plot2.grid()
         plot2.set_xscale('log')
         plot2.title.set_text('Surface TTT')
         plot2.set_xlabel('Time [s]')
@@ -512,11 +516,11 @@ class QuenchingTab(ctk.CTkFrame):
         xyz = getaxisvalues("nodes")
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
-        plot1.plot(np.array(xyz)[:, 0] * 1000, aust, label="Austenite")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, fer, label="Ferrite")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, per, label="Perlite")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, bai, label="Bainite")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, mart, label="Martensite")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, aust, label="Austenite", color="purple")
+        #plot1.plot(np.array(xyz)[:, 0] * 1000, fer, label="Ferrite", color="green")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, per, label="Perlite", color="orange")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, bai, label="Bainite", color="blue")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, mart, label="Martensite", color="red")
         plot1.set_xlabel('Radius [mm]')
         plot1.set_ylabel('Phase fraction [-]')
         plot1.legend()
@@ -554,18 +558,16 @@ class QuenchingTab(ctk.CTkFrame):
         # TTT with temp
         Tgrid = np.linspace(0, 1000, 100)
         fig = Figure(figsize=(10, 4), dpi=50)
-        plot1 = fig.add_subplot(111)
+        plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
-        colorlist = ["green", "blue", "orange", "red"]
+        colorlist = ["blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[0]
                 z2 = getaxisvalues("JMAK_n_" + phase)[0]
                 p1 = np.poly1d(z1)
                 p2 = np.poly1d(z2)
-                # Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(np.exp(p2(Tgrid)))
-                # Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(np.exp(p2(Tgrid)))
                 Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
                 Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
                 indx = [j for j, v in enumerate(Z98) if v < 1E12]
@@ -576,19 +578,68 @@ class QuenchingTab(ctk.CTkFrame):
                            color=colorlist[i])
                 plot1.plot(Z98, X - 273.15, linestyle="dashed",
                            color=colorlist[i])
+            else:
+                z1 = getaxisvalues("KM_Ms_" + phase)[0]
+                z2 = getaxisvalues("KM_b_" + phase)[0]
+                start = z1 + np.log(0.98)/z2 - 273.15
+                finish = z1 + np.log(0.02)/z2 - 273.15
+                plot1.plot([0.1, 1E12], [start, start], label=phase,
+                           color=colorlist[i])
+                plot1.plot([0.1,1E12], [finish, finish], linestyle="dashed",
+                           color=colorlist[i])
             i = i + 1
-        timex, tempsurf = gethistoryvalues("T", -1)
         timex, tempcore = gethistoryvalues("T", 0)
         plot1.plot(timex, np.array(tempcore) - 273.15, label="Temperature core",
                    color="black")
-        plot1.plot(timex, np.array(tempsurf) - 273.15, label="Temperature surface", linestyle="dashed",
-                   color="black")
+        plot1.grid()
         plot1.set_xscale('log')
-        plot1.title.set_text('Surface TTT')
+        plot1.title.set_text('Core TTT')
         plot1.set_xlabel('Time [s]')
         plot1.set_ylabel('Temperature [degC]')
         plot1.legend(loc="upper right")
         plot1.set_ylim([0, 900])
+
+        plot2 = fig.add_subplot(122)
+        plot2.set_xlim([0.1, 1.E12])
+        colorlist = ["blue", "orange", "red"]
+        i = 0
+        for phase in ["Bainite", "Perlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Perlite"]:
+                z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
+                z2 = getaxisvalues("JMAK_n_" + phase)[-1]
+                p1 = np.poly1d(z1)
+                p2 = np.poly1d(z2)
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
+                indx = [j for j, v in enumerate(Z98) if v < 1E12]
+                Z98 = Z98[indx]
+                Z02 = Z02[indx]
+                X = Tgrid[indx]
+                plot2.plot(Z02, X - 273.15, label=phase,
+                           color=colorlist[i])
+                plot2.plot(Z98, X - 273.15, linestyle="dashed",
+                           color=colorlist[i])
+            else:
+                z1 = getaxisvalues("KM_Ms_" + phase)[-1]
+                z2 = getaxisvalues("KM_b_" + phase)[-1]
+                start = z1 + np.log(0.98)/z2 - 273.15
+                finish = z1 + np.log(0.02)/z2 - 273.15
+                plot2.plot([0.1, 1E12], [start, start], label=phase,
+                           color=colorlist[i])
+                plot2.plot([0.1,1E12], [finish, finish], linestyle="dashed",
+                           color=colorlist[i])
+            i = i + 1
+        timex, tempsurf = gethistoryvalues("T", -1)
+        plot2.plot(timex, np.array(tempsurf) - 273.15, label="Temperature surface", linestyle="dashed",
+                   color="black")
+        plot2.grid()
+        plot2.set_xscale('log')
+        plot2.title.set_text('Surface TTT')
+        plot2.set_xlabel('Time [s]')
+        plot2.set_ylabel('Temperature [degC]')
+        plot2.legend(loc="upper right")
+        plot2.set_ylim([0, 900])
+
 
         TTTcanvas = FigureCanvasTkAgg(fig, master=self)
         TTTcanvas.draw()
