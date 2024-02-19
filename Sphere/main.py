@@ -15,7 +15,7 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
-from Postprocessing.Postprocess_main import plotcompare
+from Postprocessing.Postprocess_main import plotcompare, plotTTT
 
 from Testfile import testdatastream, createTTTdiagram_loop
 def GUI():
@@ -83,12 +83,17 @@ def modelling():
     # resetdatastream()
     createinputcache()
 
+
+    # reset_input()
+    # change_input(*["FEM", "heatflux", {"htc": [400.0, 400.0, 5600.0, 1500.0, 1500.0], "T": [0.0, 300.0, 500.0, 650.0, 1300.0]}])
+
+
     modules = list()
     modules.append(Meshingmodule())
     modules.append(Carbonitridingmodule())
     modules.append(TTTdiagrammodule())
     modules.append(Transformationmodelmodule())
-    # modules.append(Quenchingmodule())
+    modules.append(Quenchingmodule())
 
     for currentmodule in modules:
         # if currentmodule.modulename() != "Meshing":
@@ -149,7 +154,7 @@ if __name__ == "__main__":
     # testdatastream()
     # createTTTdiagram_loop()
     # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
-
+    # plotTTT("Resultfiles/Ref.xdmf")
 
     # print(np.max(data))
     # data = read_input()

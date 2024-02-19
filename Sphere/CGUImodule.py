@@ -153,8 +153,8 @@ class infoTab(ctk.CTkScrollableFrame):
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
         data = read_input()
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(3, weight=1)
 
 
         # bearingimage = ctk.CTkImage(light_image=Image.open("GUIfiles/Ballbearing.png"),size=(300,300))
@@ -172,14 +172,37 @@ class infoTab(ctk.CTkScrollableFrame):
         for info in infostrings:
             self.rowconfigure(i, weight=0)
             self.composition = ctk.CTkLabel(self, text=info, pady=10)
-            self.composition.grid(row=i, column=0, sticky="w")
+            self.composition.grid(row=i, column=0, columnspan=4, sticky="w")
             i = i + 1
+        self.rowconfigure(i, weight=0)
+        self.composition = ctk.CTkLabel(self, text="Cachefile", pady=10)
+        self.composition.grid(row=i, column=0, columnspan=1, sticky="w")
+        self.refbox = ctk.CTkTextbox(self, pady=2, width=400, height=30, wrap="none")
+        self.refbox.grid(row=i, column=1, columnspan=1, sticky="nsew", padx=10)
+        self.refbox.insert("end", text=data["Datastream"]["Cachedirect"])
 
-        mpl.rcParams["font.size"] = 32
-        text = ctk.CTkLabel(self, text="Temperature history:")
-        text.grid(row=i, column=0, columnspan=2, sticky="nsew")
+
+        def savesettings():
+            logger = PrintLogger(self.master.master.master.master.master.master.sidebar_frame.log_widget)
+            logger.write("Added " + self.refbox.get("1.0",ctk.END).strip("\n") + " as cache file.\n")
+            change_input("Datastream","Cachedirect", self.refbox.get("1.0",ctk.END).strip("\n"))
+            self.refbox.configure(state=ctk.DISABLED)
+            self.save_button.configure(state=ctk.DISABLED)
+
+        self.save_button = ctk.CTkButton(self, text="Load", command=savesettings)
+        self.save_button.grid(row=i, column=2, columnspan=1, sticky="nsew", padx=10)
+
+
+
+
 
         i = i + 1
+
+        # mpl.rcParams["font.size"] = 32
+        # text = ctk.CTkLabel(self, text="Temperature history:")
+        # text.grid(row=i, column=0, columnspan=4, sticky="nsew")
+        #
+        # i = i + 1
         # Add plot of temperature
         starttemp = data["Thermo"]["CNtemp"] - 273.15
         quenchtemp = data["Thermo"]["quenchtemp"] - 273.15
@@ -198,11 +221,11 @@ class infoTab(ctk.CTkScrollableFrame):
 
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew", padx=20)
+        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         # toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
         # toolbar.grid(row=5, column=0, sticky="nsew")
         # toolbar.update()
-        canvas._tkcanvas.grid(row=i, column=0, columnspan=2, sticky="nsew")
+        canvas._tkcanvas.grid(row=i, column=0, columnspan=4, sticky="nsew")
         self.rowconfigure(i, weight=1)
 
 

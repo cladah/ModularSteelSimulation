@@ -73,6 +73,7 @@ def plotcompare(filenamelist, dataname, time=0):
 def plotTTT(filename, quenching=False):
     Tgrid = np.linspace(0, 1000, 100)
     fig = Figure(figsize=(10, 4), dpi=50)
+    fig.show()
     plot1 = fig.add_subplot(111)
     plot1.set_xlim([0.1, 1.E12])
     colorlist = ["green", "blue", "orange", "red"]
@@ -107,7 +108,7 @@ def plotTTT(filename, quenching=False):
     plot1.set_ylabel('Temperature [degC]')
     plot1.legend(loc="upper right")
     plot1.set_ylim([0, 900])
-    fig.show()
+    # plot1.show()
 
 def plot_stressstrain(filename):
     data = read_input_result(filename)
