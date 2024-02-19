@@ -143,8 +143,8 @@ def xmdftesting():
 
 if __name__ == "__main__":
     # modelling()
-    looping()
-    # GUI()
+    # looping()
+    GUI()
     # xmdftesting()
     # testdatastream()
     # createTTTdiagram_loop()

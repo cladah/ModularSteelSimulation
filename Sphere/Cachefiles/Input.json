@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": true,
+    "All": false,
     "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,
@@ -27,7 +27,7 @@
     "Name": "Grade 159",
     "Dependentmat": "Fe",
     "Composition": {
-      "C": 0.3,
+      "C": 0.2,
       "N": 0.025,
       "Cr": 1.6,
       "Mn": 0.5,
@@ -520,11 +520,11 @@
     "element_f": 2,
     "heatflux": {
       "htc": [
-        200.0,
-        200.0,
-        2800.0,
-        750.0,
-        750.0
+        400.0,
+        400.0,
+        5600.0,
+        1500.0,
+        1500.0
       ],
       "T": [
         0.0,
@@ -554,7 +554,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "Ref.xdmf",
-    "Cachedirect": "Resultfiles/Ref.xdmf"
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/C05.xdmf"
   }
 }

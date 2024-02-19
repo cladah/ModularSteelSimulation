@@ -7,7 +7,7 @@ from Sphere.HelpFile import read_input
 import json
 
 def read_input_result(filename):
-    
+
     f = open('Cachefiles/filename', 'r')
     data = json.load(f)
     f.close()
@@ -110,7 +110,7 @@ def plotTTT(filename, quenching=False):
     fig.show()
 
 def plot_stressstrain(filename):
-    data = read_inpu()
+    data = read_input_result(filename)
     fig = Figure(figsize=(10, 4), dpi=50)
     plot1 = fig.add_subplot(111)
     colorlist = ["purple", "green", "blue", "orange", "red"]
