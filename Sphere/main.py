@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # testdatastream()
     # createTTTdiagram_loop()
     # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
-    # plotTTT("Resultfiles/Ref.xdmf")
+    # plotTTT("Resultfiles/Ref.xdmf", position=0)
 
     # print(np.max(data))
     # data = read_input()

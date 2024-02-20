@@ -701,9 +701,11 @@ def Comsolexport(model):
         vM = []
         for s in stress:
             vM.append(np.sqrt(s[0]**2-s[0]*s[3]-s[0]*s[5]+s[3]**2-s[3]*s[5]+s[5]**2 - 3*(s[1]**2+s[2]**2+s[4]**2)))
+            #vM.append(np.sqrt(()**2+()**2+()**2)/np.sqrt(2))
         if str(time[j]) not in save_dict.keys():
             save_dict[str(time[j])] = dict()
         save_dict[str(time[j])]["Stress"] = stress
+        save_dict[str(time[j])]["P_Stress"] = pstress
         save_dict[str(time[j])]["Strain"] = strain
         for a in ["T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]:
             save_dict[str(time[j])][a] = data_dict[str(time[j])][a]
@@ -828,8 +830,8 @@ def runComsol(parent):
     model = adjustComsol(model)
     parent.updateprogress(0.3)
     print("Running model")
-    #model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
+    model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
+    # model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)

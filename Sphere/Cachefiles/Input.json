@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": true,
+    "All": false,
     "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,
@@ -498,8 +498,8 @@
   },
   "Thermo": {
     "GrainSize": 100.0,
-    "Austenitizingtemp": 1173.15,
-    "CNtemp": 1173.15,
+    "Austenitizingtemp": 1073.15,
+    "CNtemp": 1073.15,
     "CNenv": "Methane",
     "CNtime": 36000,
     "tempertemp": 3600,

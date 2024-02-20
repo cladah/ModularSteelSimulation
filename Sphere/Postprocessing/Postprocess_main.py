@@ -70,18 +70,22 @@ def plotcompare(filenamelist, dataname, time=0):
     plt.legend()
     plt.show()
 
-def plotTTT(filename, quenching=False):
+def plotTTT(filename, quenching=False, position=0):
+    plt.rcParams.update({'font.size': 12})
     Tgrid = np.linspace(0, 1000, 100)
-    fig = Figure(figsize=(10, 4), dpi=50)
-    fig.show()
-    plot1 = fig.add_subplot(111)
+    #fig = mpl.figure.Figure(figsize=(10, 4), dpi=50)
+    fig, plot1 = plt.subplots()
+    #plot1 = fig.add_subplot(111)
     plot1.set_xlim([0.1, 1.E12])
     colorlist = ["green", "blue", "orange", "red"]
+
+
     i = 0
     for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
         if phase in ["Ferrite", "Bainite", "Perlite"]:
-            z1 = getaxisvalues_result(filename, "JMAK_tau_" + phase)[0]
-            z2 = getaxisvalues_result(filename, "JMAK_n_" + phase)[0]
+            z1 = getaxisvalues_result(filename, "JMAK_tau_" + phase)[position]
+            z2 = getaxisvalues_result(filename, "JMAK_n_" + phase)[position]
+            print(np.shape(getaxisvalues_result(filename, "JMAK_tau_" + phase)))
             p1 = np.poly1d(z1)
             p2 = np.poly1d(z2)
             Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
@@ -94,6 +98,15 @@ def plotTTT(filename, quenching=False):
                        color=colorlist[i])
             plot1.plot(Z98, X - 273.15, linestyle="dashed",
                        color=colorlist[i])
+        else:
+            z1 = getaxisvalues_result(filename, "KM_Ms_" + phase)[position]
+            z2 = getaxisvalues_result(filename, "KM_b_" + phase)[position]
+            start = z1 + np.log(0.98) / z2 - 273.15
+            finish = z1 + np.log(0.02) / z2 - 273.15
+            plot1.plot([0.1, 1E12], [start, start], label=phase,
+                       color=colorlist[i])
+            plot1.plot([0.1, 1E12], [finish, finish], linestyle="dashed",
+                       color=colorlist[i])
         i = i + 1
     if quenching:
         timex, tempsurf = gethistoryvalues_result(filename, "T", -1)
@@ -103,12 +116,14 @@ def plotTTT(filename, quenching=False):
         plot1.plot(timex, np.array(tempsurf) - 273.15, label="Temperature surface", linestyle="dashed",
                    color="black")
     plot1.set_xscale('log')
-    plot1.title.set_text('Surface TTT')
+    #plot1.title.set_text('Surface TTT')
     plot1.set_xlabel('Time [s]')
     plot1.set_ylabel('Temperature [degC]')
     plot1.legend(loc="upper right")
     plot1.set_ylim([0, 900])
     # plot1.show()
+    #fig.show()
+    plt.show()
 
 def plot_stressstrain(filename):
     data = read_input_result(filename)

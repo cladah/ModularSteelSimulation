@@ -212,7 +212,8 @@ class infoTab(ctk.CTkScrollableFrame):
         holdquench = holdCN + 1800
         holdtemper = holdquench + 1800
         holdend = holdtemper + 1800
-        times = np.array([0, 0, holdCN, holdCN + 1800, holdquench, holdquench + 1800, holdend]) / 3600
+        plt.rcParams.update({'font.size': 22})
+        times = np.array([0, 0, holdCN, holdCN + 600, holdquench, holdquench + 1800, holdend]) / 3600
         temps = [roomtemp, starttemp, starttemp, quenchtemp, quenchtemp, roomtemp, roomtemp]
         fig, ax = plt.subplots(figsize=(6, 10), dpi=50)
         ax.plot(times, temps)
@@ -309,7 +310,7 @@ class CNTab(ctk.CTkFrame):
         plot1.plot(np.array(xyz)[:, 0] * 1000, wC, label='Carbon')
         plot1.plot(np.array(xyz)[:, 0] * 1000, wN, label='Nitrogen')
         plot1.set_xlabel('Radius [mm]')
-        plot1.set_ylabel('Weight fraction [%]')
+        plot1.set_ylabel('Weight percent [%]')
         plot1.legend()
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
@@ -558,6 +559,10 @@ class QuenchingTab(ctk.CTkFrame):
 
         s1 = getaxisvalues("vonMises", time=-1)
         stress = getaxisvalues("Stress", time=-1)
+        sp = getaxisvalues("P_Stress", time=-1)
+        sp1 = sp[:, 0]
+        sp2 = sp[:, 1]
+        sp3 = sp[:, 2]
         sdev = (stress[:, 0]+stress[:, 2]+stress[:, 5])/3
         #R = ((stress[:,0]-stress[:,2])/2)**2+
         # s2 = getaxisvalues("sl22", time=-1)
@@ -566,6 +571,9 @@ class QuenchingTab(ctk.CTkFrame):
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
         plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="von-Mises stress")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp1) * 1e-6, label="First principal")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp2) * 1e-6, label="Second principal")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp3) * 1e-6, label="Third principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s2)*1e-6, label="Second principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s3)*1e-6, label="Third principal")
         plot1.set_xlabel('Radius [mm]')
