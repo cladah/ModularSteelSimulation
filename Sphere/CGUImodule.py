@@ -15,7 +15,7 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
-
+from Postprocessing.Postprocess_main import read_input_result
 
 class PrintLogger(object):
     def __init__(self, textbox, log_level=logging.INFO):  # pass reference to text widget
@@ -186,10 +186,10 @@ class infoTab(ctk.CTkScrollableFrame):
         def savesettings():
             logger = PrintLogger(self.master.master.master.master.master.master.sidebar_frame.log_widget)
             logger.write("Added " + self.refbox.get("1.0",ctk.END).strip("\n") + " as cache file.\n")
-            change_input("Datastream","Cachedirect", self.refbox.get("1.0",ctk.END).strip("\n"))
+            change_input("Datastream", "Cachedirect", self.refbox.get("1.0",ctk.END).strip("\n"))
             self.refbox.configure(state=ctk.DISABLED)
             self.save_button.configure(state=ctk.DISABLED)
-            self.master.master.master.master.master.master.input = read_input()
+            self.master.master.master.master.master.master.input = read_input_result(self.refbox.get("1.0",ctk.END).strip("\n"))
         self.save_button = ctk.CTkButton(self, text="Load", command=savesettings)
         self.save_button.grid(row=i, column=2, columnspan=1, sticky="nsew", padx=10)
 
@@ -577,7 +577,7 @@ class QuenchingTab(ctk.CTkFrame):
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
         #plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="von-Mises stress")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(vM2) * 1e-6, label="von-Mises stress 2")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(vM2) * 1e-6, label="von-Mises stress")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp1) * 1e-6, label="First principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp2) * 1e-6, label="Second principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp3) * 1e-6, label="Third principal")
@@ -586,7 +586,7 @@ class QuenchingTab(ctk.CTkFrame):
         plot1.set_xlabel('Radius [mm]')
         plot1.set_ylabel('Stress [MPa]')
         plot1.legend()
-        plot1.title.set_text('Phase fraction after 600s')
+        plot1.title.set_text('vonMises stress after 600s')
         stresscanvas = FigureCanvasTkAgg(fig, master=self)
         stresscanvas.draw()
         stresscanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
@@ -615,7 +615,7 @@ class QuenchingTab(ctk.CTkFrame):
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]
                 X = Tgrid[indx]
-                plot1.plot(Z02, X - 273.15, label=phase,
+                plot1.plot(Z02, X - 273.15,
                            color=colorlist[i])
                 plot1.plot(Z98, X - 273.15, linestyle="dashed",
                            color=colorlist[i])
@@ -624,7 +624,7 @@ class QuenchingTab(ctk.CTkFrame):
                 z2 = getaxisvalues("KM_b_" + phase)[0]
                 start = z1 + np.log(0.98)/z2 - 273.15
                 finish = z1 + np.log(0.02)/z2 - 273.15
-                plot1.plot([0.1, 1E12], [start, start], label=phase,
+                plot1.plot([0.1, 1E12], [start, start],
                            color=colorlist[i])
                 plot1.plot([0.1,1E12], [finish, finish], linestyle="dashed",
                            color=colorlist[i])
@@ -656,7 +656,7 @@ class QuenchingTab(ctk.CTkFrame):
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]
                 X = Tgrid[indx]
-                plot2.plot(Z02, X - 273.15, label=phase,
+                plot2.plot(Z02, X - 273.15,
                            color=colorlist[i])
                 plot2.plot(Z98, X - 273.15, linestyle="dashed",
                            color=colorlist[i])
@@ -665,7 +665,7 @@ class QuenchingTab(ctk.CTkFrame):
                 z2 = getaxisvalues("KM_b_" + phase)[-1]
                 start = z1 + np.log(0.98)/z2 - 273.15
                 finish = z1 + np.log(0.02)/z2 - 273.15
-                plot2.plot([0.1, 1E12], [start, start], label=phase,
+                plot2.plot([0.1, 1E12], [start, start],
                            color=colorlist[i])
                 plot2.plot([0.1,1E12], [finish, finish], linestyle="dashed",
                            color=colorlist[i])
@@ -846,6 +846,7 @@ class MainApp(ctk.CTk):
 
 
         if self.programstate.get() == 0:
+            self.input = read_input()
             createdatastreamcache(self.input["Datastream"]["Cachedirect"])
 
         if self.modules.empty():

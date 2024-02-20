@@ -7,8 +7,7 @@ from Sphere.HelpFile import read_input
 import json
 
 def read_input_result(filename):
-
-    f = open('Cachefiles/filename', 'r')
+    f = open(filename.split(".")[0] + ".json", 'r')
     data = json.load(f)
     f.close()
     return data

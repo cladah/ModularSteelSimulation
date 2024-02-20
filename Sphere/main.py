@@ -17,6 +17,28 @@ from Postprocessing.Postprocess_main import plotcompare, plotTTT
 
 from Testfile import testdatastream, createTTTdiagram_loop
 
+# xmdftesting()
+    # testdatastream()
+    # createTTTdiagram_loop()
+    # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
+
+
+    # print(np.max(data))
+    # data = read_input()
+    # createdatastreamcache(data["Datastream"]["Cachedirect"])
+    # Meshingmodule().run()
+    # Carbonitridingmodule().run()
+    # TTTdiagrammodule().run()
+    # removedatastreamcache()
+    # savedatastream(data["Datastream"]["Savedirect"])
+
+
+    # Bug in meshio TimeSeriesWriter
+    # self.h5_filename = self.filename.stem + ".h5"
+    # self.h5_filename = self.filename.with_suffix(".h5")
+
+
+
 def GUI():
     ctk.set_appearance_mode("dark")
     app = MainApp()
@@ -145,22 +167,3 @@ if __name__ == "__main__":
     # modelling()
     # looping()
     GUI()
-    # xmdftesting()
-    # testdatastream()
-    # createTTTdiagram_loop()
-    # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
-
-
-    # print(np.max(data))
-    # data = read_input()
-    # createdatastreamcache(data["Datastream"]["Cachedirect"])
-    # Meshingmodule().run()
-    # Carbonitridingmodule().run()
-    # TTTdiagrammodule().run()
-    # removedatastreamcache()
-    # savedatastream(data["Datastream"]["Savedirect"])
-
-
-    # Bug in meshio TimeSeriesWriter
-    # self.h5_filename = self.filename.stem + ".h5"
-    # self.h5_filename = self.filename.with_suffix(".h5")
