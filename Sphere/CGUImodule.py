@@ -531,6 +531,10 @@ class QuenchingTab(ctk.CTkFrame):
                 for widget in widgets:
                     widget.grid_remove()
             canvas[choice]._tkcanvas.grid(row=1, column=0, sticky="nsew")
+            #canvas[choice].get_tk_widget().grid(row=1, column=0, sticky="nsew")
+            toolbar = NavigationToolbar2Tk(canvas[choice], self, pack_toolbar=False)
+            toolbar.grid(row=2, column=0, sticky="nsew")
+            toolbar.update()
 
         aust = getaxisvalues("Austenite", time=-1)
         mart = getaxisvalues("Martensite", time=-1)
