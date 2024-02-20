@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": false,
+    "All": true,
     "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,
@@ -498,8 +498,8 @@
   },
   "Thermo": {
     "GrainSize": 100.0,
-    "Austenitizingtemp": 1073.15,
-    "CNtemp": 1073.15,
+    "Austenitizingtemp": 1173.15,
+    "CNtemp": 1173.15,
     "CNenv": "Methane",
     "CNtime": 36000,
     "tempertemp": 3600,
@@ -520,11 +520,11 @@
     "element_f": 2,
     "heatflux": {
       "htc": [
-        400.0,
-        400.0,
-        5600.0,
-        1500.0,
-        1500.0
+        200.0,
+        200.0,
+        2800.0,
+        750.0,
+        750.0
       ],
       "T": [
         0.0,
@@ -554,7 +554,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "",
+    "Savedirect": "Ref.xdmf",
     "Cachedirect": "Resultfiles/Ref.xdmf"
   }
 }

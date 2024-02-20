@@ -26,26 +26,21 @@ def GUI():
 
 def looping():
     setupSimulation()
-    differentin = [["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.0, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 0.4,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.0,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 0.5,"Mo": 0.3,"Si": 0.2}]]
     differentin = [
-        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.4, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.5, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Thermo", "CNtemp", 1000 + 273.15],
-        ["Thermo", "CNtemp", 800 + 273.15],
-        ["Thermo", "CNtime", 36000/2],
-        ["Thermo", "CNtime", 36000/4],
-        ["Thermo", "quenchtemp", 223.15], # -50 degC
-        ["FEM", "heatflux", {"htc": [400.0,400.0,5600.0,1500.0,1500.0],"T": [0.0,300.0,500.0,650.0,1300.0]}]]  # Double htc
+        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}]]
+        # ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        # ["Material", "Composition", {"C": 0.4, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        # ["Material", "Composition", {"C": 0.5, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        # ["Thermo", "CNtemp", 1000 + 273.15],
+        # ["Thermo", "CNtemp", 800 + 273.15],
+        # ["Thermo", "CNtime", 36000/2],
+        # ["Thermo", "CNtime", 36000/4],
+        # ["Thermo", "quenchtemp", 223.15], # -50 degC
+        # ["FEM", "heatflux", {"htc": [400.0, 400.0,5600.0,1500.0,1500.0], "T": [0.0,300.0,500.0,650.0,1300.0]}]]  # Double htc
 
-    saveloc = ["Ref.xdmf","C03.xdmf","C04.xdmf","C05.xdmf","CNtemp1000.xdmf", "CNtemp800.xdmf", "CNtime05.xdmf",
+    saveloc = ["Ref.xdmf", "C03.xdmf","C04.xdmf","C05.xdmf","CNtemp1000.xdmf", "CNtemp800.xdmf", "CNtime05.xdmf",
                "CNtime025.xdmf", "quenchtemp_n50.xdmf", "heatflux2.xdmf"]
-
+    saveloc = ["Ref.xdmf"]
     if len(differentin) != len(saveloc):
         raise KeyError("Wrong looping input")
 

@@ -557,6 +557,9 @@ class QuenchingTab(ctk.CTkFrame):
         phasecanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
 
         s1 = getaxisvalues("vonMises", time=-1)
+        stress = getaxisvalues("Stress", time=-1)
+        sdev = (stress[:, 0]+stress[:, 2]+stress[:, 5])/3
+        #R = ((stress[:,0]-stress[:,2])/2)**2+
         # s2 = getaxisvalues("sl22", time=-1)
         # s3 = getaxisvalues("sl33", time=-1)
         xyz = getaxisvalues("nodes")
