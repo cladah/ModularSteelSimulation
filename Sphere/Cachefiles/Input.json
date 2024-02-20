@@ -27,7 +27,7 @@
     "Name": "Grade 159",
     "Dependentmat": "Fe",
     "Composition": {
-      "C": 0.2,
+      "C": 0.5,
       "N": 0.025,
       "Cr": 1.6,
       "Mn": 0.5,
@@ -554,7 +554,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "Ref.xdmf",
-    "Cachedirect": "Resultfiles/Ref.xdmf"
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/C03.xdmf"
   }
 }

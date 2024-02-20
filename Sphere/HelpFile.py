@@ -89,6 +89,11 @@ def checkruncondition(model):
         if m == model:
             break
 
+
+    return False
+
+
+
     if indata["Programs"][model] != cachedata["Programs"][model]:
         return True
 
@@ -99,6 +104,7 @@ def checkruncondition(model):
             if indata[x] != cachedata[x]:
                 return True
     elif model == 'Carbonitriding':
+        # pass
         for x in ['Geometry', 'Material', 'Thermo']:
             if indata[x] != cachedata[x]:
                 return True

@@ -1,8 +1,6 @@
 import time
 import threading
 import meshio
-import vtk
-import pyvista
 import numpy as np
 
 from CGUImodule import MainApp
@@ -18,6 +16,7 @@ from Modulefiles.Quenching_file import Quenchingmodule
 from Postprocessing.Postprocess_main import plotcompare, plotTTT
 
 from Testfile import testdatastream, createTTTdiagram_loop
+
 def GUI():
     ctk.set_appearance_mode("dark")
     app = MainApp()
@@ -26,21 +25,26 @@ def GUI():
 
 def looping():
     setupSimulation()
+    differentin = [["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.0, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 0.4,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.0,"Mo": 0.3,"Si": 0.2}],
+                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 0.5,"Mo": 0.3,"Si": 0.2}]]
     differentin = [
-        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}]]
-        # ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        # ["Material", "Composition", {"C": 0.4, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        # ["Material", "Composition", {"C": 0.5, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        # ["Thermo", "CNtemp", 1000 + 273.15],
-        # ["Thermo", "CNtemp", 800 + 273.15],
-        # ["Thermo", "CNtime", 36000/2],
-        # ["Thermo", "CNtime", 36000/4],
-        # ["Thermo", "quenchtemp", 223.15], # -50 degC
-        # ["FEM", "heatflux", {"htc": [400.0, 400.0,5600.0,1500.0,1500.0], "T": [0.0,300.0,500.0,650.0,1300.0]}]]  # Double htc
+        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        ["Material", "Composition", {"C": 0.4, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        ["Material", "Composition", {"C": 0.5, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        ["Thermo", "CNtemp", 1000 + 273.15],
+        ["Thermo", "CNtemp", 800 + 273.15],
+        ["Thermo", "CNtime", 36000/2],
+        ["Thermo", "CNtime", 36000/4],
+        ["Thermo", "quenchtemp", 223.15], # -50 degC
+        ["FEM", "heatflux", {"htc": [400.0,400.0,5600.0,1500.0,1500.0],"T": [0.0,300.0,500.0,650.0,1300.0]}]]  # Double htc
 
-    saveloc = ["Ref.xdmf", "C03.xdmf","C04.xdmf","C05.xdmf","CNtemp1000.xdmf", "CNtemp800.xdmf", "CNtime05.xdmf",
+    saveloc = ["Ref.xdmf","C03.xdmf","C04.xdmf","C05.xdmf","CNtemp1000.xdmf", "CNtemp800.xdmf", "CNtime05.xdmf",
                "CNtime025.xdmf", "quenchtemp_n50.xdmf", "heatflux2.xdmf"]
-    saveloc = ["Ref.xdmf"]
+
     if len(differentin) != len(saveloc):
         raise KeyError("Wrong looping input")
 
@@ -77,11 +81,6 @@ def modelling():
     createdatastreamcache(data["Datastream"]["Cachedirect"])
     # resetdatastream()
     createinputcache()
-
-
-    # reset_input()
-    # change_input(*["FEM", "heatflux", {"htc": [400.0, 400.0, 5600.0, 1500.0, 1500.0], "T": [0.0, 300.0, 500.0, 650.0, 1300.0]}])
-
 
     modules = list()
     modules.append(Meshingmodule())
@@ -127,6 +126,7 @@ def xmdftesting():
 
     data = {"ones":np.array(np.ones((len(pd_list[0]["Composition/C"]), 5)))}
     data = {"ones":np.array([[1,1,1,1,1,1] for i in range(len(pd_list[0]["Composition/C"]))])}
+
     if t_data not in t_list:
         t_list.append(t_data)
         pd_list.append(data)
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # testdatastream()
     # createTTTdiagram_loop()
     # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
-    # plotTTT("Resultfiles/Ref.xdmf", position=0)
+
 
     # print(np.max(data))
     # data = read_input()

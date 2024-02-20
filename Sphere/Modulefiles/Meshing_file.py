@@ -19,8 +19,11 @@ class Meshingmodule(CalcModule):
             # meshio.write("Datastream.xdmf",
             #              meshio.Mesh(points=points,
             #                          cells={"triangle": cells.get_cells_type("triangle")}))
-            os.remove("Datastream.xdmf")
-            os.remove("Datastream.h5")
+            try:
+                os.remove("Datastream.xdmf")
+                os.remove("Datastream.h5")
+            except FileNotFoundError:
+                pass
             with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
                 writer.write_points_cells(points=points, cells=cells)
             print("Meshing module done\n")

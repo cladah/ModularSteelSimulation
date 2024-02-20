@@ -1,3 +1,4 @@
+import matplotlib.pyplot
 import numpy as np
 
 from HelpFile import *
@@ -188,7 +189,7 @@ class infoTab(ctk.CTkScrollableFrame):
             change_input("Datastream","Cachedirect", self.refbox.get("1.0",ctk.END).strip("\n"))
             self.refbox.configure(state=ctk.DISABLED)
             self.save_button.configure(state=ctk.DISABLED)
-
+            self.master.master.master.master.master.master.input = read_input()
         self.save_button = ctk.CTkButton(self, text="Load", command=savesettings)
         self.save_button.grid(row=i, column=2, columnspan=1, sticky="nsew", padx=10)
 
@@ -310,7 +311,7 @@ class CNTab(ctk.CTkFrame):
         plot1.plot(np.array(xyz)[:, 0] * 1000, wC, label='Carbon')
         plot1.plot(np.array(xyz)[:, 0] * 1000, wN, label='Nitrogen')
         plot1.set_xlabel('Radius [mm]')
-        plot1.set_ylabel('Weight percent [%]')
+        plot1.set_ylabel('Weight [%]')
         plot1.legend()
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
@@ -338,7 +339,8 @@ class TTTTab(ctk.CTkFrame):
             surface[element] = getaxisvalues("Composition/" + element)[-1]
         TTTcore = getTTTdata(core, "TTTdata")
         TTTsurf = getTTTdata(surface, "TTTdata")
-        fig = Figure(figsize=(10, 4), dpi=50)
+
+        fig = Figure(figsize=(20, 8), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
         colorlist = ["green", "blue", "orange", "red"]
@@ -371,7 +373,7 @@ class TTTTab(ctk.CTkFrame):
         plot2.set_ylabel('Temperature [degC]')
         plot2.legend(loc="upper right")
         plot2.set_ylim([0, 900])
-
+        fig.tight_layout()
         self.canvas = FigureCanvasTkAgg(fig, master=self)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
@@ -392,7 +394,7 @@ class TTTmodelTab(ctk.CTkFrame):
         self.rowconfigure(0, weight=1)
 
         Tgrid = np.linspace(0,1000,100)
-        fig = Figure(figsize=(10, 4), dpi=50)
+        fig = Figure(figsize=(20, 8), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
         #colorlist = ["green", "blue", "orange", "red"]
@@ -472,7 +474,7 @@ class TTTmodelTab(ctk.CTkFrame):
         plot2.set_ylabel('Temperature [degC]')
         plot2.legend(loc="upper right")
         plot2.set_ylim([0, 900])
-
+        fig.tight_layout()
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
         canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
@@ -562,22 +564,23 @@ class QuenchingTab(ctk.CTkFrame):
         phasecanvas._tkcanvas.grid(row=1, column=0, sticky="nsew")
 
         s1 = getaxisvalues("vonMises", time=-1)
-        stress = getaxisvalues("Stress", time=-1)
-        sp = getaxisvalues("P_Stress", time=-1)
-        sp1 = sp[:, 0]
-        sp2 = sp[:, 1]
-        sp3 = sp[:, 2]
-        sdev = (stress[:, 0]+stress[:, 2]+stress[:, 5])/3
+        s = getaxisvalues("Stress", time=-1)
+        vM2 = np.sqrt(s[:,0]**2+s[:,2]**2+s[:,5]**2 - s[:,2]*s[:,5]-s[:,0]*s[:,2]-s[:,0]*s[:,5] - 3*(s[:,1]**2 + s[:,3]**2+s[:,4]**2))
+        #sp = getaxisvalues("P_Stress", time=-1)
+        #sp1 = sp[:, 0]
+        #sp2 = sp[:, 1]
+        #sp3 = sp[:, 2]
         #R = ((stress[:,0]-stress[:,2])/2)**2+
         # s2 = getaxisvalues("sl22", time=-1)
         # s3 = getaxisvalues("sl33", time=-1)
         xyz = getaxisvalues("nodes")
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="von-Mises stress")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp1) * 1e-6, label="First principal")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp2) * 1e-6, label="Second principal")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp3) * 1e-6, label="Third principal")
+        #plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="von-Mises stress")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(vM2) * 1e-6, label="von-Mises stress 2")
+        # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp1) * 1e-6, label="First principal")
+        # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp2) * 1e-6, label="Second principal")
+        # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp3) * 1e-6, label="Third principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s2)*1e-6, label="Second principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s3)*1e-6, label="Third principal")
         plot1.set_xlabel('Radius [mm]')
@@ -595,7 +598,7 @@ class QuenchingTab(ctk.CTkFrame):
 
         # TTT with temp
         Tgrid = np.linspace(0, 1000, 100)
-        fig = Figure(figsize=(10, 4), dpi=50)
+        fig = Figure(figsize=(20, 8), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
         colorlist = ["blue", "orange", "red"]
@@ -678,7 +681,7 @@ class QuenchingTab(ctk.CTkFrame):
         plot2.legend(loc="upper right")
         plot2.set_ylim([0, 900])
 
-
+        fig.tight_layout()
         TTTcanvas = FigureCanvasTkAgg(fig, master=self)
         TTTcanvas.draw()
         TTTcanvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
@@ -788,7 +791,7 @@ class MainApp(ctk.CTk):
 
         super().__init__()
         self.wm_iconbitmap("GUIfiles/Ballbearing.ico")
-        self.geometry("1800x1000")
+        self.geometry("1600x1000")
         self.title("Quenching of steel")
 
         # Setting weights
