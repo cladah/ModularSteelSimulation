@@ -112,11 +112,6 @@ def modelling():
     modules.append(Quenchingmodule())
 
     for currentmodule in modules:
-        # if currentmodule.modulename() != "Meshing":
-        #     tid = threading.Thread(target=run_single_module, args=(currentmodule,))
-        #     tid.start()
-        #     progressmonitor(tid, currentmodule)  # Making sure thread is done
-        # else:
         run_single_module(currentmodule)
 
 

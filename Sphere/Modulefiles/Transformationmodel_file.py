@@ -157,6 +157,7 @@ def TTTinterpolatetonodes():
         newZ2 = np.transpose(np.array(Z2).reshape(np.shape(np.transpose(np.meshgrid(*newX, indexing='ij')[0]))))
         # print(newZ1[1,0,0,0,0,0,0])
         # input("")
+
         # import matplotlib.pyplot as plt
         # indx = [i for i, v in enumerate(Z1[0:41]) if v < 1E12]
         # indx = [np.min(indx)-1]+indx + [np.max(indx)+1]
@@ -289,9 +290,9 @@ def TTTpolyfit():
 
                     import matplotlib.pyplot as plt
                     # z2 = [0.3]
-                    z2 = [0.5]
+                    #z2 = [0.5]
                     z1 = np.polyfit(T[indx], np.log(tau[indx]), polynomial)
-                    #z2 = np.polyfit(T[indx], np.log(n[indx]), 0)
+                    z2 = np.polyfit(T[indx], np.log(n[indx]), 0)
                     # z2 = [0.4]
                     #z2 = [0.001]
                     # print(z2)
@@ -378,10 +379,6 @@ def TTTpolyfit():
         # print(Z1[:, 0])
         # print(np.shape(Z1[:, 0]))
         for i in range(len(Z1[0])):
-            # Z1[:, i] = [j for j in range(len(Z1[0]))]
-            # len(interX)
-            #Z1[:, i] = Z1[:, i][[0,7,14,1,8,15,2,9,16,3,10,17,4,11,18,5,12,19,6,13,20]]
-            #Z2[:, i] = Z2[:, i][[0, 7, 14, 1, 8, 15, 2, 9, 16, 3, 10, 17, 4, 11, 18, 5, 12, 19, 6, 13, 20]]
 
             interZ1 = np.transpose(np.array(Z1[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
             interZ2 = np.transpose(np.array(Z2[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))

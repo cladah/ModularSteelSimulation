@@ -80,6 +80,7 @@ def TCequalibrium(type):
             .get_system()
             .with_single_equilibrium_calculation()
             .set_condition(ThermodynamicQuantity.temperature(), data['Thermo']["CNtemp"])
+            .set_condition(ThermodynamicQuantity.pressure(), 30)
             .set_phase_to_suspended('*')
             #.disable_global_minimization()
         )
@@ -144,8 +145,12 @@ def TCcarbonitriding(activityair):
 
 def setmaterial(data,type):
     if type == "mat":
-        return data['Material']["Dependentmat"],data['Material']["Compositon"]
+        return data['Material']["Dependentmat"], data['Material']["Compositon"]
     elif type == "env":
+        pass
+    elif type == "Cenv":
+        pass
+    elif type == "Nenv":
         pass
     else:
         raise KeyError("TCcalculation error")
