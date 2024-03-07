@@ -27,12 +27,12 @@ def JMAKfit(composition, phase):
             if np.isnan(finish[1][k]):
                 tmpn = np.log(np.log(0.98) / np.log(0.50)) / np.log(start[1][i] / half[1][j])
 
-                tmpn = 10.0
+                tmpn = 3.0
 
                 tmptau = start[1][i] / ((-np.log(0.98)) ** (1 / tmpn))
             else:
                 tmpn = np.log(np.log(0.98) / np.log(0.02)) / np.log(start[1][i] / finish[1][k])
-                tmpn = 10.0
+                tmpn = 3.0
 
                 tmptau = start[1][i] / ((-np.log(0.98)) ** (1 / tmpn))
 
