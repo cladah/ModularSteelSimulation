@@ -1,10 +1,10 @@
 {
   "Rerun": {
-    "All": true,
+    "All": false,
     "Meshing": false,
     "Carbonitriding": false,
-    "TTT": true,
-    "Transformationmodels": true,
+    "TTT": false,
+    "Transformationmodels": false,
     "Quenching": false,
     "Tempering": false,
     "Fatigue": false
@@ -556,7 +556,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "New_Ref.xdmf",
-    "Cachedirect": "Resultfiles/Ref.xdmf"
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/New_Ref.xdmf"
   }
 }

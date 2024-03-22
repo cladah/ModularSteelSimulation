@@ -159,6 +159,6 @@ def xmdftesting():
             writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
 
 if __name__ == "__main__":
-    modelling()
+    # modelling()
     # looping()
-    # GUI()
+    GUI()
