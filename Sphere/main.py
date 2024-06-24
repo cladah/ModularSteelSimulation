@@ -1,11 +1,9 @@
 import time
-import threading
 import meshio
 import numpy as np
 
 from CGUImodule import MainApp
-from Datastream_file import createdatastream, createdatastreamcache, removedatastreamcache, savedatastream, \
-    readdatastream, readdatastreamcache, getnamesdatastream
+from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
 from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
@@ -13,9 +11,8 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
-from Postprocessing.Postprocess_main import plotcompare, plotTTT
+from Sphere.Modulefiles.RunDocker import rundocker
 
-from Testfile import testdatastream, createTTTdiagram_loop
 
 # xmdftesting()
     # testdatastream()
@@ -126,6 +123,11 @@ def progressmonitor(tid, module):
         time.sleep(1)
         progressmonitor(tid, module)
 
+def DockerTest():
+    print("Running Docker testing env")
+    rundocker()
+    pass
+
 def xmdftesting():
 
     t_data = 0
@@ -161,4 +163,5 @@ def xmdftesting():
 if __name__ == "__main__":
     # modelling()
     # looping()
-    GUI()
+    # GUI()
+    DockerTest()

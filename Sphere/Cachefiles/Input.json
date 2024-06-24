@@ -3,8 +3,8 @@
     "All": false,
     "Meshing": false,
     "Carbonitriding": false,
-    "TTT": true,
-    "Transformationmodels": true,
+    "TTT": false,
+    "Transformationmodels": false,
     "Quenching": false,
     "Tempering": false,
     "Fatigue": false
