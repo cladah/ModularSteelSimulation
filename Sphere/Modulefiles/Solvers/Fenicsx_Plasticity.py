@@ -117,23 +117,55 @@ mesh = test.read_mesh()
 
 dim = mesh.topology.dim
 print(f"Mesh topology dimension d={dim}.")
-
+print(f"Mesh geometry dimension d={mesh.geometry.dim}.")
 degree = 2
 shape = (dim,)
+gdim = dim
 v_cg2 = element("Lagrange", mesh.topology.cell_name(), degree, shape=(mesh.topology.dim, ))
 V = fem.functionspace(mesh, v_cg2)
+
+# Adjusting boundary conditions
+Vx, _ = V.sub(0).collapse()
+Vy, _ = V.sub(1).collapse()
+bottom_dofsy = fem.locate_dofs_topological((V.sub(1), Vy), gdim - 1, facets.find(1))
+top_dofsx = fem.locate_dofs_topological((V.sub(0), Vx), gdim - 1, facets.find(2))
+
+
+
 #V = fem.functionspace(mesh, ("P", degree, shape))
 
 u = fem.Function(V, name="Displacement")
+fT = fem.Function(V, name="Temperature")
+ffa = fem.Function(V, name="Austenite")
+ffp = fem.Function(V, name="Pearlite")
+ffb = fem.Function(V, name="Bainite")
+fff = fem.Function(V, name="Ferrite")
+ffM = fem.Function(V, name="Martensite")
+cC = fem.Function(V, name="C_Carbon")
+cN = fem.Function(V, name="C_N")
 # -
+
+W0e = element("Lagrange", mesh.topology.cell_name(), degree, shape=(mesh.topology.dim, ))
+We = element("Lagrange", mesh.topology.cell_name(), degree, shape=(mesh.topology.dim, ))
+W = fem.functionspace(mesh, We)
+W0 = fem.functionspace(mesh, W0e)
+
+sig = fem.Function(W)
+sig_old = fem.Function(W)
+n_elas = fem.Function(W)
+beta = fem.Function(W0)
+p = fem.Function(W0, name="Cumulative_plastic_strain")
+dp = fem.Function(W0)
+u = fem.Function(V, name="Total_displacement")
+du = fem.Function(V, name="Iteration_correction")
+Du = fem.Function(V, name="Current_increment")
+
 
 # Next, we define the corresponding hyperelastic potential using UFL operators. We can easily obtain the UFL expression for the PK1 stress by differentiating the potential $\psi$ {eq}`psi-neo-Hookean` with respect to the deformation gradient $\bF$. We therefore declare it as a variable using `ufl.variable` and then compute $\bP = \dfrac{\partial \psi}{\partial \bF}$ using `ufl.diff`.
 
 # +
 # Identity tensor
 Id = Identity(dim)
-print(Id.ufl_shape)
-print(grad(u).ufl_shape)
 # Deformation gradient
 F = variable(Id + grad(u))
 
@@ -149,6 +181,9 @@ E = 1e4
 nu = 0.3
 mu = fem.Constant(mesh, E / 2 / (1 + nu))
 lmbda = fem.Constant(mesh, E * nu / (1 - 2 * nu) / (1 + nu))
+sig0 = fem.Constant(mesh, 250.0)  # yield strength in MPa
+Et = E / 100.0  # tangent modulus
+H = E * Et / (E - Et)  # hardening modulus
 
 # Stored strain energy density (compressible neo-Hookean model)
 psi = mu / 2 * (I1 - 3 - 2 * ln(J)) + lmbda / 2 * (J - 1) ** 2
@@ -184,7 +219,9 @@ bcs = [fem.dirichletbc(u_bot, bottom_dofs), fem.dirichletbc(u_top, top_dofs)]
 
 x = SpatialCoordinate(mesh)
 theta = fem.Constant(mesh, 0.0)
-Rot = as_matrix([[cos(theta), sin(theta), 0], [-sin(theta), cos(theta), 0], [0, 0, 1]])
+# Rot = as_matrix([[cos(theta), sin(theta), 0], [-sin(theta), cos(theta), 0], [0, 0, 1]])
+# Changed the rotation matrix to 2D
+Rot = as_matrix([[cos(theta), sin(theta)], [-sin(theta), cos(theta)]])
 rotation_displ = dot(Rot, x) - x
 rot_expr = fem.Expression(rotation_displ, V.element.interpolation_points())
 

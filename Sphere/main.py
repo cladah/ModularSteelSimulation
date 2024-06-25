@@ -125,6 +125,8 @@ def progressmonitor(tid, module):
 
 def DockerTest():
     print("Running Docker testing env")
+    mod = Meshingmodule()
+    mod.run()
     rundocker()
     pass
 
@@ -163,5 +165,5 @@ def xmdftesting():
 if __name__ == "__main__":
     # modelling()
     # looping()
-    # GUI()
-    DockerTest()
+    GUI()
+    # DockerTest()

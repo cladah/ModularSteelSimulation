@@ -408,8 +408,8 @@ class TTTmodelTab(ctk.CTkFrame):
                 p2 = np.poly1d(z2)
                 # Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(np.exp(p2(Tgrid)))
                 # Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(np.exp(p2(Tgrid)))
-                Z98 = np.array(np.exp(p1(Tgrid))*10) * (-np.log(0.02)) ** (1/np.array(p2(Tgrid)))
-                Z02 = np.array(np.exp(p1(Tgrid))*10) * (-np.log(0.98)) ** (1/np.array(p2(Tgrid)))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** (1/np.array(p2(Tgrid)))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** (1/np.array(p2(Tgrid)))
                 indx = [i for i, v in enumerate(Z98) if v < 1E12]
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]
