@@ -12,7 +12,7 @@ def rundocker():
     if 1 == 1:
         client = docker.from_env()
         print('Creating docker container')
-        container = client.containers.run('dolfinx/dolfinx:v0.8.0', ["python3", "Modulefiles/Solvers/Fenicsx_Plasticity.py"],
+        container = client.containers.run('dolfinx/dolfinx:v0.8.0', ["python3", "Modulefiles/Solvers/Fenicsx_test.py"],
                                           detach=True,
                                           auto_remove=True,
                                           #tty=True,
