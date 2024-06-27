@@ -1,16 +1,4 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.16.1
-#   kernelspec:
-#     display_name: Python 3 (ipykernel)
-#     language: python
-#     name: python3
-# ---
+
 
 # # Hyperelasticity
 #
@@ -34,20 +22,7 @@
 # \newcommand{\Neumann}{{\partial \Omega_\text{N}}}
 # \newcommand{\Dirichlet}{{\partial \Omega_\text{D}}}
 # \newcommand{\argmin}{\operatorname*{arg\,min}}$
-# ```
-#
-# ```{image} hyperelasticity.gif
-# :width: 600px
-# :align: center
-# ```
-#
-# ```{admonition} Download sources
-# :class: download
-#
-# * {Download}`Python script<./hyperelasticity.py>`
-# * {Download}`Jupyter notebook<./hyperelasticity.ipynb>`
-# ```
-#
+
 # ## Variational formulation
 #
 # There exist different ways of writing a variational formulation in a finite-strain setting depending on the chosen geometric configuration and strain measures. Here, we will use a total Lagrangian formulation and therefore naturally write equilibrium on the reference configuration which we still denote $\Omega$.
@@ -121,12 +96,13 @@ print(f"Mesh geometry dimension d={mesh.geometry.dim}.")
 degree = 2
 shape = (dim,)
 gdim = dim
+v_cg1 = element("Lagrange", mesh.topology.cell_name(), 1)
 v_cg2 = element("Lagrange", mesh.topology.cell_name(), degree, shape=(mesh.topology.dim, ))
 V = fem.functionspace(mesh, v_cg2)
 
 # Adjusting boundary conditions
-Vx, _ = V.sub(0).collapse()
-Vy, _ = V.sub(1).collapse()
+# Vx, _ = V.sub(0).collapse()
+# Vy, _ = V.sub(1).collapse()
 #bottom_dofsy = fem.locate_dofs_topological((V.sub(1), Vy), gdim - 1, facets.find(1))
 #top_dofsx = fem.locate_dofs_topological((V.sub(0), Vx), gdim - 1, facets.find(2))
 
@@ -143,6 +119,7 @@ fff = fem.Function(V, name="Ferrite")
 ffM = fem.Function(V, name="Martensite")
 cC = fem.Function(V, name="C_Carbon")
 cN = fem.Function(V, name="C_N")
+eps_p = fem.Function(V, name="Plastic strain")
 # -
 
 W0e = element("Lagrange", mesh.topology.cell_name(), degree, shape=(mesh.topology.dim, ))
@@ -187,6 +164,8 @@ H = E * Et / (E - Et)  # hardening modulus
 
 # Stored strain energy density (compressible neo-Hookean model)
 psi = mu / 2 * (I1 - 3 - 2 * ln(J)) + lmbda / 2 * (J - 1) ** 2
+psi_p = H*eps_p**2/2
+
 
 # PK1 stress = d_psi/d_F
 P = ufl.diff(psi, F)

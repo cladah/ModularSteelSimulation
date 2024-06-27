@@ -11,7 +11,7 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
-from Sphere.Modulefiles.RunDocker import rundocker
+from Sphere.Modulefiles.Docker_file import rundocker
 
 
 # xmdftesting()
@@ -165,5 +165,5 @@ def xmdftesting():
 if __name__ == "__main__":
     # modelling()
     # looping()
-    GUI()
-    # DockerTest()
+    # GUI()
+    DockerTest()
