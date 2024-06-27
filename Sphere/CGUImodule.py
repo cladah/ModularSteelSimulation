@@ -398,9 +398,9 @@ class TTTmodelTab(ctk.CTkFrame):
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
         #colorlist = ["green", "blue", "orange", "red"]
-        colorlist = ["blue", "orange", "red"]
+        colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Bainite", "Perlite", "Martensite"]:
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[0]
                 z2 = getaxisvalues("JMAK_n_" + phase)[0]
@@ -408,8 +408,8 @@ class TTTmodelTab(ctk.CTkFrame):
                 p2 = np.poly1d(z2)
                 # Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(np.exp(p2(Tgrid)))
                 # Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(np.exp(p2(Tgrid)))
-                Z98 = np.array(np.exp(p1(Tgrid))*10) * (-np.log(0.02)) ** (1/np.array(p2(Tgrid)))
-                Z02 = np.array(np.exp(p1(Tgrid))*10) * (-np.log(0.98)) ** (1/np.array(p2(Tgrid)))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** (1/3.) # np.array(p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** (1/3.)
                 indx = [i for i, v in enumerate(Z98) if v < 1E12]
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]
@@ -440,14 +440,14 @@ class TTTmodelTab(ctk.CTkFrame):
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
         i = 0
-        for phase in ["Bainite", "Perlite", "Martensite"]:
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
                 z2 = getaxisvalues("JMAK_n_" + phase)[-1]
                 p1 = np.poly1d(z1)
                 p2 = np.poly1d(z2)
-                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** (1/np.array(p2(Tgrid)))
-                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** (1/np.array(p2(Tgrid)))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** (1/3.)
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** (1/3.)
                 indx = [i for i, v in enumerate(Z98) if v < 1E12]
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]

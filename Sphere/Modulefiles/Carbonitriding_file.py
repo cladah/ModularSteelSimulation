@@ -67,7 +67,8 @@ class Carbonitridingmodule(CalcModule):
             self.updateprogress(0.9)
 
             xyz = readdatastream('nodes')
-            r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
+            #r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
+            r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2)
             calc_xyz = np.array(composition[0])
             for element in composition[1].keys():
                 calc_value = np.array(composition[1][element])

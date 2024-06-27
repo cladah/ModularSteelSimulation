@@ -98,7 +98,7 @@ def gmshsolver(parent):
     #                          cells={"triangle": mesh.get_cells_type("triangle")}))
     len(mesh.get_cells_type("triangle6"))
     with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-        writer.write_points_cells(points=mesh.points, cells={"triangle6": mesh.get_cells_type("triangle6")})
+        writer.write_points_cells(points=mesh.points[:, :2], cells={"triangle6": mesh.get_cells_type("triangle6")})
         writer.write_data(0, cell_data={})
     # Writing nas file with meshio (Needed for Comsol FEM solver)
 
@@ -129,8 +129,8 @@ def pygmshsolver(parent):
         geom.add_physical([rs0], "Volume")
 
         mesh = geom.generate_mesh(dim=2)
-
-
+    mesh = mesh.prune_z_0()
+    print(mesh)
     meshio.write("Resultfiles/Mesh.nas", mesh)
     #meshio.write("Resultfiles/Mesh.vtk", mesh)
     #meshio.write("Resultfiles/Mesh.msh", mesh)

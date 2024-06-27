@@ -89,10 +89,14 @@ def TTTinterpolatetonodes():
                 z1 = TTTdata[phase][1]  # tau
                 z2 = TTTdata[phase][2]  # n
 
-                # Checking the values for tau and n if all nan n = 1, tau = 1E12
+                # Checking the values for tau and n if all nan n = 3, tau = 1E12
                 if np.isnan(z2).all():
-                    z2 = np.nan_to_num(z2, nan=1)
-                z2 = np.nan_to_num(z2, nan=float(np.nanmean(z2)))
+                    z2 = np.nan_to_num(z2, nan=3.)
+                #z2 = np.nan_to_num(z2, nan=float(np.nanmean(z2)))
+                z2 = np.nan_to_num(z2, nan=3.)
+
+                z2[z2 > 0] = 3.
+
                 z1 = np.nan_to_num(z1, nan=1E12)
                 x.append(list(T))
 
@@ -268,11 +272,12 @@ def TTTpolyfit():
                 n = TTTdata[phase][2]  # n
 
                 # Checking the values for tau and n. If all nan, n = 1, tau = 1E12
-                taumax = 1E12
+                taumax = 1E8
                 if np.isnan(n).all():
-                    n = np.nan_to_num(n, nan=1.)
+                    n = np.nan_to_num(n, nan=3.)
                 else:
-                    n = np.nan_to_num(n, nan=float(np.nanmean(n)))
+                    n = np.nan_to_num(n, nan=3.)
+                    #n = np.nan_to_num(n, nan=float(np.nanmean(n)))
                 tau = np.nan_to_num(tau, nan=taumax)
                 tau[tau > taumax] = taumax
 
@@ -293,6 +298,11 @@ def TTTpolyfit():
                     #z2 = [0.5]
                     z1 = np.polyfit(T[indx], np.log(tau[indx]), polynomial)
                     z2 = np.polyfit(T[indx], np.log(n[indx]), 0)
+                    #plt.plot(T[indx], tau[indx])
+                    #plt.plot(T[indx], np.exp(np.polyval(z1, T[indx])))
+                    #plt.yscale('log')
+                    #plt.show()
+
                     # z2 = [0.4]
                     #z2 = [0.001]
                     # print(z2)
