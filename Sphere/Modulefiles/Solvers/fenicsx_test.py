@@ -46,11 +46,19 @@ V = fem.functionspace(domain, el_2)
 # ---------------------------------------------------------#
 
 x = SpatialCoordinate(domain)
+n = ufl.FacetNormal(domain)
 u = fem.Function(V, name="displacement")
 T = fem.Function(V, name="temperature")
+ffa = fem.Function(V, name="Austenite")
+ffp = fem.Function(V, name="Pearlite")
+ffb = fem.Function(V, name="Bainite")
+fff = fem.Function(V, name="Ferrite")
+ffM = fem.Function(V, name="Martensite")
+cC = fem.Function(V, name="C_Carbon")
+cN = fem.Function(V, name="C_N")
 
 # ---------------------------------------------------------#
-# Setting up trailfunctions
+# Setting up trail functions
 # ---------------------------------------------------------#
 
 du = TrialFunction(V)
@@ -67,7 +75,7 @@ F = variable(Id + grad(u))
 # Right Cauchy-Green tensor
 C = F.T * F
 # Left Cauchy-Green tensor
-C = F * F.T
+b = F * F.T
 
 # Invariants of deformation tensors
 I1 = tr(C)
@@ -94,7 +102,6 @@ psi_e = mu / 2 * (I1 - 3 - 2 * ln(J)) + lmbda / 2 * (J - 1) ** 2
 
 psi = psi_e
 
-
 # ---------------------------------------------------------#
 # Boundary conditions
 # ---------------------------------------------------------#
@@ -110,14 +117,31 @@ def circ(x):
     return np.isclose(np.sqrt(x[1]**2+x[0]**2), 0.01)
 
 bottom_dofs = fem.locate_dofs_geometrical(V, x_axis)
-top_dofs = fem.locate_dofs_geometrical(V, wedge)
+wedge_dofs = fem.locate_dofs_geometrical(V, wedge)
+
+#rotation_displ = x
+#rol_expr = fem.Expression(rotation_displ, wedge_dofs)
+#roller = fem.Expression(rol_expr, wedge_dofs)
+#boundary_facets = fem.locate_entities_boundary(domain, domain.topology.dim - 1, x_axis)
+#boundary_dofs_x = fem.locate_dofs_topological(V.sub(0), domain.topology.dim - 1, boundary_facets)
+
 
 u_bot = fem.Function(V)
 u_top = fem.Function(V)
 
-bcs = [fem.dirichletbc(u_bot, bottom_dofs), fem.dirichletbc(u_top, top_dofs)]
+def wedge_disp(x):
+    x[1] = np.tan(np.pi/6)*x[0]
+    return x
+u_L = fem.Expression(x[1], V.element.interpolation_points())
+#wedge_expr = fem.Expression(wedge_disp, V.element.interpolation_points())
+#wedge_dofs.interpolate(wedge_expr)
 
-press = 1.
+bcs = [fem.dirichletbc(u_bot, bottom_dofs), fem.dirichletbc(u, wedge_dofs)]
+
+# Traction force
+Trac = fem.Constant(domain, 500.)
+# Body force
+B = fem.Constant(domain, (0., 0.))
 
 # ---------------------------------------------------------#
 # Variational problem
@@ -125,9 +149,11 @@ press = 1.
 
 P = ufl.diff(psi, F)
 dx = ufl.Measure("dx", domain=domain, metadata={"quadrature_degree": 4})
-ds = ufl.Measure("ds", domain=domain, metadata={"quadrature_degree": 4})
+ds = ufl.Measure("ds", domain=domain)
+
 # potential energy of the system
-E_pot = psi * dx - press*ds
+E_pot = psi * dx - dot(B, u) * dx - dot(Trac*n, u)*ds
+# Minimizing of potential energy
 Residual = derivative(E_pot, u, dv)  # This is equivalent to Residual = inner(P, grad(v))*dx
 Jacobian = derivative(Residual, u, du)
 
@@ -143,3 +169,5 @@ solver.rtol = 1e-4
 solver.convergence_criterion = "incremental"
 
 num_its, converged = solver.solve(u)
+u.x.scatter_forward()
+print(u.x.array)
