@@ -2,10 +2,11 @@ import numpy as np
 import ufl
 
 from mpi4py import MPI
-from dolfinx import fem, io, nls
+from dolfinx import common, fem, io, nls, plot
 import dolfinx.fem.petsc
 import dolfinx.nls.petsc
 from dolfinx.mesh import create_box, CellType
+from petsc4py import PETSc
 from ufl import (
     as_matrix,
     dot,
@@ -24,6 +25,8 @@ from ufl import (
 )
 from basix.ufl import element
 
+import dolfinx_mpc.utils
+from dolfinx_mpc import LinearProblem, MultiPointConstraint
 # ---------------------------------------------------------#
 # Reading datastream
 # ---------------------------------------------------------#
@@ -119,15 +122,20 @@ def circ(x):
 bottom_dofs = fem.locate_dofs_geometrical(V, x_axis)
 wedge_dofs = fem.locate_dofs_geometrical(V, wedge)
 
+n_diagonal = ufl.as_vector((np.cos(np.pi/6+np.pi/2), np.sin(np.pi/6+np.pi/2)))
+
+
+
+
 #rotation_displ = x
 #rol_expr = fem.Expression(rotation_displ, wedge_dofs)
 #roller = fem.Expression(rol_expr, wedge_dofs)
 #boundary_facets = fem.locate_entities_boundary(domain, domain.topology.dim - 1, x_axis)
 #boundary_dofs_x = fem.locate_dofs_topological(V.sub(0), domain.topology.dim - 1, boundary_facets)
 
-
-u_bot = fem.Function(V)
-u_top = fem.Function(V)
+roll_bc = fem.Function(V)
+with roll_bc.vector.localForm() as loc:
+    loc.set(0.0)
 
 def wedge_disp(x):
     x[1] = np.tan(np.pi/6)*x[0]
@@ -136,12 +144,21 @@ u_L = fem.Expression(x[1], V.element.interpolation_points())
 #wedge_expr = fem.Expression(wedge_disp, V.element.interpolation_points())
 #wedge_dofs.interpolate(wedge_expr)
 
-bcs = [fem.dirichletbc(u_bot, bottom_dofs), fem.dirichletbc(u, wedge_dofs)]
+bcs = [fem.dirichletbc(roll_bc, bottom_dofs), fem.dirichletbc(roll_bc, wedge_dofs)]
 
 # Traction force
 Trac = fem.Constant(domain, 500.)
 # Body force
 B = fem.Constant(domain, (0., 0.))
+
+
+n = dolfinx_mpc.utils.create_normal_approximation(V, domain, 1)
+
+with common.Timer("~Stokes: Create slip constraint"):
+    mpc = MultiPointConstraint(V)
+    mpc.create_slip_constraint(V, (domain, 1), n, bcs=bcs)
+mpc.finalize()
+
 
 # ---------------------------------------------------------#
 # Variational problem
@@ -170,4 +187,7 @@ solver.convergence_criterion = "incremental"
 
 num_its, converged = solver.solve(u)
 u.x.scatter_forward()
+
 print(u.x.array)
+print(np.min(u.x.array))
+print(np.max(u.x.array))

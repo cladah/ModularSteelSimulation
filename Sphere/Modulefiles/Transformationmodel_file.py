@@ -82,12 +82,12 @@ def TTTinterpolatetonodes():
         for comp in compositions:
             x = list()
             TTTdata = getTTTdata(comp, "Modeldata")
-
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 gridlen = len(data['Material']['Composition']) + 1 # Adding temp to gridlength
                 T = TTTdata[phase][0]
                 z1 = TTTdata[phase][1]  # tau
                 z2 = TTTdata[phase][2]  # n
+
 
                 # Checking the values for tau and n if all nan n = 3, tau = 1E12
                 if np.isnan(z2).all():
@@ -207,8 +207,7 @@ def TTTinterpolatetonodes():
                                                                        range(3, len(tmppoint))]
                     tmppoints.append(tmppoint)
                 newgrid.append(tmppoints)
-            else:
-                # points = [point]
+            else: # Martensite
                 tmppoint = [round(point[k], 4) for k in range(0, 2)] + [round(point[k], 1) for k in
                                                                        range(2, len(point))]
                 newgrid.append([tmppoint])
@@ -219,7 +218,7 @@ def TTTinterpolatetonodes():
         # print(np.shape(newZ1))
         z1 = list(interpolate.interpn(newX, newZ1, newgrid))
         z2 = list(interpolate.interpn(newX, newZ2, newgrid))
-
+        print(z2)
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             #z1 = np.nan_to_num(z1,nan=-1E12)
             #z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
@@ -270,7 +269,6 @@ def TTTpolyfit():
                 T = TTTdata[phase][0]
                 tau = TTTdata[phase][1]  # tau
                 n = TTTdata[phase][2]  # n
-
                 # Checking the values for tau and n. If all nan, n = 1, tau = 1E12
                 taumax = 1E8
                 if np.isnan(n).all():
@@ -287,7 +285,7 @@ def TTTpolyfit():
 
                 if len(indx) == 0:
                     z1 = np.concatenate([np.zeros(5), [taumax]])
-                    z2 = np.concatenate([np.zeros(5), [1.]])
+                    z2 = np.concatenate([np.zeros(5), [3.]])
                 else:
                     indx = [np.min(indx) - 1] + indx
                     if np.max(indx) < len(T)-1:
@@ -297,7 +295,7 @@ def TTTpolyfit():
                     # z2 = [0.3]
                     #z2 = [0.5]
                     z1 = np.polyfit(T[indx], np.log(tau[indx]), polynomial)
-                    z2 = np.polyfit(T[indx], np.log(n[indx]), 0)
+                    z2 = np.polyfit(T[indx], n[indx], 0)
                     #plt.plot(T[indx], tau[indx])
                     #plt.plot(T[indx], np.exp(np.polyval(z1, T[indx])))
                     #plt.yscale('log')
@@ -430,6 +428,7 @@ def TTTpolyfit():
             res2 = res2.transpose()
         # print(type(res1[1]))
         # print(np.shape(res1))
+
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             adjustdatastream({"JMAK_tau_" + phase: np.array(res1)})
             adjustdatastream({"JMAK_n_" + phase: np.array(res2)})

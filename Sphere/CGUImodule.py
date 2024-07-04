@@ -577,7 +577,7 @@ class QuenchingTab(ctk.CTkFrame):
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
         #plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1)*1e-6, label="von-Mises stress")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(vM2) * 1e-6, label="von-Mises stress")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(s1) * 1e-6, label="von-Mises stress")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp1) * 1e-6, label="First principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp2) * 1e-6, label="Second principal")
         # plot1.plot(np.array(xyz)[:, 0] * 1000, np.array(sp3) * 1e-6, label="Third principal")
@@ -601,16 +601,16 @@ class QuenchingTab(ctk.CTkFrame):
         fig = Figure(figsize=(20, 8), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
-        colorlist = ["blue", "orange", "red"]
+        colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Bainite", "Perlite", "Martensite"]:
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[0]
                 z2 = getaxisvalues("JMAK_n_" + phase)[0]
                 p1 = np.poly1d(z1)
                 p2 = np.poly1d(z2)
-                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
-                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(1/p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(1/p2(Tgrid))
                 indx = [j for j, v in enumerate(Z98) if v < 1E12]
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]
@@ -642,16 +642,16 @@ class QuenchingTab(ctk.CTkFrame):
 
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
-        colorlist = ["blue", "orange", "red"]
+        colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Bainite", "Perlite", "Martensite"]:
+        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
             if phase in ["Ferrite", "Bainite", "Perlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
                 z2 = getaxisvalues("JMAK_n_" + phase)[-1]
                 p1 = np.poly1d(z1)
                 p2 = np.poly1d(z2)
-                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(p2(Tgrid))
-                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(p2(Tgrid))
+                Z98 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** np.array(1/p2(Tgrid))
+                Z02 = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** np.array(1/p2(Tgrid))
                 indx = [j for j, v in enumerate(Z98) if v < 1E12]
                 Z98 = Z98[indx]
                 Z02 = Z02[indx]

@@ -165,5 +165,5 @@ def xmdftesting():
 if __name__ == "__main__":
     # modelling()
     # looping()
-    # GUI()
-    DockerTest()
+    GUI()
+    # DockerTest()

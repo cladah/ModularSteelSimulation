@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": true,
+    "All": false,
     "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,
@@ -556,7 +556,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "",
-    "Cachedirect": "Resultfiles/New_Ref.xdmf"
+    "Savedirect": "2024.xdmf",
+    "Cachedirect": "Resultfiles/2024.xdmf"
   }
 }
