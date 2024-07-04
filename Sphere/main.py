@@ -1,6 +1,7 @@
 import time
 import meshio
 import numpy as np
+from matplotlib import pyplot as plt
 
 from CGUImodule import MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
@@ -162,8 +163,27 @@ def xmdftesting():
         for i in range(len(t_list)):
             writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
 
+def ResultfileTest():
+    import matplotlib.pyplot as plt
+    import csv
+    import pandas as pd
+    def smoothen(x, winsize=5):
+        return np.array(pd.Series(x).rolling(winsize).mean())[winsize - 1:]
+
+    with open("Resultfiles/Testing.txt", 'r') as file:
+        #reader = csv.reader(file, delimiter="\t")
+        r = []
+        y = []
+        for row in file.readlines():
+            row = row.split()
+            r.append(np.sqrt(float(row[0])**2+float(row[1])**2))
+            y.append(float(row[2]))
+        r, y = zip(*sorted(zip(r, y)))
+        plt.plot(smoothen(r,50), smoothen(y,50))
+        plt.show()
 if __name__ == "__main__":
+    ResultfileTest()
     # modelling()
     # looping()
-    GUI()
+    # GUI()
     # DockerTest()
