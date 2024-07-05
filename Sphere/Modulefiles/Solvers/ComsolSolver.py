@@ -429,7 +429,7 @@ def setupComsol(model):
     # Martensite
     model.component("comp1").physics("audc").feature("phase5").set("phaseMaterial", "Martensite")
     model.component("comp1").physics("audc").feature("phase5").selection().all()
-    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 2E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(sqrt(x^2+y^2))")
 
     for i in range(1, 6):
