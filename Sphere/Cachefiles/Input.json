@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": false,
+    "All": true,
     "Meshing": false,
     "Carbonitriding": false,
     "TTT": false,

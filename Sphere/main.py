@@ -182,8 +182,8 @@ def ResultfileTest():
         plt.plot(smoothen(r,50), smoothen(y,50))
         plt.show()
 if __name__ == "__main__":
-    ResultfileTest()
+    # ResultfileTest()
     # modelling()
     # looping()
-    # GUI()
+    GUI()
     # DockerTest()

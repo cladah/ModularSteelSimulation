@@ -429,7 +429,7 @@ def setupComsol(model):
     # Martensite
     model.component("comp1").physics("audc").feature("phase5").set("phaseMaterial", "Martensite")
     model.component("comp1").physics("audc").feature("phase5").selection().all()
-    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 2E-7*solid.mises")
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(sqrt(x^2+y^2))")
 
     for i in range(1, 6):
@@ -831,7 +831,7 @@ def runComsol(parent):
     parent.updateprogress(0.3)
     print("Running model")
     # model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,10,60)")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,10,60),range(100,100,600)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
