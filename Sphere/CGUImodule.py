@@ -11,7 +11,7 @@ from queue import Queue
 import meshio
 from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream, getnamesdatastream, gethistoryvalues
 from Modulefiles.Meshing_file import Meshingmodule
-from Modulefiles.Carbonitriding_file import Carbonitridingmodule
+from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
@@ -114,7 +114,7 @@ class rightFrame(ctk.CTkFrame):
             tab1.rowconfigure(0, weight=1)
             tab1.columnconfigure(0, weight=1)
             self.tabs_frame.set("Mesh")
-        elif type == "Carbonitriding":
+        elif type == "Carbonitriding" or type == "Carburization":
             tab2 = self.tabs_frame.add("Carbonitriding")
             tab2frame = CNTab(tab2)
             tab2frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -820,7 +820,7 @@ class MainApp(ctk.CTk):
         #self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
         self.modules = Queue()
         self.modules.put(Meshingmodule())
-        self.modules.put(Carbonitridingmodule())
+        self.modules.put(Carbonizationmodule())
         self.modules.put(TTTdiagrammodule())
         self.modules.put(Transformationmodelmodule())
         self.modules.put(Quenchingmodule())
