@@ -130,7 +130,7 @@ def TCcarburizing(activityair):
                       .set_temperature(data['Thermo']["CNtemp"])
                       .set_simulation_time(data['Thermo']["CNtime"])
                       .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                     .set_activity_for_element('C', str(activityair[0])))
+                                                     .set_activity_for_element('C', str(1.0)))
                       .with_spherical_geometry().remove_all_regions()
                       .add_region(austenite))
         logging.getLogger("tc_python").setLevel(logging.INFO)

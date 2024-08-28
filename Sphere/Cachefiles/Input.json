@@ -499,7 +499,7 @@
   "Thermo": {
     "GrainSize": 100.0,
     "Austenitizingtemp": 1073.15,
-    "CNtemp": 1073.15,
+    "CNtemp": 1173.15,
     "CNenv": "Acetylene",
     "Env": "Acetylene",
     "CNtime": 3600,

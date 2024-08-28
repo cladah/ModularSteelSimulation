@@ -112,7 +112,7 @@ def getnamesdatastream():
     #         datanames = point_data.keys()
     #         return datanames
 
-def readdatastream(dataname, time=0):
+def readdatastream(dataname, time=0, all_t=0):
     try:
         with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
             points, cells = reader.read_points_cells()
@@ -123,11 +123,14 @@ def readdatastream(dataname, time=0):
             pd_list, cd_list, t_list = list(), list(), list()
             for k in range(reader.num_steps):
                 t, point_data, cell_data = reader.read_data(k)
-                if t == time:
+                if t == time and all_t == 0:
                     return point_data[dataname]
                 t_list.append(t)
                 pd_list.append(point_data)
                 cd_list.append(cell_data)
+            if all_t == 1:
+                print("Getting all time values")
+                return t_list, pd_list
             if time == -1:
                 maxindx = t_list.index(np.max(t_list))
                 return pd_list[maxindx][dataname]

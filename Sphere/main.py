@@ -14,6 +14,8 @@ from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
 from Sphere.Modulefiles.Docker_file import rundocker
 
+from Datastream_file import getaxisvalues, readdatastream
+
 
 # xmdftesting()
     # testdatastream()
@@ -181,9 +183,24 @@ def ResultfileTest():
         r, y = zip(*sorted(zip(r, y)))
         plt.plot(smoothen(r,50), smoothen(y,50))
         plt.show()
+
+def ResultPlotting():
+    import matplotlib.pyplot as plt
+    import csv
+    import pandas as pd
+    C = getaxisvalues("Composition/C",0)
+    x = getaxisvalues("nodes")[:,0]
+    plt.plot(x,C)
+    plt.show()
+
+    time, C = readdatastream("Composition/C", all_t=1)
+    print(np.shape(time))
+    print(time)
+
 if __name__ == "__main__":
     # ResultfileTest()
     # modelling()
     # looping()
-    GUI()
+    # GUI()
     # DockerTest()
+    ResultPlotting()
