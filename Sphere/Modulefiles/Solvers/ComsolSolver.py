@@ -632,15 +632,20 @@ def adjustComsol(model):
     else:
         model.component("comp1").physics("audc").feature("ptran1").active(False)
 
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
+
     model.save('Resultfiles/Comsolmodel')
     return model
 
 def Comsolexport(model):
 
     resultdata = ["solid.eel11", "solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33",
+                  "solid.epl11", "solid.epl12", "solid.epl22", "solid.epl23", "solid.epl13", "solid.epl33",
                   "solid.sxx", "solid.sxy", "solid.sxz", "solid.syy", "solid.syz", "solid.szz", "solid.sp1", "solid.sp2", "solid.sp3",
                   "T", "audc.phase1.xi", "audc.phase2.xi", "audc.phase3.xi", "audc.phase4.xi", "audc.phase5.xi"]
-    resultnames = ["eel11", "eel12", "eel22", "eel23", "eel13", "eel33", "sxx", "sxy", "sxz", "syy", "syz",
+    resultnames = ["eel11", "eel12", "eel22", "eel23", "eel13", "eel33",
+                   "epl11", "epl12", "epl22", "epl23", "epl13", "epl33",
+                   "sxx", "sxy", "sxz", "syy", "syz",
                    "szz", "sp1", "sp2", "sp3", "T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]
     model.result().export().create("data1", "Data")
     model.result().export("data1").set("filename", "tmpComsol.csv")
@@ -698,20 +703,21 @@ def Comsolexport(model):
         strain = data_dict[str(time[j])]["eel11"]
         for a in ["eel12", "eel22", "eel23", "eel13", "eel33"]:
             strain = np.column_stack((strain, data_dict[str(time[j])][a]))
+        strain_pl = data_dict[str(time[j])]["epl11"]
+        for a in ["epl12", "epl22", "epl23", "epl13", "epl33"]:
+            strain_pl = np.column_stack((strain_pl, data_dict[str(time[j])][a]))
         vM = []
         for s in stress:
             vM.append(np.sqrt(s[0]**2+s[3]**2+s[5]**2 - s[3]*s[5]-s[0]*s[3]-s[0]*s[5] - 3*(s[1]**2 + s[2]**2+s[4]**2)))
-            #vM.append(np.sqrt(()**2+()**2+()**2)/np.sqrt(2))
         if str(time[j]) not in save_dict.keys():
             save_dict[str(time[j])] = dict()
         save_dict[str(time[j])]["Stress"] = stress
-        save_dict[str(time[j])]["P_Stress"] = pstress
         save_dict[str(time[j])]["Strain"] = strain
+        save_dict[str(time[j])]["Strain_pl"] = strain_pl
         for a in ["T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]:
             save_dict[str(time[j])][a] = data_dict[str(time[j])][a]
         save_dict[str(time[j])]["vonMises"] = np.array(vM)
         save_dict[str(time[j])]["PrincipalStress"] = pstress
-
 
 
     for i in range(len(time)):
@@ -831,7 +837,9 @@ def runComsol(parent):
     parent.updateprogress(0.3)
     print("Running model")
     # model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,10,60),range(100,100,600)")
+    #model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,1,60),range(100,100,600)")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
+    model.util.ModelUtil.showProgress("testlogger.txt")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)

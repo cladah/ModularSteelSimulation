@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from CGUImodule import MainApp
+from Result_GUI import Result_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
 from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input
 import customtkinter as ctk
@@ -15,6 +16,7 @@ from Modulefiles.Quenching_file import Quenchingmodule
 from Sphere.Modulefiles.Docker_file import rundocker
 
 from Datastream_file import getaxisvalues, readdatastream
+from ResultReading import read_results_history, read_results, getnames_results, read_results_all
 
 
 # xmdftesting()
@@ -42,6 +44,12 @@ from Datastream_file import getaxisvalues, readdatastream
 def GUI():
     ctk.set_appearance_mode("dark")
     app = MainApp()
+    app.mainloop()
+    removedatastreamcache()
+
+def Resutl_GUI():
+    ctk.set_appearance_mode("dark")
+    app = Result_MainApp()
     app.mainloop()
     removedatastreamcache()
 
@@ -186,16 +194,37 @@ def ResultfileTest():
 
 def ResultPlotting():
     import matplotlib.pyplot as plt
-    import csv
-    import pandas as pd
-    C = getaxisvalues("Composition/C",0)
-    x = getaxisvalues("nodes")[:,0]
-    plt.plot(x,C)
+
+    dataname = "Strain_pl"
+    filename = "Resultfiles/2024.xdmf"
+    read_results_all(filename,[0., 0.])
+    return
+
+    xyz = read_results(filename,"nodes")
+    radius = np.max(xyz[:, 0])
+    names = getnames_results(filename)
+    print(names)
+    Y = [[radius/2, 0],
+         [6 * radius / 10, 0],
+         [7 * radius / 10, 0],
+         [8*radius/10, 0],
+         [9*radius/10, 0],
+         [radius, 0]]
+    leg = []
+    for y in Y:
+        data_t, data = read_results_history(filename, dataname, y)
+        leg.append(str(round(y[0], 4)))
+        plt.plot(data_t, np.array(data)[:,0])
+        #plt.plot(data_t, np.array(data)[:,0])
+    plt.legend(leg)
+    plt.xlabel("Time [s]")
+    #plt.ylabel("Phase fraction [-]")
+    plt.ylabel("Temperature [degC]")
+    plt.ylabel("Plastic strain circumference [-]")
+    plt.rcParams.update({'font.size': 30})
+    plt.xlim([0,60])
     plt.show()
 
-    time, C = readdatastream("Composition/C", all_t=1)
-    print(np.shape(time))
-    print(time)
 
 if __name__ == "__main__":
     # ResultfileTest()
@@ -203,4 +232,5 @@ if __name__ == "__main__":
     # looping()
     # GUI()
     # DockerTest()
-    ResultPlotting()
+    # ResultPlotting()
+    Resutl_GUI()
