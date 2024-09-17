@@ -197,7 +197,7 @@ def ResultPlotting():
 
     dataname = "Strain_pl"
     filename = "Resultfiles/2024.xdmf"
-    read_results_all(filename,[0., 0.])
+    read_results_all(filename, [0., 0.])
     return
 
     xyz = read_results(filename,"nodes")
@@ -228,9 +228,9 @@ def ResultPlotting():
 
 if __name__ == "__main__":
     # ResultfileTest()
-    # modelling()
+    modelling()
     # looping()
     # GUI()
     # DockerTest()
     # ResultPlotting()
-    Resutl_GUI()
+    # Resutl_GUI()

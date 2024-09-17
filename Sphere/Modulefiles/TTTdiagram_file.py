@@ -21,6 +21,7 @@ class TTTdiagrammodule(CalcModule):
             compnr = len(TTTcompositions)
             i = 1
             for tmpcomp in TTTcompositions:
+                print(tmpcomp)
                 runTTTcalc(tmpcomp)
                 self.updateprogress(i / compnr)
                 i = i + 1

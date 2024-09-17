@@ -402,14 +402,17 @@ def TTTpolyfit():
                 else:
                     tmpgrid = np.array(fullcomposition[element])
                     grid = [grid[j] + [tmpgrid[j]] for j in range(len(tmpgrid))]
-
+                print(str(element) + " max " + str(np.min(np.round(fullcomposition[element], 1))) + " min " + str(np.max(np.round(fullcomposition[element], 1))))
             print("Interpolating polynom parameter " + str(i+1) + "/" + str(len(Z1[0])))
             z1 = []
             z2 = []
-            # print(np.max(newZ1))
-            # print(np.max(newZ2))
+
+
             for j in range(len(grid)):
                 grid[j] = [round(grid[j][k], 4) for k in range(2)] + [round(grid[j][k], 1) for k in range(2, len(grid[j]))]
+            print(grid)
+
+
 
             z1 = list(interpolate.interpn(interX, interZ1, grid, method="linear"))
             z2 = list(interpolate.interpn(interX, interZ2, grid, method="linear"))

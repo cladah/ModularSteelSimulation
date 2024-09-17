@@ -632,8 +632,8 @@ def adjustComsol(model):
     else:
         model.component("comp1").physics("audc").feature("ptran1").active(False)
 
-    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
-
+    #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
     model.save('Resultfiles/Comsolmodel')
     return model
 
@@ -837,9 +837,9 @@ def runComsol(parent):
     parent.updateprogress(0.3)
     print("Running model")
     # model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    #model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,1,60),range(100,100,600)")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
-    model.util.ModelUtil.showProgress("testlogger.txt")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,1,60),range(100,100,600)")
+    # model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
+    #model.util.ModelUtil.showProgress("testlogger.txt")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)

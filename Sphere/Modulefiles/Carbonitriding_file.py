@@ -35,6 +35,7 @@ class Carbonizationmodule(CalcModule):
             for element in composition[1].keys():
                 calc_value = np.array(composition[1][element])
                 nodevalues = interp(r, calc_xyz, calc_value) * 100
+                nodevalues = np.where(nodevalues < 0, 0, nodevalues)
                 adjustdatastream({"Composition/" + element: nodevalues}, "nodes")
             self.updateprogress(1.0)
             print("Carburization module done\n")
@@ -75,6 +76,7 @@ class Carbonitridingmodule(CalcModule):
             for element in composition[1].keys():
                 calc_value = np.array(composition[1][element])
                 nodevalues = interp(r, calc_xyz, calc_value) * 100
+                nodevalues = np.where(nodevalues < 0, 0, nodevalues)
                 adjustdatastream({"Composition/" + element: nodevalues}, "nodes")
             self.updateprogress(1.0)
             print("Carbonitriding module done\n")

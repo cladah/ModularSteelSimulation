@@ -4,6 +4,11 @@ from Sphere.HelpFile import read_input
 from Sphere.Datastream_file import getaxisvalues
 
 
+def rounding5(x, rnr=1):
+    base = .5/(10**rnr)
+    return round(base * round(x/base), rnr+1)
+
+
 def getTTTcompositions():
 
     roundingTTT = 1
@@ -15,25 +20,27 @@ def getTTTcompositions():
     composition = data['Material']['Composition']
 
     mesh = list()
-    # Trying to create grid of compositions
+    # Creating grid of compositions
     for element in data['Material']['Composition'].keys():
         if composition[element] != fullcomposition[element][-1]:
             if element == "C":
                 tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
-                if round(tmplist[0], 1) > 0:
-                    tmplist = np.concatenate([[tmplist[0] - 0.1], tmplist])
-                tmplist = np.concatenate([tmplist, [tmplist[-1] + 0.1]])
+                if rounding5(tmplist[0]) > 0:
+                    tmplist = np.append([tmplist[0] - 0.05], tmplist)
+                #if round(tmplist[0], 1) > 0:
+                #    tmplist = np.concatenate([[tmplist[0] - 0.1], tmplist])
+                tmplist = np.append(tmplist, [tmplist[-1] + 0.05])
+                tmplist = [rounding5(elem) for elem in tmplist]
             elif element == "N":
                 tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
-                if round(tmplist[0], 1) > 0:
-                    tmplist = np.concatenate([[tmplist[0] - 0.1], tmplist])
-                tmplist = np.concatenate([tmplist, [tmplist[-1]+0.1]])
+                if rounding5(tmplist[0]) > 0:
+                    tmplist = np.append([tmplist[0] - 0.05], tmplist)
+                tmplist = np.append(tmplist, [tmplist[-1] + 0.05])
+                tmplist = [rounding5(elem) for elem in tmplist]
             else:
                 tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+                tmplist = [round(elem, 1) for elem in tmplist]
 
-
-
-            tmplist = [round(elem, roundingTTT) for elem in tmplist]
             tmplist = list(set(tmplist)) # getting unique values
             tmplist.sort()
         else:
@@ -46,8 +53,11 @@ def getTTTcompositions():
         tmpcomp = dict()
         i = 0
         for element in data['Material']['Composition'].keys():
-            tmpcomp[element] = round(positions[i, compnr], roundingTTT)
-            i = i+1
+            if element == "C" or element == "N":
+                tmpcomp[element] = rounding5(positions[i, compnr])
+            else:
+                tmpcomp[element] = round(positions[i, compnr], 1)
+            i = i + 1
         TTTcompositions.append(tmpcomp)
     return TTTcompositions
 
