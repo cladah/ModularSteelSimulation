@@ -87,15 +87,16 @@ class resultFrame(ctk.CTkFrame):
 
 
 
-        filename = "Resultfiles/2024.xdmf"
+        filename = "Resultfiles/September2024.xdmf"
         allpoints = read_results(filename, "nodes")
         radius = np.max(allpoints[:, 0])
-        points = [[radius / 2, 0],
-             [6 * radius / 10, 0],
-             [7 * radius / 10, 0],
-             [8 * radius / 10, 0],
-             [9 * radius / 10, 0],
-             [radius, 0]]
+        points = [[radius / 2, 0, 0],
+             [6 * radius / 10, 0, 0],
+             [7 * radius / 10, 0, 0],
+             [8 * radius / 10, 0, 0],
+             [9 * radius / 10, 0, 0],
+             [radius, 0, 0]]
+
         data_dict = read_results_all(filename, points)
         for i in range(len(tabs)):
 

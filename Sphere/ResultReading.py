@@ -65,6 +65,8 @@ def read_results_all(filename, xyz):
     try:
         with meshio.xdmf.TimeSeriesReader(filename) as reader:
             points, cells = reader.read_points_cells()
+            print(points)
+
             indxs = list()
             for point in xyz:
                 indxs.append(find_nearest(points, point))

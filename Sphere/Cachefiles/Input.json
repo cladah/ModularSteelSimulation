@@ -1,8 +1,8 @@
 {
   "Rerun": {
-    "All": false,
-    "Meshing": false,
-    "Carbonitriding": false,
+    "All": true,
+    "Meshing": true,
+    "Carbonitriding": true,
     "TTT": true,
     "Transformationmodels": true,
     "Quenching": true,
@@ -502,7 +502,7 @@
     "CNtemp": 1173.15,
     "CNenv": "Acetylene",
     "Env": "Acetylene",
-    "CNtime": 3600,
+    "CNtime": 36000,
     "CNPress": 0.03,
     "CenvP": 30,
     "NenvP": 10,
@@ -559,7 +559,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "September2024.xdmf",
+    "Savedirect": "Resultfiles/September2024_2.xdmf",
     "Cachedirect": "Resultfiles/September2024.xdmf"
   }
 }

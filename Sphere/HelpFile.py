@@ -87,7 +87,6 @@ def checkruncondition(model):
     f.close()
 
     modellist = list(indata["Rerun"].keys())
-
     # Check rerun criteria
     if indata["Rerun"]["All"] == True:
         return True
@@ -95,40 +94,9 @@ def checkruncondition(model):
     for m in modellist:
         if indata['Rerun'][m] == True:
             return True
-        if m == model:
-            break
+        #if m == model:
+        #    break
 
-
-    return False
-
-
-
-    if indata["Programs"][model] != cachedata["Programs"][model]:
-        return True
-
-    if model == 'Meshing':
-        if not os.path.isfile(pathlib.Path("Datastream.xdmf")):
-            return True
-        for x in ['Geometry']:
-            if indata[x] != cachedata[x]:
-                return True
-    elif model == 'Carbonitriding':
-        # pass
-        for x in ['Geometry', 'Material', 'Thermo']:
-            if indata[x] != cachedata[x]:
-                return True
-    elif model == 'TTT':
-        for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
-            if indata[x] != cachedata[x]:
-                return True
-    elif model == 'Transformationmodels':
-        for x in ['Geometry', 'Material', 'Thermo', 'Programs']:
-            if indata[x] != cachedata[x]:
-                return True
-    elif model == 'Quenching':
-        for x in ['Geometry', 'Material', 'Thermo', 'FEM', 'Programs']:
-            if indata[x] != cachedata[x]:
-                return True
     return False
 
 
@@ -180,8 +148,10 @@ def addTTTdata(compdata, data, type):
 def getTTTdata(compdata, type):
     # Making sure the composition has the correct round value
     for key in compdata:
-        if compdata[key] != round(compdata[key], 2):
-            compdata[key] = round(compdata[key], 2)
+        if key == "C" or key == "N":
+            compdata[key] = round(0.05 * round(compdata[key]/0.05), 2)
+        elif compdata[key] != round(compdata[key], 1):
+            compdata[key] = round(compdata[key], 1)
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
     for key in TTTdata.keys():
         if compdata == TTTdata[key]["Composition"]:

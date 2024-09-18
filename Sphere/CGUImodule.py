@@ -343,9 +343,9 @@ class TTTTab(ctk.CTkFrame):
         fig = Figure(figsize=(20, 8), dpi=50)
         plot1 = fig.add_subplot(121)
         plot1.set_xlim([0.1, 1.E12])
-        colorlist = ["green", "blue", "orange", "red"]
+        colorlist = ["blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Bainite", "Perlite", "Martensite"]:
             plot1.plot(TTTcore[phase]["start"][1], np.array(TTTcore[phase]["start"][0])-273.15, label=phase, color=colorlist[i])
             plot1.plot(TTTcore[phase]["finish"][1], np.array(TTTcore[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
@@ -361,7 +361,7 @@ class TTTTab(ctk.CTkFrame):
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Bainite", "Perlite", "Martensite"]:
             plot2.plot(TTTsurf[phase]["start"][1], np.array(TTTsurf[phase]["start"][0])-273.15, label=phase, color=colorlist[i])
             plot2.plot(TTTsurf[phase]["finish"][1], np.array(TTTsurf[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])

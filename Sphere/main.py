@@ -195,10 +195,9 @@ def ResultfileTest():
 def ResultPlotting():
     import matplotlib.pyplot as plt
 
-    dataname = "Strain_pl"
-    filename = "Resultfiles/2024.xdmf"
+    dataname = "M_Ms"
+    filename = "Resultfiles/September2024.xdmf"
     read_results_all(filename, [0., 0.])
-    return
 
     xyz = read_results(filename,"nodes")
     radius = np.max(xyz[:, 0])
@@ -211,6 +210,9 @@ def ResultPlotting():
          [9*radius/10, 0],
          [radius, 0]]
     leg = []
+    print(read_results(filename, dataname))
+
+    return
     for y in Y:
         data_t, data = read_results_history(filename, dataname, y)
         leg.append(str(round(y[0], 4)))

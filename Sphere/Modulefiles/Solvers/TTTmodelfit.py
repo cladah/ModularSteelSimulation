@@ -57,7 +57,13 @@ def KMfit(composition, phase): # Koistinen marburger fitting process
     # 0.02 = 1- exp(-beta * (Ms - start))
     # 0.98 = 1- exp(-beta * (Ms - finish))
     #np.log(0.98)*(Ms-finish) = np.log(0.02)*(Ms-start)
-    Ms = (np.log(0.98)*finish-np.log(0.02)*start)/(np.log(0.98)-np.log(0.02))
-    beta = -np.log(0.98)/(Ms - start)
-
+    if np.isnan(finish):
+        Ms = (np.log(0.98) * half - np.log(0.5) * start) / (np.log(0.98) - np.log(0.5))
+        beta = -np.log(0.98) / (Ms - start)
+    elif np.isnan(half):
+        Ms = np.nan
+        beta = np.nan
+    else:
+        Ms = (np.log(0.98) * finish - np.log(0.02) * start) / (np.log(0.98) - np.log(0.02))
+        beta = -np.log(0.98)/(Ms - start)
     return Ms, beta

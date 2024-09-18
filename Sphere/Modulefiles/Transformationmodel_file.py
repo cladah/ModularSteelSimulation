@@ -218,7 +218,7 @@ def TTTinterpolatetonodes():
         # print(np.shape(newZ1))
         z1 = list(interpolate.interpn(newX, newZ1, newgrid))
         z2 = list(interpolate.interpn(newX, newZ2, newgrid))
-        print(z2)
+        #print(z2)
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             #z1 = np.nan_to_num(z1,nan=-1E12)
             #z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
@@ -252,13 +252,16 @@ def TTTpolyfit():
         if comp not in newcomp:
             newcomp.append(comp)
     compositions = newcomp.copy()
-    # print(str(len(compositions)) + " nr of grid points used")
+
+
     print("Number of compositions used for interpolations are " + str(len(compositions)))
+
     # Starting polyfit
     for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-    # for phase in ["Martensite"]:
+        # Dummy names for JMAK and KM parameters
         Z1 = ""
         Z2 = ""
+        #
         X = []
         gridlen = len(data['Material']['Composition'])
         for comp in compositions:
@@ -322,7 +325,7 @@ def TTTpolyfit():
                 z1 = [TTTdata[phase][0]]  # Ms
                 z2 = [TTTdata[phase][1]]  # beta
                 # Checking the values for tau and n if all nan, Ms = 0, beta = 0.01
-                z1 = np.nan_to_num(z1, nan=173.15)
+                z1 = np.nan_to_num(z1, nan=273.15)
                 z2 = np.nan_to_num(z2, nan=0.01)
 
             # print(z1)
@@ -377,24 +380,14 @@ def TTTpolyfit():
             tmpX.sort()
             interX.append(tmpX)
 
-        # print(np.max(Z1))
-        # print(np.max(Z2))
-
         print("Interpolating modeldata to gridpoints for " + phase)
         res1 = ""
         res2 = ""
-        # print(interX)
-        # print(Z1[:, 0])
-        # print(np.shape(Z1[:, 0]))
+
         for i in range(len(Z1[0])):
 
             interZ1 = np.transpose(np.array(Z1[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
             interZ2 = np.transpose(np.array(Z2[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
-            # print(np.shape(interZ1))
-            # print(str(interZ1[0, 0, 0, 0, 0, 0, 0]) + " should be 703.899")
-            # print(str(interZ1[1, 0, 0, 0, 0, 0, 0]) + " should be 665.26")
-            # print(str(interZ1[2, 0, 0, 0, 0, 0, 0]) + " should be 545")
-            # print(interX)
             grid = list()
             for element in data["Material"]["Composition"].keys():
                 if len(grid) == 0:
@@ -402,7 +395,7 @@ def TTTpolyfit():
                 else:
                     tmpgrid = np.array(fullcomposition[element])
                     grid = [grid[j] + [tmpgrid[j]] for j in range(len(tmpgrid))]
-                print(str(element) + " max " + str(np.min(np.round(fullcomposition[element], 1))) + " min " + str(np.max(np.round(fullcomposition[element], 1))))
+                #print(str(element) + " max " + str(np.min(np.round(fullcomposition[element], 1))) + " min " + str(np.max(np.round(fullcomposition[element], 1))))
             print("Interpolating polynom parameter " + str(i+1) + "/" + str(len(Z1[0])))
             z1 = []
             z2 = []
@@ -410,7 +403,7 @@ def TTTpolyfit():
 
             for j in range(len(grid)):
                 grid[j] = [round(grid[j][k], 4) for k in range(2)] + [round(grid[j][k], 1) for k in range(2, len(grid[j]))]
-            print(grid)
+            #print(grid)
 
 
 
@@ -438,5 +431,6 @@ def TTTpolyfit():
         else:
             adjustdatastream({"KM_Ms_" + phase: np.array(res1)})
             adjustdatastream({"KM_b_" + phase: np.array(res2)})
+            print(np.array(res1))
         print(phase + " transformation model added to datastream")
     print("Transformation models interpolated to nodes")
