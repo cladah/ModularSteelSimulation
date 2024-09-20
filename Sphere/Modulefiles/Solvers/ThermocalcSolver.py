@@ -230,58 +230,6 @@ def setmaterial(data,type):
 
     return env_dep, env_comp
 
-def calculateCCT():
-    data = read_input()
-
-    database = "TCFE12"
-    kineticdatabase = "TCFE12"
-    dependentmat = data['Material']["Dependentmat"]
-    composition = data['Material']["Compositon"]
-    phases = ["FCC_A1", "FCC_A1#2", "GAS", "GRAPHITE_A9"]
-    dormantphases = ["GAS", "GRAPHITE_A9"]
-    referencestates = {"C": "Graphite_A9", "N": "GAS"}
-
-    with TCPython() as start:
-        logging.getLogger("tc_python").setLevel(logging.ERROR)
-        # create and configure a single equilibrium calculation
-        calculation = (
-            start
-            .select_thermodynamic_and_kinetic_databases_with_elements(database, kineticdatabase, [dependentmat] + list(composition))
-            .get_system()
-            .with_property_model_calculation('TTT Diagram')
-            .set_condition()
-            .set_phase_to_suspended('*')
-            .select_phase("FCC_A1")
-            #.disable_global_minimization()
-        )
-        TTT = calculation.with_ttt_precipitation_calculation()
-            #TTT.set_composition()
-        ttt_results = (calculation.with_ttt_precipitation_calculation()
-                       .set_composition_unit(CompositionUnit.MASS_FRACTION)
-                       .set_composition("C", 10)
-                       .set_composition("N", 10)
-                       .with_matrix_phase(matrix)
-                       .set_min_temperature(1000)
-                       .set_max_temperature(1160)
-                       .set_temperature_step(10)
-                       .set_max_annealing_time(1.0e6)
-                       .stop_at_volume_fraction_of_phase(1.e-4)
-                       .calculate()
-                       )
-
-        for element in composition:
-            calculation.set_condition(ThermodynamicQuantity.mass_fraction_of_a_component(element), composition[element]/100)
-        for phase in phases:
-            calculation.set_phase_to_entered(phase)
-        for phase in dormantphases:
-            calculation.set_phase_to_dormant(phase)
-        for element in referencestates:
-            calculation.with_reference_state(element, referencestates[element])
-        logging.getLogger("tc_python").setLevel(logging.INFO)
-        calc_result = (calculation
-                       .calculate()  # Aktiverar beräkningen
-                       )
-        return
 def calculatePerlite(temperatures, composition):
     print("Perlite model")
     data = read_input()

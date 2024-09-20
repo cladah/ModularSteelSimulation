@@ -92,7 +92,7 @@ def checkruncondition(model):
         return True
 
     for m in modellist:
-        if indata['Rerun'][m] == True:
+        if indata['Rerun'][model] == True:
             return True
         #if m == model:
         #    break

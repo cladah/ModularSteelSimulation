@@ -1,11 +1,12 @@
 {
   "Rerun": {
-    "All": true,
-    "Meshing": true,
-    "Carbonitriding": true,
-    "TTT": true,
-    "Transformationmodels": true,
-    "Quenching": true,
+    "All": false,
+    "Meshing": false,
+    "Carbonitriding": false,
+    "Carburization": false,
+    "TTT": false,
+    "Transformationmodels": false,
+    "Quenching": false,
     "Tempering": false,
     "Fatigue": false
   },
@@ -559,7 +560,7 @@
     "JMAK_P": ""
   },
   "Datastream": {
-    "Savedirect": "Resultfiles/September2024_2.xdmf",
-    "Cachedirect": "Resultfiles/September2024.xdmf"
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/September2024_2.xdmf"
   }
 }

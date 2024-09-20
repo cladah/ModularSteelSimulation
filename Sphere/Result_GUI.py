@@ -13,7 +13,6 @@ class resultTab(ctk.CTkFrame):
     def __init__(self, master, dataname, data, points, allpoints):
         super().__init__(master)
 
-        filename = "Resultfiles/2024.xdmf"
 
         datanames = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Strain_pl", "Strain", "T"]
         ynames = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "von-Mises stress [Pa]",
@@ -71,7 +70,7 @@ class headerFrame(ctk.CTkFrame):
         self.sidebar_button_1.grid(row=0, column=0, padx=20, pady=20)
 
 class resultFrame(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, filename):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -85,10 +84,8 @@ class resultFrame(ctk.CTkFrame):
         y = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "vonMises stress [Pa]", "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]",
                      "Weight fraction [-]"]
 
-
-
-        filename = "Resultfiles/September2024.xdmf"
         allpoints = read_results(filename, "nodes")
+
         radius = np.max(allpoints[:, 0])
         points = [[radius / 2, 0, 0],
              [6 * radius / 10, 0, 0],
@@ -96,7 +93,10 @@ class resultFrame(ctk.CTkFrame):
              [8 * radius / 10, 0, 0],
              [9 * radius / 10, 0, 0],
              [radius, 0, 0]]
-
+        if np.shape(allpoints)[1] == 2:
+            points = np.array(points)[:, 0:1]
+            print(np.shape(points))
+            print(2)
         data_dict = read_results_all(filename, points)
         for i in range(len(tabs)):
 
@@ -112,10 +112,8 @@ class resultFrame(ctk.CTkFrame):
 
         #self.tabs_frame.set("Composition/C")
 
-
-
 class Result_MainApp(ctk.CTk):
-    def __init__(self):
+    def __init__(self, filename):
 
         super().__init__()
         self.wm_iconbitmap("GUIfiles/Ballbearing.ico")
@@ -132,7 +130,7 @@ class Result_MainApp(ctk.CTk):
         self.header_frame.grid(row=0, column=0, sticky="nsew")
 
         # Create sidebar
-        self.sidebar_frame = resultFrame(self)
+        self.sidebar_frame = resultFrame(self, filename)
         self.sidebar_frame.grid(row=1, column=0, sticky="nsew")
 
 

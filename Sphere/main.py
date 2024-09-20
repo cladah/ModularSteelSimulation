@@ -47,9 +47,9 @@ def GUI():
     app.mainloop()
     removedatastreamcache()
 
-def Resutl_GUI():
+def Result_GUI_show(filename):
     ctk.set_appearance_mode("dark")
-    app = Result_MainApp()
+    app = Result_MainApp(filename)
     app.mainloop()
     removedatastreamcache()
 
@@ -196,7 +196,7 @@ def ResultPlotting():
     import matplotlib.pyplot as plt
 
     dataname = "M_Ms"
-    filename = "Resultfiles/September2024.xdmf"
+    filename = "Resultfiles/September2024_2.xdmf"
     read_results_all(filename, [0., 0.])
 
     xyz = read_results(filename,"nodes")
@@ -230,9 +230,13 @@ def ResultPlotting():
 
 if __name__ == "__main__":
     # ResultfileTest()
-    modelling()
+    # modelling()
     # looping()
-    # GUI()
+    GUI()
     # DockerTest()
     # ResultPlotting()
-    # Resutl_GUI()
+    # Result_GUI_show("Resultfiles/September2024_2.xdmf")
+
+
+    #data = read_input()
+    #savedatastream(data["Datastream"]["Savedirect"])

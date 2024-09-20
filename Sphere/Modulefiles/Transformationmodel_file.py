@@ -328,8 +328,6 @@ def TTTpolyfit():
                 z1 = np.nan_to_num(z1, nan=273.15)
                 z2 = np.nan_to_num(z2, nan=0.01)
 
-            # print(z1)
-            # print(z2)
             # Creating new grid with points
             for element in data["Material"]["Composition"].keys():
                 tmpx = [comp[element]]
@@ -353,23 +351,6 @@ def TTTpolyfit():
                 Z2 = np.vstack([Z2, z2])
         # X is all points on the [T, comp1, comp2, comp3, ...] list
         # Z is all points n, tau, Ms, beta values
-        # print(X)
-        # print(Z1)
-
-
-        # import matplotlib.pyplot as plt
-        # x = np.linspace(0, 1000, 40)
-        # for i in range(len(Z1)):
-        #     p1 = np.poly1d(Z1[i])
-        #     p2 = np.poly1d(Z2[i])
-        #     y = np.array(np.exp(p1(x)))*(-np.log(0.5))**np.array(np.exp(p2(x)))
-        #     indx = [i for i, v in enumerate(y) if v < 1E12]
-        #     plt.plot(y[indx], x[indx])
-        # plt.xscale("log")
-        # plt.xlim([1, 1E12])
-        # plt.ylim([0, 1000])
-        # plt.title(str(phase))
-        # plt.show()
 
         # Adjusting grid for interpolation
         tmpX = list(set(np.array(X)[:, 0]))
@@ -380,14 +361,17 @@ def TTTpolyfit():
             tmpX.sort()
             interX.append(tmpX)
 
+        # Interpolating
         print("Interpolating modeldata to gridpoints for " + phase)
         res1 = ""
         res2 = ""
 
         for i in range(len(Z1[0])):
-
+            # Adding data to all points and making sure the position is correlating to composition
             interZ1 = np.transpose(np.array(Z1[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
             interZ2 = np.transpose(np.array(Z2[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
+
+            # Creating array with composition for all meshpoints
             grid = list()
             for element in data["Material"]["Composition"].keys():
                 if len(grid) == 0:
@@ -395,35 +379,31 @@ def TTTpolyfit():
                 else:
                     tmpgrid = np.array(fullcomposition[element])
                     grid = [grid[j] + [tmpgrid[j]] for j in range(len(tmpgrid))]
-                #print(str(element) + " max " + str(np.min(np.round(fullcomposition[element], 1))) + " min " + str(np.max(np.round(fullcomposition[element], 1))))
+
+
             print("Interpolating polynom parameter " + str(i+1) + "/" + str(len(Z1[0])))
-            z1 = []
-            z2 = []
 
-
+            # Rounding the compositions for easier handling and making sure everything is within interpolation range
             for j in range(len(grid)):
                 grid[j] = [round(grid[j][k], 4) for k in range(2)] + [round(grid[j][k], 1) for k in range(2, len(grid[j]))]
-            #print(grid)
 
-
-
+            # Interpolating between data points and grid points
             z1 = list(interpolate.interpn(interX, interZ1, grid, method="linear"))
             z2 = list(interpolate.interpn(interX, interZ2, grid, method="linear"))
-            # print(np.shape(z1))
+
+            # Checking if res is empty or not. If empty copy first result.
             if isinstance(res1, str):
                 res1 = z1.copy()
                 res2 = z2.copy()
             else:
                 res1 = np.vstack([res1, z1])
                 res2 = np.vstack([res2, z2])
-            # print(res1)
-            # print(np.shape(res1))
-            # print(len(res1))
+
+        # Transposing result before adding to datastream
         if len(res1) == len(Z1[0]):
             res1 = res1.transpose()
             res2 = res2.transpose()
-        # print(type(res1[1]))
-        # print(np.shape(res1))
+
 
         if phase in ["Ferrite", "Bainite", "Perlite"]:
             adjustdatastream({"JMAK_tau_" + phase: np.array(res1)})
