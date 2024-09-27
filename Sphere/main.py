@@ -65,15 +65,10 @@ def looping():
         ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
         ["Material", "Composition", {"C": 0.4, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
         ["Material", "Composition", {"C": 0.5, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Thermo", "CNtemp", 1000 + 273.15],
-        ["Thermo", "CNtemp", 800 + 273.15],
-        ["Thermo", "CNtime", 36000/2],
-        ["Thermo", "CNtime", 36000/4],
-        ["Thermo", "quenchtemp", 223.15], # -50 degC
-        ["FEM", "heatflux", {"htc": [400.0,400.0,5600.0,1500.0,1500.0],"T": [0.0,300.0,500.0,650.0,1300.0]}]]  # Double htc
+        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.4, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
+        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.3, "Mo": 0.3, "Si": 0.2}]]  # Double htc
 
-    saveloc = ["Ref.xdmf","C03.xdmf","C04.xdmf","C05.xdmf","CNtemp1000.xdmf", "CNtemp800.xdmf", "CNtime05.xdmf",
-               "CNtime025.xdmf", "quenchtemp_n50.xdmf", "heatflux2.xdmf"]
+    saveloc = ["Ref.xdmf", "C03.xdmf", "C04.xdmf", "C05.xdmf", "Cr14.xdmf", "Ni13.xdmf"]
 
     if len(differentin) != len(saveloc):
         raise KeyError("Wrong looping input")
@@ -94,7 +89,7 @@ def looping():
         modules.append(Carbonitridingmodule())
         modules.append(TTTdiagrammodule())
         modules.append(Transformationmodelmodule())
-        modules.append(Quenchingmodule())
+        #modules.append(Quenchingmodule())
 
         for currentmodule in modules:
             currentmodule.run()
@@ -228,11 +223,22 @@ def ResultPlotting():
     plt.show()
 
 
+def testing():
+    from Modulefiles.Solvers.ThermocalcSolver import TCcarbonitriding_nonIsoBound
+    import matplotlib.pyplot as plt
+    print("Running Thermo-Calc test")
+
+    dist, x = TCcarbonitriding_nonIsoBound([1.0, 1.0])
+    print(x.keys())
+    print(x["C"])
+    plt.plot(dist, x["C"])
+    plt.show()
 if __name__ == "__main__":
+    testing()
     # ResultfileTest()
     # modelling()
     # looping()
-    GUI()
+    # GUI()
     # DockerTest()
     # ResultPlotting()
     # Result_GUI_show("Resultfiles/September2024_2.xdmf")

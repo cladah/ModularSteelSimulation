@@ -30,7 +30,7 @@ class Transformationmodelmodule(CalcModule):
 
 def runTTTmodelmodule(parent):
     print('\nTTT models module')
-    if not checkruncondition('ThermoFit'):
+    if not checkruncondition('Transformationmodels'):
         print('Using precalculated phase transformation models')
 
         return

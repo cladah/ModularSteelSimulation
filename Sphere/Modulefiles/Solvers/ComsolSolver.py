@@ -429,6 +429,7 @@ def setupComsol(model):
     # Martensite
     model.component("comp1").physics("audc").feature("phase5").set("phaseMaterial", "Martensite")
     model.component("comp1").physics("audc").feature("phase5").selection().all()
+    # model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("beta", "beta_M(sqrt(x^2+y^2))")
 
@@ -634,6 +635,12 @@ def adjustComsol(model):
 
     #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
+    model.component("comp1").physics("audc").feature("ptran3").set("Tl", "20[degC]")
+    model.component("comp1").physics("audc").feature("ptran3").set("Tu", "600[degC]")
+    model.component("comp1").physics("audc").feature("ptran2").set("Tl", "20[degC]")
+    model.component("comp1").physics("audc").feature("ptran2").set("Tu", "600[degC]")
+    model.component("comp1").physics("audc").feature("ptran1").set("Tl", "20[degC]")
+    model.component("comp1").physics("audc").feature("ptran1").set("Tu", "600[degC]")
     model.save('Resultfiles/Comsolmodel')
     return model
 

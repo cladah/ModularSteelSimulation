@@ -1,6 +1,6 @@
 {
   "Rerun": {
-    "All": true,
+    "All": false,
     "Meshing": false,
     "Carbonitriding": false,
     "Carburization": false,
@@ -9,10 +9,6 @@
     "Quenching": false,
     "Tempering": false,
     "Fatigue": false
-  },
-  "Datastream": {
-    "Savedirect": "IMAT.xdmf",
-    "Cachedirect": "Resultfiles/IMAT.xdmf"
   },
   "Geometry": {
     "radius": 0.008,
@@ -504,10 +500,13 @@
   "Thermo": {
     "GrainSize": 100.0,
     "Austenitizingtemp": 1073.15,
-    "CNtemp": 1073.15,
-    "CNenv": "Methane",
+    "CNtemp": 1173.15,
+    "CNenv": "Acetylene",
+    "Env": "Acetylene",
     "CNtime": 86400,
     "CNPress": 0.03,
+    "CenvP": 30,
+    "NenvP": 10,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,
@@ -559,5 +558,9 @@
     "KM_beta": "beta",
     "JMAK_F": "",
     "JMAK_P": ""
+  },
+  "Datastream": {
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/September2024.xdmf"
   }
 }
