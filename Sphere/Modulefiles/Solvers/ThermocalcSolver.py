@@ -5,11 +5,18 @@ from Sphere.Datastream_file import getaxisvalues
 
 
 def rounding5(x, rnr=1):
+    # Rounding to nearest 0.5
     base = .5/(10**rnr)
     return round(base * round(x/base), rnr+1)
 
 
 def getTTTcompositions():
+    """
+    Returning a grid of compositions by varying carbon and nitrogen. Minimum step size of 0.5 w%
+
+    :return: np.array of composition dicts
+    """
+
 
     roundingTTT = 1
     data = read_input()
@@ -62,6 +69,13 @@ def getTTTcompositions():
     return TTTcompositions
 
 def TCequalibrium(type):
+    """
+
+    :param type: Type of equalibrium
+
+    :return: Activity for carbon and nitrogen, with graphite and gas as references.
+    """
+    print("Equalibrium calculation of type " + str(type))
     data = read_input()
     if type == "env":
         database = "SSUB6"
@@ -70,7 +84,7 @@ def TCequalibrium(type):
         composition = material[1]
         phases = ["GAS", "C_S"]
         dormantphases = ["C_S"]
-        referencestates = {"C": "GAS", "N": "GAS"}
+        referencestates = {"C": "C_S", "N": "GAS"}
     elif type == "mat":
         database = "TCFE12"
         dependentmat = data['Material']["Dependentmat"]
@@ -102,15 +116,13 @@ def TCequalibrium(type):
         for phase in dormantphases:
             calculation.set_phase_to_dormant(phase)
         for element in referencestates:
-            calculation.with_reference_state(element,referencestates[element])
+            calculation.with_reference_state(element, referencestates[element])
         logging.getLogger("tc_python").setLevel(logging.INFO)
-        calc_result = (calculation
-                       .calculate()  # Aktiverar beräkningen
-                       )
+        calc_result = (calculation.calculate())  # Aktiverar beräkningen
         activityC = calc_result.get_value_of(ThermodynamicQuantity.activity_of_component('C'))
         activityN = calc_result.get_value_of(ThermodynamicQuantity.activity_of_component('N'))
-        print("Activity of carbon" + str(activityC))
-        print("Activity of nitrogen" + str(activityN))
+        print("Activity of carbon " + str(activityC))
+        print("Activity of nitrogen " + str(activityN))
         return activityC, activityN
 
 def TCcarburizing(activityair):
@@ -182,11 +194,22 @@ def TCcarbonitriding(activityair):
                       .set_temperature(data['Thermo']["CNtemp"])
 
                       .set_simulation_time(data['Thermo']["CNtime"])
-                      .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                     .set_activity_for_element('C', str(activityair[0]))
-                                                     .set_activity_for_element('N', str(activityair[1]))) # CHANGED
                       .with_spherical_geometry().remove_all_regions()
                       .add_region(austenite))
+        if data["Thermo"]["CNPress"] > 0.1:
+            calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
+                                                         .set_activity_for_element('C', str(activityair[0]))
+                                                         .set_activity_for_element('N', str(activityair[1]))) # CHANGED
+        else:
+            print("Low pressure carbonitriding")
+            boost_t = 5 * 60
+            rest_t = 16 * 60
+            for i in range(7):
+                calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
+                                                          .set_activity_for_element('C', str(activityair[0])),
+                                                          to=boost_t + rest_t * i)
+                calculation.with_right_boundary_condition(BoundaryCondition.closed_system(),
+                                                          to=boost_t * i + rest_t * (1 + i))
         logging.getLogger("tc_python").setLevel(logging.INFO)
         result = calculation.calculate()
         mass_frac = dict()
@@ -199,7 +222,16 @@ def TCcarbonitriding(activityair):
         return distance, mass_frac
 
 
-def TCcarbonitriding_nonIsoBound(activityair):
+def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
+    print("Running Low pressure carburization model in ThermoCalc")
+    """
+
+    :param activityair: Activity of carbon and nitrogen [aC, aN]
+    :param boosts: Nr of boost/rest cycles
+    :param boost_t: Time with high activity at boundary
+    :param rest_t: Time for diffusion between boosts
+    :return: Coposition along x-axis.
+    """
     data = read_input()
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.ERROR)
@@ -218,26 +250,23 @@ def TCcarbonitriding_nonIsoBound(activityair):
         austenite.add_phase("FCC_A1")
         austenite.add_phase("FCC_A1#2")
         austenite.add_phase("CEMENTITE_D011")
-        # austenite.add_phase("CEMENTITE")
         austeniteprofile = CompositionProfile()
         for element in data['Material']["Composition"]:
             austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
         austenite.with_composition_profile(austeniteprofile)
-
+        total_t = boost_t*7 + rest_t*7
         calculation = (system
                        .with_isothermal_diffusion_calculation()
 
                        .with_reference_state("N", "GAS").with_reference_state("C", "GRAPHITE_A9")
                        .set_temperature(1273.15)
-                       .set_simulation_time(8800)
+                       .set_simulation_time(total_t)
                        .with_cylindrical_geometry().remove_all_regions()
                        .add_region(austenite))
-        boost_t = 5*60
-        rest_t = 16*60
-        for i in range(7):
+        for i in range(boosts):
             calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                           .set_activity_for_element('C', str(activityair[0])), to=boost_t+rest_t*i)
-            calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*i + rest_t*(1+i))
+                                           .set_activity_for_element('C', str(activityair[0])), to=boost_t*(i+1)+rest_t*i)
+            calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))
         logging.getLogger("tc_python").setLevel(logging.INFO)
         result = calculation.calculate()
         mass_frac = dict()
@@ -266,6 +295,9 @@ def setmaterial(data,type):
         env_dep = 'N'
         env_comp = {'H': 1, 'C': 1, 'O': 1}
     elif data['Thermo']["CNenv"] == "Acetylene":
+        """
+        Low pressure atmosphere
+        """
         print('Using acetylene as atmosphere')
         env_dep = 'N'
         env_comp = {'H': 7.7, 'C': 92.2}
@@ -283,8 +315,8 @@ def setmaterial(data,type):
 
     return env_dep, env_comp
 
-def calculatePerlite(temperatures, composition):
-    print("Perlite model")
+def calculatePearlite(temperatures, composition):
+    print("Pearlite model")
     data = read_input()
     database = "TCFE12"
     kindatabase = "MOBFE7"
@@ -474,7 +506,7 @@ def calculateTTT(temperatures, composition):
         calculation.set_argument("Austenitizing temperature", data["Thermo"]["Austenitizingtemp"])
         print("Available arguments: {}".format(calculation.get_arguments()))
         aust2, aust50, aust98, mart_start, mart_half, \
-            mart_end, perlite, bainite, ferrite, ferrite_cem = list(), list(), list(), \
+            mart_end, pearlite, bainite, ferrite, ferrite_cem = list(), list(), list(), \
             list(), list(), list(), list(), list(), list(), list()
         legend = ["2% austenite transformed","50% austenite transformed","98% austenite transformed",
                   "Martensite start", "Martensite 50%", "Martensite 98%",
@@ -490,11 +522,11 @@ def calculateTTT(temperatures, composition):
             mart_start.append(calc_result.get_value_of("Martensite start"))
             mart_half.append(calc_result.get_value_of("Martensite 50%"))
             mart_end.append(calc_result.get_value_of("Martensite 98%"))
-            perlite.append(calc_result.get_value_of("Pearlite start (2%)"))
+            pearlite.append(calc_result.get_value_of("Pearlite start (2%)"))
             bainite.append(calc_result.get_value_of("Bainite start (2%)"))
             ferrite.append(calc_result.get_value_of("Ferrite start (2%)"))
             ferrite_cem.append(calc_result.get_value_of("Total ferrite+cementite start (2%)"))
-        TTT = [aust2, aust50, aust98, mart_start, mart_half, mart_end, perlite, bainite, ferrite, ferrite_cem]
+        TTT = [aust2, aust50, aust98, mart_start, mart_half, mart_end, pearlite, bainite, ferrite, ferrite_cem]
         print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return TTT, legend
 

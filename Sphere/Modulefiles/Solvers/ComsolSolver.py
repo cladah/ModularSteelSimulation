@@ -9,7 +9,7 @@ from Sphere.Datastream_file import readdatastream, adjustdatastream, getaxisvalu
 def modeldatatoComsolfiles():
     # print("Adjusting phase transformation data to Comsol specifics")
     # xyz = readdatastream("nodes")
-    # phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
+    # phases = ["Ferrite", "Pearlite", "Bainite", "Martensite"]
     # for phase in phases:
     #     if phase != "Martensite":
     #         tmpT = readresultfile("Modeldata", phase + "/JMAK/T")
@@ -27,7 +27,7 @@ def modeldatatoComsolfiles():
     #         with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
     #             writer = csv.writer(file)
     #             r = [np.sqrt(xyz[j][0]**2 + xyz[j][1]**2) for j in range(len(xyz) - 1)]
-    #             if phase in ["Ferrite", "Perlite", "Bainite"]:
+    #             if phase in ["Ferrite", "Pearlite", "Bainite"]:
     #                 if not tmp1.all():
     #                     break
     #                 if i == 0:
@@ -54,9 +54,9 @@ def modeldatatoComsolfiles():
 
     print("Adjusting phase transformation data to Comsol specifics")
     r = getaxisvalues("nodes")[:,0]
-    phases = ["Ferrite", "Perlite", "Bainite", "Martensite"]
+    phases = ["Ferrite", "Pearlite", "Bainite", "Martensite"]
     for phase in phases:
-        if phase in ["Ferrite", "Bainite", "Perlite"]:
+        if phase in ["Ferrite", "Bainite", "Pearlite"]:
             z1 = getaxisvalues("JMAK_tau_" + phase)
             z2 = getaxisvalues("JMAK_n_" + phase)
             z = [z1, z2]
@@ -326,7 +326,7 @@ def setupComsol(model):
     model.component("comp1").mesh("mesh1").run()
 
     # --------------- Setting up parameters ------------------#
-    phases = ["Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]
+    phases = ["Austenite", "Ferrite", "Pearlite", "Bainite", "Martensite"]
     for phase in phases:
         ph = phase[0]
         model.nodeGroup().create(phase, "GlobalDefinitions")
@@ -410,8 +410,8 @@ def setupComsol(model):
     #model.component("comp1").physics("audc").feature("ptran1").set("trip", True)
 
 
-    # Perlite
-    model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Perlite")
+    # Paerlite
+    model.component("comp1").physics("audc").feature("phase3").set("phaseMaterial", "Pearlite")
     model.component("comp1").physics("audc").feature("phase3").selection().all()
     model.component("comp1").physics("audc").feature("ptran2").set("ptModel", "JMAK")
     model.component("comp1").physics("audc").feature("ptran2").set("taujmak", "atau_P(sqrt(x^2+y^2),T)")
@@ -539,7 +539,7 @@ def adjustComsol(model):
 
     print("Adding phase transformation models to Comsol model")
     #JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
-    #JMAK_P = readresultfile("TTT_surface.hdf5","Perlite/JMAK")
+    #JMAK_P = readresultfile("TTT_surface.hdf5","Pearlite/JMAK")
     data = read_input()
 
     # Heat flux
@@ -559,10 +559,10 @@ def adjustComsol(model):
     # model.common("cminpt").set("modified", "temperature", str(data["Thermo"]["CNtemp"]) + "[degC]", "strainreferencetemperature", str(data["Thermo"]["CNtemp"]) + "[degC]")
     model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("Tref", str(data["Thermo"]["CNtemp"]) + "[K]")
     materialprop = ["E","Cp","k","Sy", "alpha_k", "h"]
-    materials = ["Austenite","Ferrite","Perlite","Bainite","Martensite"]
+    materials = ["Austenite","Ferrite","Pearlite","Bainite","Martensite"]
     propunit = ["GPa", "J/(kg*K)", "W/(m*K)", "MPa", "1/K", "GPa"] # h = GPa
     for mat in materials:
-        if mat in ["Ferrite","Perlite","Bainite"]:
+        if mat in ["Ferrite","Pearlite","Bainite"]:
             materialprop = ["E", "Cp", "k", "Sy", "alpha_k", "h", "tau", "n"]
         elif mat == "Martensite":
             materialprop = ["E", "Cp", "k", "Sy", "alpha_k", "h", "Ms","beta"]
@@ -645,15 +645,24 @@ def adjustComsol(model):
     return model
 
 def Comsolexport(model):
+    """
+    Setting upp and exporting data from comsol model to xdmf file
 
-    resultdata = ["solid.eel11", "solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33",
+    :param model: mph comsol model
+    :return: data to xdmf datastream file
+    """
+    resultdata = ["solid.eXX", "solid.eXY", "solid.eYY", "solid.eXZ", "solid.eXZ", "solid.eZZ", "solid.epe",
+                  "audc.eth11", "audc.eth12", "audc.eth22", "audc.eth23", "audc.eth13", "audc.eth33",
+                  "solid.eel11", "solid.eel12", "solid.eel22", "solid.eel23", "solid.eel13", "solid.eel33",
                   "solid.epl11", "solid.epl12", "solid.epl22", "solid.epl23", "solid.epl13", "solid.epl33",
                   "solid.sxx", "solid.sxy", "solid.sxz", "solid.syy", "solid.syz", "solid.szz", "solid.sp1", "solid.sp2", "solid.sp3",
                   "T", "audc.phase1.xi", "audc.phase2.xi", "audc.phase3.xi", "audc.phase4.xi", "audc.phase5.xi"]
-    resultnames = ["eel11", "eel12", "eel22", "eel23", "eel13", "eel33",
+    resultnames = ["eXX", "eXY", "eYY", "eXZ", "eYZ", "eZZ", "epe",
+                   "eth11", "eth12", "eth22", "eth23", "eth13", "eth33",
+                   "eel11", "eel12", "eel22", "eel23", "eel13", "eel33",
                    "epl11", "epl12", "epl22", "epl23", "epl13", "epl33",
-                   "sxx", "sxy", "sxz", "syy", "syz",
-                   "szz", "sp1", "sp2", "sp3", "T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]
+                   "sxx", "sxy", "sxz", "syy", "syz", "szz", "sp1", "sp2", "sp3",
+                   "T", "Austenite", "Ferrite", "Pearlite", "Bainite", "Martensite"]
     model.result().export().create("data1", "Data")
     model.result().export("data1").set("filename", "tmpComsol.csv")
     model.result().export("data1").setIndex("looplevelinput", "all", 0)
@@ -695,33 +704,41 @@ def Comsolexport(model):
             if str(time[j]) not in data_dict.keys():
                 data_dict[str(time[j])] = dict()
             data_dict[str(time[j])][resultnames[i]] = data[indx, j]
-
+    print("")
     # print(data_dict.keys())
     # input("")
     # data_dict as [time][name]
     save_dict = dict()
     for j in range(len(time)):
         stress = data_dict[str(time[j])]["sxx"]
-        for a in ["sxy", "sxz", "syy", "syz", "szz"]:
+        for a in ["syy", "szz", "syz", "sxz", "sxy"]:
             stress = np.column_stack((stress, data_dict[str(time[j])][a]))
         pstress = data_dict[str(time[j])]["sp1"]
         for a in ["sp2", "sp3"]:
             pstress = np.column_stack((pstress, data_dict[str(time[j])][a]))
-        strain = data_dict[str(time[j])]["eel11"]
-        for a in ["eel12", "eel22", "eel23", "eel13", "eel33"]:
+        strain = data_dict[str(time[j])]["eXX"]
+        for a in ["eYY", "eZZ", "eYZ", "eXZ", "eXY"]:
             strain = np.column_stack((strain, data_dict[str(time[j])][a]))
+        strain_el = data_dict[str(time[j])]["eel11"]
+        for a in ["eel22", "eel33", "eel23", "eel13", "eel12"]:
+            strain_el = np.column_stack((strain_el, data_dict[str(time[j])][a]))
         strain_pl = data_dict[str(time[j])]["epl11"]
-        for a in ["epl12", "epl22", "epl23", "epl13", "epl33"]:
+        for a in ["epl22", "epl33", "epl23", "epl13", "epl12"]:
             strain_pl = np.column_stack((strain_pl, data_dict[str(time[j])][a]))
+        strain_th = data_dict[str(time[j])]["eth11"]
+        for a in ["eth22", "eth33", "eth23", "eth13", "eth12"]:
+            strain_th = np.column_stack((strain_th, data_dict[str(time[j])][a]))
         vM = []
         for s in stress:
-            vM.append(np.sqrt(s[0]**2+s[3]**2+s[5]**2 - s[3]*s[5]-s[0]*s[3]-s[0]*s[5] - 3*(s[1]**2 + s[2]**2+s[4]**2)))
+            vM.append(np.sqrt(s[0]**2+s[1]**2+s[2]**2 - s[0]*s[1]-s[0]*s[2]-s[1]*s[2] + 3*(s[3]**2 + s[4]**2+s[5]**2)))
         if str(time[j]) not in save_dict.keys():
             save_dict[str(time[j])] = dict()
         save_dict[str(time[j])]["Stress"] = stress
-        save_dict[str(time[j])]["Strain"] = strain
+        save_dict[str(time[j])]["Strain_tot"] = strain
+        save_dict[str(time[j])]["Strain_th"] = strain_th
+        save_dict[str(time[j])]["Strain_el"] = strain_el
         save_dict[str(time[j])]["Strain_pl"] = strain_pl
-        for a in ["T", "Austenite", "Ferrite", "Perlite", "Bainite", "Martensite"]:
+        for a in ["T", "Austenite", "Ferrite", "Pearlite", "Bainite", "Martensite"]:
             save_dict[str(time[j])][a] = data_dict[str(time[j])][a]
         save_dict[str(time[j])]["vonMises"] = np.array(vM)
         save_dict[str(time[j])]["PrincipalStress"] = pstress

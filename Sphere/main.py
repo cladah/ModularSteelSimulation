@@ -9,7 +9,7 @@ from Datastream_file import createdatastreamcache, removedatastreamcache, saveda
 from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
-from Modulefiles.Carbonitriding_file import Carbonitridingmodule
+from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
@@ -19,47 +19,48 @@ from Datastream_file import getaxisvalues, readdatastream
 from ResultReading import read_results_history, read_results, getnames_results, read_results_all
 
 
-# xmdftesting()
-    # testdatastream()
-    # createTTTdiagram_loop()
-    # plotcompare(["Resultfiles/Cr_16.xdmf", "Resultfiles/Cr_10.xdmf", "Resultfiles/Cr_04.xdmf"], "Composition/C", 0)
-
-
-    # print(np.max(data))
-    # data = read_input()
-    # createdatastreamcache(data["Datastream"]["Cachedirect"])
-    # Meshingmodule().run()
-    # Carbonitridingmodule().run()
-    # TTTdiagrammodule().run()
-    # removedatastreamcache()
-    # savedatastream(data["Datastream"]["Savedirect"])
-
-
-    # Bug in meshio TimeSeriesWriter
-    # self.h5_filename = self.filename.stem + ".h5"
-    # self.h5_filename = self.filename.with_suffix(".h5")
-
+def progressmonitor(tid, module):
+    """
+    :param tid:
+    :param module:
+    """
+    if tid.is_alive():
+        time.sleep(1)
+        progressmonitor(tid, module)
 
 
 def GUI():
+    """
+    Using Tkinter to run the GUI
+    """
+    print("Opening GUI window...")
     ctk.set_appearance_mode("dark")
     app = MainApp()
     app.mainloop()
     removedatastreamcache()
 
+
 def Result_GUI_show(filename):
+    """
+        Using Tkinter to run the GUI
+    """
+    print("Opening result window...")
     ctk.set_appearance_mode("dark")
     app = Result_MainApp(filename)
     app.mainloop()
-    removedatastreamcache()
+
 
 def looping():
+    """
+        Running multiple simulations with specified modules
+
+        Appending modules are done by hand.
+
+        :return: xdmf file with simulation results
+        """
+
     setupSimulation()
-    differentin = [["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.0, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 0.4,"Mn": 0.5, "Ni": 1.5,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 1.0,"Mo": 0.3,"Si": 0.2}],
-                   ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6,"Mn": 0.5, "Ni": 0.5,"Mo": 0.3,"Si": 0.2}]]
+    """
     differentin = [
         ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
         ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
@@ -69,6 +70,10 @@ def looping():
         ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.3, "Mo": 0.3, "Si": 0.2}]]  # Double htc
 
     saveloc = ["Ref.xdmf", "C03.xdmf", "C04.xdmf", "C05.xdmf", "Cr14.xdmf", "Ni13.xdmf"]
+    """
+
+    differentin = [["CNtime", 86400], ["CNtime", 86400*2]]
+    saveloc = ["CN1Day.xdmf", "CN2Days.xdmf"]
 
     if len(differentin) != len(saveloc):
         raise KeyError("Wrong looping input")
@@ -76,7 +81,7 @@ def looping():
     i = 0
     for a in differentin:
         print("Loop nr" + str(i+1))
-        reset_input()
+        reset_input("Cachefiles/Input_ref.json")
         change_input(*a)
         data = read_input()
         createdatastreamcache(data["Datastream"]["Cachedirect"])
@@ -99,6 +104,14 @@ def looping():
         i = i + 1
 
 def modelling():
+    """
+    Running a single simulation with specified modules
+
+    Appending modules are done by hand.
+
+    :return: xdmf file with simulation results
+    """
+
     setupSimulation()
 
     data = read_input()
@@ -109,25 +122,17 @@ def modelling():
 
     modules = list()
     modules.append(Meshingmodule())
-    modules.append(Carbonitridingmodule())
+    modules.append(Carbonizationmodule())
     modules.append(TTTdiagrammodule())
     modules.append(Transformationmodelmodule())
     modules.append(Quenchingmodule())
 
     for currentmodule in modules:
-        run_single_module(currentmodule)
-
+        currentmodule.run()
 
     removedatastreamcache()
     savedatastream(data["Datastream"]["Savedirect"])
 
-def run_single_module(module):
-    module.run()
-
-def progressmonitor(tid, module):
-    if tid.is_alive():
-        time.sleep(1)
-        progressmonitor(tid, module)
 
 def DockerTest():
     print("Running Docker testing env")
@@ -221,27 +226,45 @@ def ResultPlotting():
     plt.rcParams.update({'font.size': 30})
     plt.xlim([0,60])
     plt.show()
+def DatastreamPlotting():
+    import matplotlib.pyplot as plt
 
+    dataname = "Composition/C"
+    filename = "Datastream.xdmf"
+    y = getaxisvalues(dataname)
+    x = getaxisvalues("nodes")
+    plt.plot(x[:, 0], y)
+    plt.show()
+
+    names = getnames_results(filename)
+    print(names)
+
+
+    return
 
 def testing():
-    from Modulefiles.Solvers.ThermocalcSolver import TCcarbonitriding_nonIsoBound
+    from Modulefiles.Solvers.ThermocalcSolver import TCcarbonitriding_LPC
     import matplotlib.pyplot as plt
     print("Running Thermo-Calc test")
 
-    dist, x = TCcarbonitriding_nonIsoBound([1.0, 1.0])
+    dist, x = TCcarbonitriding_LPC([1.0, 1.0])
     print(x.keys())
     print(x["C"])
     plt.plot(dist, x["C"])
     plt.show()
+
+
 if __name__ == "__main__":
-    testing()
+    # testing()
     # ResultfileTest()
-    # modelling()
+    modelling()
+    # DatastreamPlotting()
     # looping()
     # GUI()
     # DockerTest()
     # ResultPlotting()
-    # Result_GUI_show("Resultfiles/September2024_2.xdmf")
+    # Result_GUI_show("Resultfiles/October2024.xdmf")
+    # Result_GUI_show("Resultfiles/October2024_ref.xdmf")
 
 
     #data = read_input()

@@ -13,8 +13,8 @@ class Transformationmodelmodule(CalcModule):
     def run(self):
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
-            precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Perlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
-                          "JMAK_n_Perlite",
+            precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Pearlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
+                          "JMAK_n_Pearlite",
                           "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
             for pre in precalcinp:
                 values = readdatastreamcache(pre)
@@ -48,10 +48,10 @@ def runTTTmodelmodule(parent):
     # TTTinterpolatetonodes()
 
 def TTTfit(composition):
-    phases = ["Ferrite","Perlite","Bainite","Martensite"]
+    phases = ["Ferrite","Pearlite","Bainite","Martensite"]
     modeldata = dict()
     for phase in phases:
-        if phase in ["Ferrite", "Perlite", "Bainite"]:
+        if phase in ["Ferrite", "Pearlite", "Bainite"]:
             T, tau, n = JMAKfit(composition, phase)
             modeldata[phase] = [T, tau, n]
         elif phase == "Martensite":
@@ -73,7 +73,7 @@ def TTTinterpolatetonodes():
             newcomp.append(comp)
     compositions = newcomp.copy()
 
-    for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+    for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
     # for phase in ["Martensite"]:
         Z1 = list()
         Z2 =list()
@@ -82,7 +82,7 @@ def TTTinterpolatetonodes():
         for comp in compositions:
             x = list()
             TTTdata = getTTTdata(comp, "Modeldata")
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 gridlen = len(data['Material']['Composition']) + 1 # Adding temp to gridlength
                 T = TTTdata[phase][0]
                 z1 = TTTdata[phase][1]  # tau
@@ -120,7 +120,7 @@ def TTTinterpolatetonodes():
             else:
                 X = x.copy()
             # TTT data points
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 Z1 = Z1 + list(z1)
                 Z2 = Z2 + list(z2)
             else:
@@ -130,7 +130,7 @@ def TTTinterpolatetonodes():
         # Z is all points n, tau, Ms, beta values
 
         # Duplicate check needed if number of elements are reduced
-        if phase in ["Ferrite", "Bainite", "Perlite"]:
+        if phase in ["Ferrite", "Bainite", "Pearlite"]:
             dupindx = list()
             for i in range(len(X)):
                 for tmpX in X[i+1:]:
@@ -198,7 +198,7 @@ def TTTinterpolatetonodes():
         #print(np.shape(grid))
         newgrid = list()
         for point in grid:
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
 
                 points = [[t] + point for t in Tgrid]
                 tmppoints = list()
@@ -219,7 +219,7 @@ def TTTinterpolatetonodes():
         z1 = list(interpolate.interpn(newX, newZ1, newgrid))
         z2 = list(interpolate.interpn(newX, newZ2, newgrid))
         #print(z2)
-        if phase in ["Ferrite", "Bainite", "Perlite"]:
+        if phase in ["Ferrite", "Bainite", "Pearlite"]:
             #z1 = np.nan_to_num(z1,nan=-1E12)
             #z2 = np.nan_to_num(z2, nan=(np.nanmax(z2)+np.nanmin(z2))/2)
             saveresult("Modeldata", phase + "/JMAK/T", Tgrid)
@@ -257,7 +257,7 @@ def TTTpolyfit():
     print("Number of compositions used for interpolations are " + str(len(compositions)))
 
     # Starting polyfit
-    for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+    for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
         # Dummy names for JMAK and KM parameters
         Z1 = ""
         Z2 = ""
@@ -268,7 +268,7 @@ def TTTpolyfit():
             x = list()
             TTTdata = getTTTdata(comp, "Modeldata")
 
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 T = TTTdata[phase][0]
                 tau = TTTdata[phase][1]  # tau
                 n = TTTdata[phase][2]  # n
@@ -343,7 +343,7 @@ def TTTpolyfit():
             if isinstance(Z1, str):
                 Z1 = z1.copy()
                 Z2 = z2.copy()
-            elif phase in ["Ferrite", "Bainite", "Perlite"]:
+            elif phase in ["Ferrite", "Bainite", "Pearlite"]:
                 Z1 = np.vstack([Z1, z1])
                 Z2 = np.vstack([Z2, z2])
             else:
@@ -405,7 +405,7 @@ def TTTpolyfit():
             res2 = res2.transpose()
 
 
-        if phase in ["Ferrite", "Bainite", "Perlite"]:
+        if phase in ["Ferrite", "Bainite", "Pearlite"]:
             adjustdatastream({"JMAK_tau_" + phase: np.array(res1)})
             adjustdatastream({"JMAK_n_" + phase: np.array(res2)})
         else:

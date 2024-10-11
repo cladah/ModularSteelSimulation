@@ -2,7 +2,8 @@ from .ModuleStructure_file import CalcModule
 import numpy as np
 from numpy import interp
 from Sphere.Datastream_file import readdatastreamcache, readdatastream, adjustdatastream
-from .Solvers.ThermocalcSolver import TCequalibrium, TCcarbonitriding, TCcarburizing
+from Sphere.HelpFile import read_input
+from .Solvers.ThermocalcSolver import TCequalibrium, TCcarbonitriding, TCcarburizing, TCcarburizing_LPC
 
 class Carbonizationmodule(CalcModule):
     def __init__(self):
@@ -20,14 +21,29 @@ class Carbonizationmodule(CalcModule):
 
         if self.program == "TC":
             print("Carburization module")
+            data = read_input()
             self.updateprogress(0.1)
 
             print('Running carburization module with ThermoCalc')
             activityenv = TCequalibrium("env")
             print("Avtivity of atmosphere calculated")
             self.updateprogress(0.2)
-            composition = TCcarburizing(activityenv)
+
+            """
+                Choosing which carburizing model to run.
+                
+                P<0.01atm -> Low pressure carurizing
+                P>0.01atm -> Atmosphere pressure carurizing
+            """
+            if data["Thermo"]["CNPress"] > 10000:
+                composition = TCcarburizing(activityenv)
+            else:
+                composition = TCcarburizing_LPC(activityenv, 7, 600, 960)
             self.updateprogress(0.9)
+
+            """
+                Interpolating the compositional values to nodal points 
+            """
 
             xyz = readdatastream('nodes')
             r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2)
@@ -66,11 +82,18 @@ class Carbonitridingmodule(CalcModule):
             print(activityenv)
             print("Activity of atmosphere calculated")
             self.updateprogress(0.2)
+
+            """
+                Choosing which carbonitriding model to run.
+
+                P<0.01atm -> Low pressure carbonitriding
+                P>0.01atm -> Atmosphere pressure carbonitriding
+            """
+
             composition = TCcarbonitriding(activityenv)
             self.updateprogress(0.9)
 
             xyz = readdatastream('nodes')
-            #r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
             r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2)
             calc_xyz = np.array(composition[0])
             for element in composition[1].keys():

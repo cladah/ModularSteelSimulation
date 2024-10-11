@@ -345,7 +345,7 @@ class TTTTab(ctk.CTkFrame):
         plot1.set_xlim([0.1, 1.E12])
         colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
             plot1.plot(TTTcore[phase]["start"][1], np.array(TTTcore[phase]["start"][0])-273.15, label=phase, color=colorlist[i])
             plot1.plot(TTTcore[phase]["finish"][1], np.array(TTTcore[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
@@ -361,7 +361,7 @@ class TTTTab(ctk.CTkFrame):
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
+        for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
             plot2.plot(TTTsurf[phase]["start"][1], np.array(TTTsurf[phase]["start"][0])-273.15, label=phase, color=colorlist[i])
             plot2.plot(TTTsurf[phase]["finish"][1], np.array(TTTsurf[phase]["finish"][0])-273.15, linestyle="dashed",
                        color=colorlist[i])
@@ -400,8 +400,8 @@ class TTTmodelTab(ctk.CTkFrame):
         #colorlist = ["green", "blue", "orange", "red"]
         colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+        for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[0]
                 z2 = getaxisvalues("JMAK_n_" + phase)[0]
                 p1 = np.poly1d(z1)
@@ -440,8 +440,8 @@ class TTTmodelTab(ctk.CTkFrame):
         plot2 = fig.add_subplot(122)
         plot2.set_xlim([0.1, 1.E12])
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+        for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
                 z2 = getaxisvalues("JMAK_n_" + phase)[-1]
                 p1 = np.poly1d(z1)
@@ -541,14 +541,14 @@ class QuenchingTab(ctk.CTkFrame):
         aust = getaxisvalues("Austenite", time=-1)
         mart = getaxisvalues("Martensite", time=-1)
         fer = getaxisvalues("Ferrite", time=-1)
-        per = getaxisvalues("Perlite", time=-1)
+        per = getaxisvalues("Pearlite", time=-1)
         bai = getaxisvalues("Bainite", time=-1)
         xyz = getaxisvalues("nodes")
         fig = Figure(figsize=(5, 4), dpi=50)
         plot1 = fig.add_subplot(111)
         plot1.plot(np.array(xyz)[:, 0] * 1000, aust, label="Austenite", color="purple")
         #plot1.plot(np.array(xyz)[:, 0] * 1000, fer, label="Ferrite", color="green")
-        plot1.plot(np.array(xyz)[:, 0] * 1000, per, label="Perlite", color="orange")
+        plot1.plot(np.array(xyz)[:, 0] * 1000, per, label="Pearlite", color="orange")
         plot1.plot(np.array(xyz)[:, 0] * 1000, bai, label="Bainite", color="blue")
         plot1.plot(np.array(xyz)[:, 0] * 1000, mart, label="Martensite", color="red")
         plot1.set_xlabel('Radius [mm]')
@@ -603,8 +603,8 @@ class QuenchingTab(ctk.CTkFrame):
         plot1.set_xlim([0.1, 1.E12])
         colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+        for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[0]
                 z2 = getaxisvalues("JMAK_n_" + phase)[0]
                 p1 = np.poly1d(z1)
@@ -644,8 +644,8 @@ class QuenchingTab(ctk.CTkFrame):
         plot2.set_xlim([0.1, 1.E12])
         colorlist = ["green", "blue", "orange", "red"]
         i = 0
-        for phase in ["Ferrite", "Bainite", "Perlite", "Martensite"]:
-            if phase in ["Ferrite", "Bainite", "Perlite"]:
+        for phase in ["Ferrite", "Bainite", "Pearlite", "Martensite"]:
+            if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 z1 = getaxisvalues("JMAK_tau_" + phase)[-1]
                 z2 = getaxisvalues("JMAK_n_" + phase)[-1]
                 p1 = np.poly1d(z1)

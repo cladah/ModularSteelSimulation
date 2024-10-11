@@ -11,7 +11,7 @@
     "Fatigue": false
   },
   "Geometry": {
-    "radius": 0.01,
+    "radius": 0.008,
     "innerradius": 0.0,
     "thickness": 0.01,
     "nodes": 50,
@@ -503,7 +503,7 @@
     "CNtemp": 1073.15,
     "CNenv": "Methane",
     "CNtime": 86400,
-    "CNPress": 0.03,
+    "CNPress": 100000,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,

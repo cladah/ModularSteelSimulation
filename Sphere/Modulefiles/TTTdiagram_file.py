@@ -1,7 +1,7 @@
 from .ModuleStructure_file import CalcModule
 from .Solvers.ThermocalcSolver import getTTTcompositions
 from Sphere.HelpFile import getTTTdata, addTTTdata
-from .Solvers.ThermocalcSolver import calculatePerlite, calculateBainite, calculateFerrite, calculateMartensite
+from .Solvers.ThermocalcSolver import calculatePearlite, calculateBainite, calculateFerrite, calculateMartensite
 import numpy as np
 
 
@@ -63,7 +63,7 @@ def runTTTcalc(composition):
         return
 
     Tsteps = np.linspace(0, 1000, 41) + 273.15
-    phases = ["Ferrite", "Bainite", "Perlite", "Martensite"]
+    phases = ["Ferrite", "Bainite", "Pearlite", "Martensite"]
     TTTdata = dict()
     for ph in phases:
         if ph == "Ferrite":
@@ -71,8 +71,8 @@ def runTTTcalc(composition):
             start = [Tsteps, start]
             half = [Tsteps, half]
             finish = [Tsteps, finish]
-        elif ph == "Perlite":
-            start, half, finish = calculatePerlite(Tsteps, composition)
+        elif ph == "Pearlite":
+            start, half, finish = calculatePearlite(Tsteps, composition)
             start = [Tsteps, start]
             half = [Tsteps, half]
             finish = [Tsteps, finish]

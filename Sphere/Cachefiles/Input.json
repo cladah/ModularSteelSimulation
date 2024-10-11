@@ -4,15 +4,15 @@
     "Meshing": false,
     "Carbonitriding": false,
     "Carburization": false,
-    "TTT": false,
-    "Transformationmodels": false,
-    "Quenching": false,
+    "TTT": true,
+    "Transformationmodels": true,
+    "Quenching": true,
     "Tempering": false,
     "Fatigue": false
   },
   "Datastream": {
-    "Savedirect": "IMAT.xdmf",
-    "Cachedirect": "Resultfiles/IMAT.xdmf"
+    "Savedirect": "October2024_LPC.xdmf",
+    "Cachedirect": "Resultfiles/October2024_LPC.xdmf"
   },
   "Geometry": {
     "radius": 0.008,
@@ -320,7 +320,7 @@
       },
       "model": "KM"
     },
-    "Perlite": {
+    "Pearlite": {
       "nu": 0.3,
       "alpha": 1e-05,
       "f": 0,
@@ -504,10 +504,10 @@
   "Thermo": {
     "GrainSize": 100.0,
     "Austenitizingtemp": 1073.15,
-    "CNtemp": 1073.15,
-    "CNenv": "Methane",
+    "CNtemp": 1173.15,
+    "CNenv": "Acetylene",
     "CNtime": 86400,
-    "CNPress": 0.03,
+    "CNPress": 3000.0,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,
@@ -517,7 +517,7 @@
   "FEM": {
     "Phases": [
       "Austenite",
-      "Perlite",
+      "Pearlite",
       "Bainite",
       "Martensite"
     ],

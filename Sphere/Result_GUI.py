@@ -6,14 +6,23 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
                                                NavigationToolbar2Tk)
 import numpy as np
 import matplotlib as mpl
-
-from ResultReading import read_results_history, read_results, getnames_results, read_results_all
+import colorsys
+from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
+from customtkinter import filedialog
 
 class resultTab(ctk.CTkFrame):
-    def __init__(self, master, dataname, data, points, allpoints):
+    """
+    dataname
+    data
+    legend
+    """
+
+
+    def __init__(self, master, dataname, data, legdata):
         super().__init__(master)
-
-
+        y = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "vonMises stress [Pa]",
+             "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]",
+             "Weight fraction [-]"]
         datanames = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Strain_pl", "Strain", "T"]
         ynames = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "von-Mises stress [Pa]",
              "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]"]
@@ -25,34 +34,92 @@ class resultTab(ctk.CTkFrame):
         elif dataname in datanames:
             ylbl = ynames[datanames.index(dataname)]
             xlbl = "Time [s]"
-            leg = [str(round(i, 3)) for i in np.array(points)[:, 0]]
+            leg = legdata
+        elif dataname == "Phasecomp":
+            ylbl = "Phase fraction [-]"
+            xlbl = "Radius [mm]"
+            leg = legdata
+        elif dataname == "Matcomp":
+            ylbl = "Weight fraction [-]"
+            xlbl = "Radius [mm]"
+            leg = legdata
+        elif "Stress" in dataname:
+            ylbl = "Stress [Pa]"
+            xlbl = "Radius [mm]"
+            leg = legdata
         else:
             ylbl = "?"
             xlbl = "Time [s]"
-            leg = [str(round(i, 3)) for i in np.array(points)[:, 0]]
+            leg = legdata
 
+        def colorFader(c1, c2, mix=0):  # fade (linear interpolate) from color c1 (at mix=0) to c2 (mix=1)
+            from PIL import ImageColor
+            c1 = np.array(ImageColor.getcolor(c1, "RGB"))/255
+            c2 = np.array(ImageColor.getcolor(c2, "RGB"))/255
+            c1 = np.array(colorsys.rgb_to_hsv(*c1))
+            c2 = np.array(colorsys.rgb_to_hsv(*c2))
+            c3 = (1. - mix) * c1 + mix * c2
+            c3 = tuple(round(i * 255) for i in colorsys.hsv_to_rgb(*c3))
+            return "#" + ('{:02X}' * 3).format(*c3)
 
-        pltcolors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-        pltcolors = pltcolors[0:len(points)]
-
-
+        mixspace = np.linspace(0., 1., np.shape(data[1])[0])
+        colors = [colorFader("#cc2929", "#2929cc", i) for i in mixspace]
+        # green 29cc2c
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
         mpl.rcParams["font.size"] = 32
-        fig = Figure(figsize=(5, 4), dpi=50)
-        plot1 = fig.add_subplot(111)
-        if len(np.shape(data[1])) != 3:
+        fig, plot1 = plt.subplots(1, 1)
+        fig.set_dpi(50)
+        fig.set_figwidth(5)
+        fig.set_figheight(4)
+
+        self.tabs_frame = ctk.CTkTabview(self)
+        self.tabs_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+        #print(dataname)
+        #print(len(np.shape(data[1][0])))
+        if dataname == "Phasecomp":
+            fig.gca().set_prop_cycle('color', colors)
+            for i in range(len(data[1])):
+                plot1.plot(data[0], data[1][i])
+            plot1.legend(["Martensite", "Austenite", "Bainite", "Ferrite", "Pearlite"])
+        elif dataname == "Matcomp":
+            fig.gca().set_prop_cycle('color', colors)
+            for i in range(len(data[1])):
+                plot1.plot(data[0], data[1][i])
+            plot1.legend(["C", "N", "Cr", "Ni", "Si"])
+        elif len(np.shape(data[1])) == 3:
+            #print("Testing")
+            #print("Depth in xyz" + str(np.shape(data[1][:, 0, 0])))
+            """ Data for ponts"""
+            fig.gca().set_prop_cycle('color', colors)
+            for i in range(len(data[1][0, :, 0])):
+                # Do a stack to go one level deeper
+                if len(data[1][0, :, 0]) == 6:
+                    direction = ["x", "y", "z", "yz", "xz", "xy"]
+                elif len(data[1][0, :, 0]) == 3:
+                    direction = ["1", "2", "3"]
+                tab0 = self.tabs_frame.add(direction[i])
+                tab0frame = resultTab(tab0, str(i), [data[0], data[1][:, i, :]], leg)
+                tab0.rowconfigure(0, weight=1)
+                tab0.columnconfigure(0, weight=1)
+                tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+            return
+                #plot1.plot(data[0], np.transpose(data[1][i, 0, :]))
+
+            plot1.legend(leg)
+        elif len(np.shape(data[1][0])) == 2:
+            fig.gca().set_prop_cycle('color', colors)
             plot1.plot(data[0], data[1])
+            plot1.legend(leg)
         else:
-            plt.gca().set_prop_cycle(None)
-            plot1.plot(data[0], np.array(data[1])[:, 0])
-            plt.gca().set_prop_cycle(None)
-            #plot1.plot(data[0], np.array(data[1])[:, 2], "-")
-            plt.gca().set_prop_cycle(None)
-            #plot1.plot(data[0], np.array(data[1])[:, 4], "--")
+            fig.gca().set_prop_cycle('color', colors)
+            plot1.plot(data[0], np.transpose(data[1]))
+            plot1.legend(leg)
+
         plot1.set_xlabel(xlbl)
         plot1.set_ylabel(ylbl)
-        plot1.legend(leg)
+
 
         canvas = FigureCanvasTkAgg(fig, master=self)
         canvas.draw()
@@ -66,10 +133,21 @@ class headerFrame(ctk.CTkFrame):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
+        self.filetextbox= ctk.CTkTextbox(self, text="October2024_LPC.xdmf")
+        self.filetextbox.grid(row=0, column=0, padx=20, pady=20)
         self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
-        self.sidebar_button_1.grid(row=0, column=0, padx=20, pady=20)
+        self.sidebar_button_1.grid(row=0, column=1, padx=20, pady=20)
 
 class resultFrame(ctk.CTkFrame):
+    """
+    Frame for result information. The information is structured in a tab view with graphs for each dataset in xdmf file.
+
+    The Tabs are automatically constructed from datasets. Composition
+
+    If phase fractions are in the dataset another tab with the final timestep is constructed over the full geometry.
+
+    """
+
     def __init__(self, master, filename):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
@@ -79,33 +157,66 @@ class resultFrame(ctk.CTkFrame):
         # self.tabs_frame.rowconfigure(0, weight=1)
         # self.tabs_frame.columnconfigure(0, weight=1)
         self.tabs_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+
         tabs = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Plastic strain", "Elastic strain", "Temperature", "Composition/C"]
         datanames = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Strain_pl", "Strain", "T", "Composition/C"]
-        y = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "vonMises stress [Pa]", "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]",
-                     "Weight fraction [-]"]
 
+        excl = ['JMAK_tau_Ferrite', 'JMAK_n_Ferrite', 'JMAK_tau_Bainite', 'JMAK_n_Bainite', 'JMAK_tau_Pearlite', 'JMAK_n_Pearlite', 'KM_Ms_Martensite', 'KM_b_Martensite']
+        excl_comp = ["Composition/C", "Composition/N", 'Composition/Cr', 'Composition/Mn', 'Composition/Ni', 'Composition/Mo', 'Composition/Si']
+        excl_phases = ["Austenite", "Bainite", "Ferrite", "Pearlite"]
+        tabs = list(getnames_results(filename))
+        tabs = [i for i in tabs if i not in excl and i not in excl_comp and i not in excl_phases]
         allpoints = read_results(filename, "nodes")
 
         radius = np.max(allpoints[:, 0])
-        points = [[radius / 2, 0, 0],
+        points = [[0, 0, 0],
+             [radius / 2, 0, 0],
              [6 * radius / 10, 0, 0],
              [7 * radius / 10, 0, 0],
              [8 * radius / 10, 0, 0],
              [9 * radius / 10, 0, 0],
+             [9.5 * radius / 10, 0, 0],
              [radius, 0, 0]]
+        points_leg = np.array(points)[:, 0]*1000
+        points_leg = points_leg.round(1)
+        # Changing the point data to 2D if the dataset is 2D
         if np.shape(allpoints)[1] == 2:
-            points = np.array(points)[:, 0:1]
-            print(np.shape(points))
-            print(2)
-        data_dict = read_results_all(filename, points)
-        for i in range(len(tabs)):
+            points = np.array(points)[:, 0:2]
 
-            if "Composition" in datanames[i]:
-                tab0 = self.tabs_frame.add("Composition")
-                tab0frame = resultTab(tab0, "Composition", data_dict["Composition/C"], points, allpoints)
-            else:
-                tab0 = self.tabs_frame.add(tabs[i])
-                tab0frame = resultTab(tab0, datanames[i], data_dict[datanames[i]], points, allpoints)
+
+        alldata_dict = read_results_all(filename, points)
+        #print(np.shape(alldata_dict["Stress"][1]))
+        if "Martensite" in tabs:
+            tab0 = self.tabs_frame.add("Phase composition")
+            phases_data = list()
+            phases = ["Martensite", "Austenite", "Bainite", "Ferrite", "Pearlite"]
+            for phase in phases:
+                phases_data.append(read_results_axis(filename, phase, -1))
+            pcompdata = [read_results_axis(filename, "nodes")[:, 0], phases_data]
+            tab0frame = resultTab(tab0, "Phasecomp", pcompdata, phases)
+            tab0.rowconfigure(0, weight=1)
+            tab0.columnconfigure(0, weight=1)
+            tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+        tab0 = self.tabs_frame.add("Material composition")
+        compositions = list()
+        elements = ["C", "N", "Cr", "Ni", "Si"]
+        for el in elements:
+            compositions.append(read_results_axis(filename, "Composition/" + el))
+        pcompdata = [read_results_axis(filename, "nodes")[:, 0], compositions]
+        tab0frame = resultTab(tab0, "Matcomp", pcompdata, elements)
+        tab0.rowconfigure(0, weight=1)
+        tab0.columnconfigure(0, weight=1)
+        tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+        for i in range(len(tabs)):
+            if len(np.shape(alldata_dict[tabs[i]][1])) == 3:
+                tmpdata = np.transpose(np.array(alldata_dict[tabs[i]][1]), (1, 2, 0))
+            elif len(np.shape(alldata_dict[tabs[i]][1])) == 2:
+                tmpdata = np.transpose(np.array(alldata_dict[tabs[i]][1]))
+            tab0 = self.tabs_frame.add(tabs[i])
+            tab0frame = resultTab(tab0, tabs[i], [alldata_dict[tabs[i]][0], tmpdata], points_leg)
             tab0.rowconfigure(0, weight=1)
             tab0.columnconfigure(0, weight=1)
             tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -135,7 +246,12 @@ class Result_MainApp(ctk.CTk):
 
 
         # Adding button functionality
-        self.header_frame.sidebar_button_1.configure(command=self.next_result)
+        self.header_frame.sidebar_button_1.configure(command=self.change_result)
 
-    def next_result(self):
-        pass
+    def change_result(self):
+        newfilename = self.header_frame.filetextbox.get("1.0",ctk.END).strip("\n")
+        filename = filedialog.askopenfilename()
+        print(filename)
+        self.header_frame.filetextbox.insert(0, filename)
+        print(self.header_frame.filetextbox.get("1.0", ctk.END).strip("\n"))
+        self.sidebar_frame = resultFrame(self, newfilename)
