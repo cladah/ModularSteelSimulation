@@ -16,7 +16,7 @@ from Modulefiles.Quenching_file import Quenchingmodule
 from Sphere.Modulefiles.Docker_file import rundocker
 
 from Datastream_file import getaxisvalues, readdatastream
-from ResultReading import read_results_history, read_results, getnames_results, read_results_all
+from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
 
 
 def progressmonitor(tid, module):
@@ -73,14 +73,17 @@ def looping():
     """
 
     differentin = [["CNtime", 86400], ["CNtime", 86400*2]]
-    saveloc = ["CN1Day.xdmf", "CN2Days.xdmf"]
+
+
+    differentin = [["Thermo", "CNtemp", 1173.15], ["Thermo", "CNtemp", 973.15]]
+    saveloc = ["October2024_900C.xdmf", "October2024_700C.xdmf"]
 
     if len(differentin) != len(saveloc):
         raise KeyError("Wrong looping input")
 
     i = 0
     for a in differentin:
-        print("Loop nr" + str(i+1))
+        print("Loop nr " + str(i+1))
         reset_input("Cachefiles/Input_ref.json")
         change_input(*a)
         data = read_input()
@@ -91,10 +94,10 @@ def looping():
 
         modules = list()
         modules.append(Meshingmodule())
-        modules.append(Carbonitridingmodule())
+        modules.append(Carbonizationmodule())
         modules.append(TTTdiagrammodule())
         modules.append(Transformationmodelmodule())
-        #modules.append(Quenchingmodule())
+        modules.append(Quenchingmodule())
 
         for currentmodule in modules:
             currentmodule.run()
@@ -102,6 +105,7 @@ def looping():
         removedatastreamcache()
         savedatastream(saveloc[i])
         i = i + 1
+
 
 def modelling():
     """
@@ -141,6 +145,7 @@ def DockerTest():
     rundocker()
     pass
 
+
 def xmdftesting():
 
     t_data = 0
@@ -173,6 +178,7 @@ def xmdftesting():
         for i in range(len(t_list)):
             writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
 
+
 def ResultfileTest():
     import matplotlib.pyplot as plt
     import csv
@@ -192,26 +198,19 @@ def ResultfileTest():
         plt.plot(smoothen(r,50), smoothen(y,50))
         plt.show()
 
-def ResultPlotting():
+
+def ResultPlotting(filenames, dataname, point=[0., 0.], tid = -1):
     import matplotlib.pyplot as plt
-
-    dataname = "M_Ms"
-    filename = "Resultfiles/September2024_2.xdmf"
-    read_results_all(filename, [0., 0.])
-
-    xyz = read_results(filename,"nodes")
-    radius = np.max(xyz[:, 0])
-    names = getnames_results(filename)
-    print(names)
-    Y = [[radius/2, 0],
-         [6 * radius / 10, 0],
-         [7 * radius / 10, 0],
-         [8*radius/10, 0],
-         [9*radius/10, 0],
-         [radius, 0]]
-    leg = []
-    print(read_results(filename, dataname))
-
+    data = list()
+    for filename in filenames:
+        names = getnames_results(filename)
+        print(filename)
+        print(names)
+        tmpdata = read_results_axis(filename, dataname, tid)
+        xyz = read_results_axis(filename, "nodes")
+        plt.plot(xyz[:,0], tmpdata)
+    plt.show()
+    print("Done")
     return
     for y in Y:
         data_t, data = read_results_history(filename, dataname, y)
@@ -226,13 +225,15 @@ def ResultPlotting():
     plt.rcParams.update({'font.size': 30})
     plt.xlim([0,60])
     plt.show()
-def DatastreamPlotting():
+
+
+def DatastreamPlotting(dataname):
     import matplotlib.pyplot as plt
 
     dataname = "Composition/C"
-    filename = "Datastream.xdmf"
-    y = getaxisvalues(dataname)
-    x = getaxisvalues("nodes")
+    filename = "Datastream_Cache.xdmf"
+    y = read_results_axis(filename, dataname)
+    x = read_results_axis(filename, "nodes")
     plt.plot(x[:, 0], y)
     plt.show()
 
@@ -242,29 +243,20 @@ def DatastreamPlotting():
 
     return
 
-def testing():
-    from Modulefiles.Solvers.ThermocalcSolver import TCcarbonitriding_LPC
-    import matplotlib.pyplot as plt
-    print("Running Thermo-Calc test")
-
-    dist, x = TCcarbonitriding_LPC([1.0, 1.0])
-    print(x.keys())
-    print(x["C"])
-    plt.plot(dist, x["C"])
-    plt.show()
-
 
 if __name__ == "__main__":
     # testing()
     # ResultfileTest()
-    modelling()
+    # modelling()
     # DatastreamPlotting()
-    # looping()
+    looping()
     # GUI()
     # DockerTest()
-    # ResultPlotting()
+    # ResultPlotting(["Resultfiles/October2024_Ref.xdmf", "Resultfiles/October2024_LPC.xdmf"], "Composition/C")
+    # DatastreamPlotting("Composition/C")
+
     # Result_GUI_show("Resultfiles/October2024.xdmf")
-    # Result_GUI_show("Resultfiles/October2024_ref.xdmf")
+    # Result_GUI_show("Resultfiles/October2024_LPC.xdmf")
 
 
     #data = read_input()

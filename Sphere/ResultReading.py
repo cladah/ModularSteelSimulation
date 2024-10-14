@@ -29,6 +29,11 @@ def read_results(filename, dataname, time=0):
                 # print("Getting last timestep")
                 n = reader.num_steps-1
                 t, point_data, cell_data = reader.read_data(n)
+                if dataname not in point_data.keys():
+                    t, point_data, cell_data = reader.read_data(0)
+                if dataname not in point_data.keys():
+                    raise meshio._exceptions.ReadError()
+
                 return point_data[dataname]
 
             if dataname == "nodes":
@@ -108,8 +113,6 @@ def read_results_all(filename, points_xyz):
             indxs = list()
             for point in points_xyz:
                 indxs.append(find_nearest(allpoints, point))
-                print(point)
-                print(indxs)
             t, point_data0, cell_data = reader.read_data(0)
             if reader.num_steps > 1:
                 t, point_data, cell_data = reader.read_data(1)

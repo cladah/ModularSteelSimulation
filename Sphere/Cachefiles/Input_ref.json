@@ -1,19 +1,23 @@
 {
   "Rerun": {
-    "All": false,
+    "All": true,
     "Meshing": false,
     "Carbonitriding": false,
     "Carburization": false,
-    "TTT": true,
-    "Transformationmodels": true,
+    "TTT": false,
+    "Transformationmodels": false,
     "Quenching": false,
     "Tempering": false,
     "Fatigue": false
   },
+  "Datastream": {
+    "Savedirect": "",
+    "Cachedirect": "Resultfiles/October2024_Ref.xdmf"
+  },
   "Geometry": {
     "radius": 0.008,
     "innerradius": 0.0,
-    "thickness": 0.01,
+    "thickness": 0.008,
     "nodes": 50,
     "meshscaling": 0.9
   },
@@ -316,7 +320,7 @@
       },
       "model": "KM"
     },
-    "Perlite": {
+    "Pearlite": {
       "nu": 0.3,
       "alpha": 1e-05,
       "f": 0,
@@ -503,7 +507,7 @@
     "CNtemp": 1073.15,
     "CNenv": "Methane",
     "CNtime": 86400,
-    "CNPress": 100000,
+    "CNPress": 100000.0,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,
@@ -511,7 +515,12 @@
     "quenchtemp": 293.15
   },
   "FEM": {
-    "Phases": ["Austenite", "Perlite", "Bainite", "Martensite"],
+    "Phases": [
+      "Austenite",
+      "Pearlite",
+      "Bainite",
+      "Martensite"
+    ],
     "elementdim": 2,
     "elementtype": "Axisym2D",
     "element_f": 2,
@@ -550,9 +559,5 @@
     "KM_beta": "beta",
     "JMAK_F": "",
     "JMAK_P": ""
-  },
-  "Datastream": {
-    "Savedirect": "Ref.xdmf",
-    "Cachedirect": "Resultfiles/Ref.xdmf"
   }
 }

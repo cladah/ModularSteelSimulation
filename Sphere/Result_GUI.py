@@ -18,7 +18,7 @@ class resultTab(ctk.CTkFrame):
     """
 
 
-    def __init__(self, master, dataname, data, legdata):
+    def __init__(self, master, dataname, data, legdata, xlbl="Time [s]", ylbl = "?"):
         super().__init__(master)
         y = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "vonMises stress [Pa]",
              "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]",
@@ -26,9 +26,10 @@ class resultTab(ctk.CTkFrame):
         datanames = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Strain_pl", "Strain", "T"]
         ynames = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "von-Mises stress [Pa]",
              "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]"]
+        strainnames = ["Strain_tot"]
 
         if "Composition" in dataname:
-            ylbl = "Weight fraction [-]"
+            ylbl = "Weight [w%]"
             xlbl = "Radius [mm]"
             leg = []
         elif dataname in datanames:
@@ -40,12 +41,16 @@ class resultTab(ctk.CTkFrame):
             xlbl = "Radius [mm]"
             leg = legdata
         elif dataname == "Matcomp":
-            ylbl = "Weight fraction [-]"
+            ylbl = "Weight [w%]"
             xlbl = "Radius [mm]"
             leg = legdata
         elif "Stress" in dataname:
             ylbl = "Stress [Pa]"
-            xlbl = "Radius [mm]"
+            xlbl = "Time [s]"
+            leg = legdata
+        elif "Strain" in dataname:
+            ylbl = "Strain - "
+            xlbl = "Time [s]"
             leg = legdata
         else:
             ylbl = "?"
@@ -93,21 +98,23 @@ class resultTab(ctk.CTkFrame):
             #print("Depth in xyz" + str(np.shape(data[1][:, 0, 0])))
             """ Data for ponts"""
             fig.gca().set_prop_cycle('color', colors)
+
+            if len(data[1][0, :, 0]) == 6:
+                direction = ["x", "y", "z", "yz", "xz", "xy"]
+            elif len(data[1][0, :, 0]) == 3:
+                direction = ["1", "2", "3"]
+            else:
+                direction = np.linspace(0, len(data[1][0, :, 0]), len(data[1][0, :, 0]))
+
             for i in range(len(data[1][0, :, 0])):
                 # Do a stack to go one level deeper
-                if len(data[1][0, :, 0]) == 6:
-                    direction = ["x", "y", "z", "yz", "xz", "xy"]
-                elif len(data[1][0, :, 0]) == 3:
-                    direction = ["1", "2", "3"]
                 tab0 = self.tabs_frame.add(direction[i])
-                tab0frame = resultTab(tab0, str(i), [data[0], data[1][:, i, :]], leg)
+                tab0frame = resultTab(tab0, dataname+"_"+str(i), [data[0], data[1][:, i, :]], leg, xlbl, ylbl)
                 tab0.rowconfigure(0, weight=1)
                 tab0.columnconfigure(0, weight=1)
                 tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             return
-                #plot1.plot(data[0], np.transpose(data[1][i, 0, :]))
 
-            plot1.legend(leg)
         elif len(np.shape(data[1][0])) == 2:
             fig.gca().set_prop_cycle('color', colors)
             plot1.plot(data[0], data[1])
@@ -129,14 +136,16 @@ class resultTab(ctk.CTkFrame):
         toolbar.update()
         canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
 class headerFrame(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, filename):
         super().__init__(master)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.filetextbox= ctk.CTkTextbox(self, text="October2024_LPC.xdmf")
-        self.filetextbox.grid(row=0, column=0, padx=20, pady=20)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=0)
+        self.filetextbox= ctk.CTkTextbox(self, width=400, height=25)
+        self.filetextbox.insert("0.0", filename)
+        self.filetextbox.grid(row=0, column=0, padx=20, pady=20, sticky="e")
         self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
-        self.sidebar_button_1.grid(row=0, column=1, padx=20, pady=20)
+        self.sidebar_button_1.grid(row=0, column=1, padx=20, pady=20, sticky="w")
 
 class resultFrame(ctk.CTkFrame):
     """
@@ -186,7 +195,6 @@ class resultFrame(ctk.CTkFrame):
 
 
         alldata_dict = read_results_all(filename, points)
-        #print(np.shape(alldata_dict["Stress"][1]))
         if "Martensite" in tabs:
             tab0 = self.tabs_frame.add("Phase composition")
             phases_data = list()
@@ -220,7 +228,7 @@ class resultFrame(ctk.CTkFrame):
             tab0.rowconfigure(0, weight=1)
             tab0.columnconfigure(0, weight=1)
             tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
-
+        print("Displayed results")
         #self.tabs_frame.set("Composition/C")
 
 class Result_MainApp(ctk.CTk):
@@ -237,7 +245,7 @@ class Result_MainApp(ctk.CTk):
         self.rowconfigure(0, weight=0)
 
         # Create header
-        self.header_frame = headerFrame(self)
+        self.header_frame = headerFrame(self, filename)
         self.header_frame.grid(row=0, column=0, sticky="nsew")
 
         # Create sidebar
@@ -249,9 +257,14 @@ class Result_MainApp(ctk.CTk):
         self.header_frame.sidebar_button_1.configure(command=self.change_result)
 
     def change_result(self):
-        newfilename = self.header_frame.filetextbox.get("1.0",ctk.END).strip("\n")
-        filename = filedialog.askopenfilename()
-        print(filename)
-        self.header_frame.filetextbox.insert(0, filename)
-        print(self.header_frame.filetextbox.get("1.0", ctk.END).strip("\n"))
+        """
+        Changing the displayed results
+        """
+        filename = filedialog.askopenfilename(filetypes=(("xdmf files", "*.xdmf"),))
+        self.header_frame.filetextbox.delete("0.0", "end")
+        self.header_frame.filetextbox.insert("0.0", filename)
+        newfilename = self.header_frame.filetextbox.get("0.0", ctk.END).strip("\n")
+        print(newfilename)
+        self.sidebar_frame.destroy()
         self.sidebar_frame = resultFrame(self, newfilename)
+        self.sidebar_frame.grid(row=1, column=0, sticky="nsew")
