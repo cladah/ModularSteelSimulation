@@ -210,8 +210,6 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid = -1):
     data = list()
     for filename in filenames:
         names = getnames_results(filename)
-        print(filename)
-        print(names)
         tmpdata = read_results_axis(filename, dataname, tid)
         xyz = read_results_axis(filename, "nodes")
         plt.plot(xyz[:,0], tmpdata)
@@ -228,26 +226,26 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid = -1):
 
 def DatastreamPlotting(dataname):
     import matplotlib.pyplot as plt
-
-    dataname = "Composition/C"
-    filename = "Datastream_Cache.xdmf"
+    #readdatastream(dataname)
+    filename = "Datastream.xdmf"
+    print(getnames_results("Datastream.xdmf"))
+    #filename = "Datastream_Cache.xdmf"
     y = read_results_axis(filename, dataname)
     x = read_results_axis(filename, "nodes")
     plt.plot(x[:, 0], y)
     plt.show()
 
-    names = getnames_results(filename)
-    print(names)
-
-
-    return
-
 
 if __name__ == "__main__":
     # testing()
     # ResultfileTest()
-    modelling()
-    # DatastreamPlotting()
+    # modelling()
+    #DatastreamPlotting("Composition/C")
+    print(getnames_results("Resultfiles/October2024_ref.xdmf"))
+    from sqlitedict import SqliteDict
+    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    for key in TTTdata.keys():
+        print(TTTdata[key]["TTTdata"].keys())
     # looping()
     # GUI()
     # DockerTest()
