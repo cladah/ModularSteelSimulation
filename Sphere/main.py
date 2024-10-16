@@ -241,11 +241,12 @@ if __name__ == "__main__":
     # ResultfileTest()
     # modelling()
     #DatastreamPlotting("Composition/C")
-    print(getnames_results("Resultfiles/October2024_ref.xdmf"))
+    # print(getnames_results("Resultfiles/October2024_ref.xdmf"))
     from sqlitedict import SqliteDict
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
     for key in TTTdata.keys():
         print(TTTdata[key]["TTTdata"].keys())
+
     # looping()
     # GUI()
     # DockerTest()
