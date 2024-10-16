@@ -268,3 +268,46 @@ class Result_MainApp(ctk.CTk):
         self.sidebar_frame.destroy()
         self.sidebar_frame = resultFrame(self, newfilename)
         self.sidebar_frame.grid(row=1, column=0, sticky="nsew")
+
+class Compare_MainApp(ctk.CTk):
+    def __init__(self, filename):
+
+        super().__init__()
+        self.wm_iconbitmap("GUIfiles/Ballbearing.ico")
+        self.geometry("1600x1000")
+        self.title("Quenching of steel")
+
+        # Setting weights
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(0, weight=0)
+
+        # Create header
+        self.header_frame = ctk.CTkFrame(self)
+        self.header_frame.grid(row=0, column=0, sticky="nsew")
+        self.header_frame.filetextbox = ctk.CTkTextbox(self, width=400, height=25)
+        self.header_frame.filetextbox.insert("0.0", filename)
+        self.header_frame.filetextbox.grid(row=0, column=0, padx=20, pady=20, sticky="e")
+        self.header_frame.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
+        self.header_frame.sidebar_button_1.grid(row=0, column=1, padx=20, pady=20, sticky="w")
+
+        # Create sidebar
+        self.sidebar_frame = ctk.CTkFrame(self)
+        self.sidebar_frame.grid(row=1, column=0, sticky="nsew")
+
+
+        # Adding button functionality
+        self.header_frame.sidebar_button_1.configure(command=self.change_result)
+
+    def change_result(self):
+        """
+        Changing the displayed results
+        """
+        filename = filedialog.askopenfilename(filetypes=(("xdmf files", "*.xdmf"),))
+        self.header_frame.filetextbox.delete("0.0", "end")
+        self.header_frame.filetextbox.insert("0.0", filename)
+        newfilename = self.header_frame.filetextbox.get("0.0", ctk.END).strip("\n")
+        print(newfilename)
+        self.sidebar_frame.destroy()
+        self.sidebar_frame = resultFrame(self, newfilename)
+        self.sidebar_frame.grid(row=1, column=0, sticky="nsew")

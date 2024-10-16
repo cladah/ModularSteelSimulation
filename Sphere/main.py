@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from CGUImodule import MainApp
-from Result_GUI import Result_MainApp
+from Result_GUI import Result_MainApp, Compare_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
 from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input
 import customtkinter as ctk
@@ -39,6 +39,14 @@ def GUI():
     app.mainloop()
     removedatastreamcache()
 
+def Result_GUI_comp(filenames, dataname):
+    """
+            Using Tkinter to run the GUI
+        """
+    print("Opening result window...")
+    ctk.set_appearance_mode("dark")
+    app = Compare_MainApp(filenames, dataname)
+    app.mainloop()
 
 def Result_GUI_show(filename):
     """
@@ -71,8 +79,6 @@ def looping():
 
     saveloc = ["Ref.xdmf", "C03.xdmf", "C04.xdmf", "C05.xdmf", "Cr14.xdmf", "Ni13.xdmf"]
     """
-
-    differentin = [["CNtime", 86400], ["CNtime", 86400*2]]
 
 
     differentin = [["Thermo", "CNtemp", 1173.15], ["Thermo", "CNtemp", 973.15]]
@@ -209,22 +215,15 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid = -1):
         tmpdata = read_results_axis(filename, dataname, tid)
         xyz = read_results_axis(filename, "nodes")
         plt.plot(xyz[:,0], tmpdata)
+    plt.legend(filenames)
+    plt.title(dataname)
+    plt.xlabel("Time [s]")
+    plt.ylabel("Temperature [degC]")
+    plt.rcParams.update({'font.size': 30})
+    #plt.xlim([0, 60])
     plt.show()
     print("Done")
     return
-    for y in Y:
-        data_t, data = read_results_history(filename, dataname, y)
-        leg.append(str(round(y[0], 4)))
-        plt.plot(data_t, np.array(data)[:,0])
-        #plt.plot(data_t, np.array(data)[:,0])
-    plt.legend(leg)
-    plt.xlabel("Time [s]")
-    #plt.ylabel("Phase fraction [-]")
-    plt.ylabel("Temperature [degC]")
-    plt.ylabel("Plastic strain circumference [-]")
-    plt.rcParams.update({'font.size': 30})
-    plt.xlim([0,60])
-    plt.show()
 
 
 def DatastreamPlotting(dataname):
@@ -247,15 +246,19 @@ def DatastreamPlotting(dataname):
 if __name__ == "__main__":
     # testing()
     # ResultfileTest()
-    # modelling()
+    modelling()
     # DatastreamPlotting()
-    looping()
+    # looping()
     # GUI()
     # DockerTest()
-    # ResultPlotting(["Resultfiles/October2024_Ref.xdmf", "Resultfiles/October2024_LPC.xdmf"], "Composition/C")
+    """
+    dataname = "Composition/C"
+    ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
+                    "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_8h.xdmf"], dataname)
+    """
     # DatastreamPlotting("Composition/C")
 
-    # Result_GUI_show("Resultfiles/October2024.xdmf")
+    # Result_GUI_show("Resultfiles/October2024_900C.xdmf")
     # Result_GUI_show("Resultfiles/October2024_LPC.xdmf")
 
 

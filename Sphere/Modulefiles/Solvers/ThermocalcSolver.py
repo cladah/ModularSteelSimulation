@@ -254,7 +254,7 @@ def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
         for element in data['Material']["Composition"]:
             austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
         austenite.with_composition_profile(austeniteprofile)
-        total_t = boost_t*7 + rest_t*7
+        total_t = boost_t*boosts + rest_t*boosts
         calculation = (system
                        .with_isothermal_diffusion_calculation()
 

@@ -27,12 +27,20 @@ from basix.ufl import element
 
 import dolfinx_mpc.utils
 from dolfinx_mpc import LinearProblem, MultiPointConstraint
+import json
 # ---------------------------------------------------------#
 # Reading datastream
 # ---------------------------------------------------------#
 print("Reading data from Datastream")
 mesh = io.XDMFFile(MPI.COMM_WORLD, "Datastream.xdmf", "r")
 domain = mesh.read_mesh()
+
+# ---------------------------------------------------------#
+# Reading datastream
+# ---------------------------------------------------------#
+f = open('Cachefiles/Input.json', 'r')
+data = json.load(f)
+f.close()
 
 # ---------------------------------------------------------#
 # Setting up function spaces
@@ -57,8 +65,9 @@ ffp = fem.Function(V, name="Pearlite")
 ffb = fem.Function(V, name="Bainite")
 fff = fem.Function(V, name="Ferrite")
 ffM = fem.Function(V, name="Martensite")
-cC = fem.Function(V, name="C_Carbon")
+cC = fem.Function(V, name="C_C")
 cN = fem.Function(V, name="C_N")
+eps_pl = fem.Function(V, name="eps_pl")
 
 # ---------------------------------------------------------#
 # Setting up trail functions
@@ -86,7 +95,9 @@ I2 = (tr(C)*tr(C)-tr(C*C))/2
 J = det(F)
 
 # Material properties
-E = 1e4
+E = data["Material"]["Austenite"]["E"]["E"][0]
+h = data["Material"]["Austenite"]["h"]["h"][0]
+""" Insert rule of mixture """ """ Some of the material properties have dependence on T """
 nu = 0.3
 mu = fem.Constant(domain, E / 2 / (1 + nu))
 lmbda = fem.Constant(domain, E * nu / (1 - 2 * nu) / (1 + nu))
