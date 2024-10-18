@@ -242,6 +242,7 @@ def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
                   .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase(
             "FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
                   .get_system())
+
         austenite = Region("Austenite")
         austenite.set_width(data['Geometry']["radius"])
         austenite.with_grid(CalculatedGrid.geometric()
@@ -257,15 +258,69 @@ def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
         total_t = boost_t*boosts + rest_t*boosts
         calculation = (system
                        .with_isothermal_diffusion_calculation()
-
-                       .with_reference_state("N", "GAS").with_reference_state("C", "GRAPHITE_A9")
-                       .set_temperature(1273.15)
+                       .with_reference_state("C", "GRAPHITE_A9")
+                       .set_temperature(data['Thermo']["CNtemp"])
                        .set_simulation_time(total_t)
                        .with_cylindrical_geometry().remove_all_regions()
                        .add_region(austenite))
         for i in range(boosts):
             calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                           .set_activity_for_element('C', str(activityair[0])), to=boost_t*(i+1)+rest_t*i)
+                                           .set_activity_for_element('C', str(1.0)), to=boost_t*(i+1)+rest_t*i)
+            calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))
+        logging.getLogger("tc_python").setLevel(logging.INFO)
+        result = calculation.calculate()
+        mass_frac = dict()
+        composition = []
+        composition.append(data['Material']["Dependentmat"])
+        composition.append(data['Material']["Composition"])
+        for element in data['Material']["Composition"]:
+            distance, mass_frac_temp = result.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
+            mass_frac[element] = mass_frac_temp
+        return distance, mass_frac
+
+def TCDiffusion_Test(activityair, boosts, boost_t, rest_t):
+    print("Running Low pressure carburization model in ThermoCalc Test")
+    """
+    :param activityair: Activity of carbon and nitrogen [aC, aN]
+    :param boosts: Nr of boost/rest cycles
+    :param boost_t: Time with high activity at boundary
+    :param rest_t: Time for diffusion between boosts
+    :return: Coposition along x-axis.
+    """
+    data = read_input()
+    with TCPython() as session:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
+        system = (session
+                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
+                                                                            [data['Material']["Dependentmat"]] + list(
+                                                                                data['Material']["Composition"]))
+                  .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase(
+            "FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
+                  .get_system())
+
+        austenite = Region("Austenite")
+        austenite.set_width(data['Geometry']["radius"])
+        austenite.with_grid(CalculatedGrid.geometric()
+                            .set_no_of_points(data['Geometry']["nodes"])
+                            .set_geometrical_factor(data['Geometry']['meshscaling']))
+        austenite.add_phase("FCC_A1")
+        austenite.add_phase("FCC_A1#2")
+        austenite.add_phase("CEMENTITE_D011")
+        austeniteprofile = CompositionProfile()
+        for element in data['Material']["Composition"]:
+            austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
+        austenite.with_composition_profile(austeniteprofile)
+        total_t = boost_t*boosts + rest_t*boosts
+        calculation = (system
+                       .with_isothermal_diffusion_calculation()
+                       .with_reference_state("C", "GRAPHITE_A9")
+                       .set_temperature(data['Thermo']["CNtemp"])
+                       .set_simulation_time(total_t)
+                       .with_cylindrical_geometry().remove_all_regions()
+                       .add_region(austenite))
+        for i in range(boosts):
+            calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
+                                           .set_activity_for_element('C', str(1.0)), to=boost_t*(i+1)+rest_t*i)
             calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))
         logging.getLogger("tc_python").setLevel(logging.INFO)
         result = calculation.calculate()

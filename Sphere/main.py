@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from CGUImodule import MainApp
 from Result_GUI import Result_MainApp, Compare_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
-from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input
+from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input, analyseTTTdatabase
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
@@ -139,6 +139,7 @@ def modelling():
 
     for currentmodule in modules:
         currentmodule.run()
+        savedatastream(data["Datastream"]["Savedirect"])
 
     removedatastreamcache()
     savedatastream(data["Datastream"]["Savedirect"])
@@ -205,56 +206,118 @@ def ResultfileTest():
         plt.show()
 
 
-def ResultPlotting(filenames, dataname, point=[0., 0.], tid = -1):
+def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
     import matplotlib.pyplot as plt
-    data = list()
     for filename in filenames:
         names = getnames_results(filename)
+        print("Results in " + filename)
+        print(names)
         tmpdata = read_results_axis(filename, dataname, tid)
         xyz = read_results_axis(filename, "nodes")
-        plt.plot(xyz[:,0], tmpdata)
+        plt.plot(xyz[:, 0], tmpdata)
     plt.legend(filenames)
     plt.title(dataname)
-    plt.xlabel("Time [s]")
-    plt.ylabel("Temperature [degC]")
+    #plt.xlabel("Time [s]")
+    #plt.ylabel("Temperature [degC]")
     plt.rcParams.update({'font.size': 30})
     #plt.xlim([0, 60])
     plt.show()
     print("Done")
-    return
+
+
+def checkDB():
+    analyseTTTdatabase()
 
 
 def DatastreamPlotting(dataname):
     import matplotlib.pyplot as plt
-    #readdatastream(dataname)
     filename = "Datastream.xdmf"
     print(getnames_results("Datastream.xdmf"))
-    #filename = "Datastream_Cache.xdmf"
     y = read_results_axis(filename, dataname)
     x = read_results_axis(filename, "nodes")
     plt.plot(x[:, 0], y)
     plt.show()
 
+def TCtest():
+    version = '2022b'
+
+    print('Testing TC-Python version: ' + version)
+    print(
+        'Please make sure that the variable "version" above, matches the release that you want to test, if not change it and re-run this script.')
+
+    # below this line, nothing needs to be manually updated.
+
+    import sys
+    print('')
+    print('Python version: (should be at least 3.5 and can NOT be older than 3.0)')
+    print(str(sys.version_info[0]) + '.' + str(sys.version_info[1]))
+    if sys.version_info[0] < 3 or sys.version_info[1] < 5:
+        print('Wrong version of Python !!!!!')
+
+    print('')
+    print(
+        'Python executable path: (gives a hint about the used virtual / conda environment, in case of Anaconda the corresponding \n'
+        'environment name can be found by running `conda env list` on the Anaconda command prompt, '
+        'TC-Python must be installed into \nEACH separate environment used!)')
+    print(sys.executable)
+
+    import os
+    print('')
+    print(
+        'Thermo-Calc ' + version + ' installation directory: (must be a valid path to a complete installation of ' + version + ')')
+    tc_env_variable = 'TC' + version[2:].upper() + '_HOME'
+    try:
+        print(os.environ[tc_env_variable])
+    except:
+        print('No Thermo-calc environment variable for ' + version + ' was found. (' + tc_env_variable + ')')
+
+    print('')
+    print('Url of license server: (if license server is NO-NET, you need a local license file)')
+    try:
+        print(os.environ['LSHOST'])
+    except:
+        print('No Thermo-calc license server url was found. (LSHOST)')
+
+    print('')
+    print('Path to local license file: (only necessary if not using license server)')
+    try:
+        print(os.environ['LSERVRC'])
+    except:
+        print('No path to local license file was found. (LSERVRC)')
+
+    import tc_python
+    numerical_version = version[:-1]
+    if version[-1] == 'a':
+        numerical_version += '.1.*'
+    elif version[-1] == 'b':
+        numerical_version += '.2.*'
+    print('')
+    print('TC-Python version: (needs to be ' + numerical_version + ')')
+    print(tc_python.__version__)
+
+    with tc_python.TCPython() as session:
+        print('')
+        print(
+            'Lists the databases: (should be a complete list of the installed databases that you have license for or do not require license)')
+        print(session.get_databases())
 
 if __name__ == "__main__":
     # testing()
     # ResultfileTest()
+    # TCtest()
     # modelling()
-    #DatastreamPlotting("Composition/C")
+    # DatastreamPlotting("Composition/C")
     # print(getnames_results("Resultfiles/October2024_ref.xdmf"))
-    from sqlitedict import SqliteDict
-    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
-    for key in TTTdata.keys():
-        print(TTTdata[key]["TTTdata"].keys())
+
 
     # looping()
     # GUI()
     # DockerTest()
-    """
+
     dataname = "Composition/C"
     ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-                    "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_8h.xdmf"], dataname)
-    """
+                    "Datastream.xdmf", "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
+
     # DatastreamPlotting("Composition/C")
 
     # Result_GUI_show("Resultfiles/October2024_900C.xdmf")

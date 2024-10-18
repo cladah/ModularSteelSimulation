@@ -11,8 +11,8 @@
     "Fatigue": false
   },
   "Datastream": {
-    "Savedirect": "October2024_LPC_5h.xdmf",
-    "Cachedirect": "Resultfiles/October2024_LPC_5h.xdmf"
+    "Savedirect": "October2024_LPC_Test.xdmf",
+    "Cachedirect": "Resultfiles/October2024_LPC_Test.xdmf"
   },
   "Geometry": {
     "radius": 0.008,

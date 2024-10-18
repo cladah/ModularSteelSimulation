@@ -38,7 +38,7 @@ class Carbonizationmodule(CalcModule):
             if data["Thermo"]["CNPress"] > 10000:
                 composition = TCcarburizing(activityenv)
             else:
-                composition = TCcarburizing_LPC(activityenv, 12, 600, 960)
+                composition = TCcarburizing_LPC(activityenv, 10, 600, 960)
             self.updateprogress(0.9)
 
             """
