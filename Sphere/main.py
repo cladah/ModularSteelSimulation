@@ -220,7 +220,6 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
     #plt.xlabel("Time [s]")
     #plt.ylabel("Temperature [degC]")
     plt.rcParams.update({'font.size': 30})
-    #plt.xlim([0, 60])
     plt.show()
     print("Done")
 
@@ -308,15 +307,15 @@ if __name__ == "__main__":
     # modelling()
     # DatastreamPlotting("Composition/C")
     # print(getnames_results("Resultfiles/October2024_ref.xdmf"))
-
+    checkDB()
 
     # looping()
     # GUI()
     # DockerTest()
 
-    dataname = "Composition/C"
-    ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-                    "Datastream.xdmf", "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
+    #dataname = "Composition/C"
+    #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
+    #                "Datastream.xdmf", "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
 
     # DatastreamPlotting("Composition/C")
 
