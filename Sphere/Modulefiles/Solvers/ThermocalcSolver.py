@@ -127,6 +127,8 @@ def TCequalibrium(type):
 
 def TCcarburizing(activityair):
     data = read_input()
+    if activityair[0] > 1.:
+        activityair = [1.0, activityair[1]]
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.ERROR)
         system = (session
@@ -152,7 +154,7 @@ def TCcarburizing(activityair):
                       .set_temperature(data['Thermo']["CNtemp"])
                       .set_simulation_time(data['Thermo']["CNtime"])
                       .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                     .set_activity_for_element('C', str(1.0)))
+                                                     .set_activity_for_element('C', str(activityair[0])))
                       .with_spherical_geometry().remove_all_regions()
                       .add_region(austenite))
         logging.getLogger("tc_python").setLevel(logging.INFO)
@@ -263,7 +265,17 @@ def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
                        .set_simulation_time(total_t)
                        .with_cylindrical_geometry().remove_all_regions()
                        .add_region(austenite))
+        comp = data['Material']["Composition"]
+
+        saturatedAust = BoundaryCondition.fixed_compositions()
+        for element in data['Material']["Composition"]:
+            if element == "C":
+                print(element)
+                saturatedAust.set_composition("C", 1.26)
+            else:
+                saturatedAust.set_composition(element, data['Material']["Composition"][element])
         for i in range(boosts):
+            #calculation.with_right_boundary_condition(saturatedAust, to=boost_t*(i+1)+rest_t*i)
             calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
                                            .set_activity_for_element('C', str(1.0)), to=boost_t*(i+1)+rest_t*i)
             calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))

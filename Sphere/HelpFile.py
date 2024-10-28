@@ -165,9 +165,10 @@ def analyseTTTdatabase():
     TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
     print("Compositions in database")
     for key in TTTdata.keys():
-        print(TTTdata[key]["Composition"])
-        print(TTTdata[key]["Modeldata"])
-        print(TTTdata[key]["TTTdata"])
+        print(TTTdata[key]["TTTdata"].keys())
+        #print(TTTdata[key]["Composition"])
+        #print(TTTdata[key]["Modeldata"])
+        #print(TTTdata[key]["TTTdata"])
 
 def getTTTcompositions():
     roundingTTT = 1

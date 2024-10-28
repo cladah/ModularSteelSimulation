@@ -81,8 +81,8 @@ def looping():
     """
 
 
-    differentin = [["Thermo", "CNtemp", 1173.15], ["Thermo", "CNtemp", 973.15]]
-    saveloc = ["October2024_900C.xdmf", "October2024_700C.xdmf"]
+    differentin = [["Thermo", "CNtemp", 1173.15], ["Thermo", "CNtemp", 973.15], ["Thermo", "CNtime", 172800]]
+    saveloc = ["October2024_900C.xdmf", "October2024_700C.xdmf", "October2024_CN2Days.xdmf"]
 
     if len(differentin) != len(saveloc):
         raise KeyError("Wrong looping input")
@@ -103,7 +103,7 @@ def looping():
         modules.append(Carbonizationmodule())
         modules.append(TTTdiagrammodule())
         modules.append(Transformationmodelmodule())
-        modules.append(Quenchingmodule())
+        #modules.append(Quenchingmodule())
 
         for currentmodule in modules:
             currentmodule.run()
@@ -214,7 +214,7 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
         print(names)
         tmpdata = read_results_axis(filename, dataname, tid)
         xyz = read_results_axis(filename, "nodes")
-        plt.plot(xyz[:, 0], tmpdata)
+        plt.plot(xyz[:, 0]/1000, tmpdata)
     plt.legend(filenames)
     plt.title(dataname)
     #plt.xlabel("Time [s]")
@@ -301,21 +301,25 @@ def TCtest():
         print(session.get_databases())
 
 if __name__ == "__main__":
+    from TC_Error import TC_Dictra_Err
+    # TCtest()
     # testing()
     # ResultfileTest()
     # TCtest()
-    # modelling()
+    modelling()
     # DatastreamPlotting("Composition/C")
     # print(getnames_results("Resultfiles/October2024_ref.xdmf"))
-    checkDB()
+    #checkDB()
 
     # looping()
     # GUI()
     # DockerTest()
 
-    #dataname = "Composition/C"
+    # dataname = "Composition/C"
+    # ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
+    #                "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_CN2Days.xdmf"], dataname)
     #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-    #                "Datastream.xdmf", "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
+    #                "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
 
     # DatastreamPlotting("Composition/C")
 

@@ -178,11 +178,11 @@ def savedatastream(filename):
         print("Saved datastream to " + filename)
     except meshio._exceptions.ReadError:
         raise KeyError("No datastream to save, something went wrong")
-    try:
-        os.remove("Datastream.h5")
-        os.remove("Datastream.xdmf")
-    except:
-        print("Couldn't remove old datastream")
+    #try:
+    #    os.remove("Datastream.h5")
+    #    os.remove("Datastream.xdmf")
+    #except:
+    #    print("Couldn't remove old datastream")
 
 def createdatastreamcache(filename=None):
     try:
