@@ -126,7 +126,7 @@ def addTTTdata(compdata, data, type):
     if type not in ["TTTdata", "Modeldata"]:
         raise KeyError("Type can't be added to TTT database")
     from sqlitedict import SqliteDict
-    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    TTTdata = SqliteDict("MaterialDatabase/database.db", tablename="TTTdata", outer_stack=False)
     for oldkey in TTTdata.keys():
         if compdata == TTTdata[oldkey]["Composition"]:
             # if type in TTTdata[oldkey].keys():
@@ -152,7 +152,7 @@ def getTTTdata(compdata, type):
             compdata[key] = round(0.05 * round(compdata[key]/0.05), 2)
         elif compdata[key] != round(compdata[key], 1):
             compdata[key] = round(compdata[key], 1)
-    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    TTTdata = SqliteDict("MaterialDatabase/database.db", tablename="TTTdata", outer_stack=False)
     for key in TTTdata.keys():
         if compdata == TTTdata[key]["Composition"]:
             if type in TTTdata[key].keys():
@@ -162,48 +162,13 @@ def getTTTdata(compdata, type):
     print("Composition not in database")
 def analyseTTTdatabase():
 
-    TTTdata = SqliteDict("Resultfiles/database.db", tablename="TTTdata", outer_stack=False)
+    TTTdata = SqliteDict("MaterialDatabase/database.db", tablename="TTTdata", outer_stack=False)
     print("Compositions in database")
     for key in TTTdata.keys():
         print(TTTdata[key]["TTTdata"].keys())
         #print(TTTdata[key]["Composition"])
         #print(TTTdata[key]["Modeldata"])
         #print(TTTdata[key]["TTTdata"])
-
-def getTTTcompositions():
-    roundingTTT = 1
-    data = read_input()
-    TTTcompositions = list()
-    fullcomposition = dict()
-    for element in data['Material']['Composition'].keys():
-        fullcomposition[element] = getaxisvalues("Composition/" + element)
-    composition = data['Material']['Composition']
-
-    mesh = list()
-    # Trying to create grid of compositions
-    for element in data['Material']['Composition'].keys():
-        if composition[element] != fullcomposition[element][-1]:
-            if element == "C":
-                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
-            else:
-                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
-            tmplist = [round(elem, roundingTTT) for elem in tmplist]
-            tmplist = list(set(tmplist)) # getting unique values
-            tmplist.sort()
-        else:
-            tmplist = [composition[element]]
-        mesh.append(tmplist)
-
-    g = np.meshgrid(*mesh)
-    positions = np.vstack(list(map(np.ravel, g)))
-    for compnr in range(len(positions[0, :])):  # The number 0 here is correlated to the coal as it varies the most
-        tmpcomp = dict()
-        i = 0
-        for element in data['Material']['Composition'].keys():
-            tmpcomp[element] = round(positions[i, compnr], roundingTTT)
-            i = i+1
-        TTTcompositions.append(tmpcomp)
-    return TTTcompositions
 
 def setupSimulation():
     pass
