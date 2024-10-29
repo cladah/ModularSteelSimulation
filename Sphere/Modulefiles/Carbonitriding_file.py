@@ -1,8 +1,8 @@
 from .ModuleStructure_file import CalcModule
 import numpy as np
 from numpy import interp
-from Sphere.Datastream_file import readdatastreamcache, readdatastream, adjustdatastream
-from Sphere.HelpFile import read_input
+from Framework.Datastream_file import readdatastreamcache, readdatastream, adjustdatastream
+from Framework.HelpFile import read_input
 from .Solvers.ThermocalcSolver import TCequalibrium, TCcarbonitriding, TCcarburizing, TCcarburizing_LPC
 
 class Carbonizationmodule(CalcModule):
@@ -38,7 +38,7 @@ class Carbonizationmodule(CalcModule):
             if data["Thermo"]["CNPress"] > 10000:
                 composition = TCcarburizing(activityenv)
             else:
-                composition = TCcarburizing_LPC(activityenv, 20, 5, 5)
+                composition = TCcarburizing_LPC(activityenv, 7, 600, 1200)
             self.updateprogress(0.9)
 
             """

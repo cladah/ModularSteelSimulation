@@ -13,7 +13,7 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationm
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
-from Sphere.Modulefiles.Docker_file import rundocker
+from Framework.Modulefiles.Docker_file import rundocker
 
 from Datastream_file import getaxisvalues, readdatastream
 from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
@@ -301,7 +301,9 @@ def TCtest():
         print(session.get_databases())
 
 if __name__ == "__main__":
-    from TC_Error import TC_Dictra_Err
+    #from TC_Error import TC_Dictra_Err
+
+    #TC_Dictra_Err()
     # TCtest()
     # testing()
     # ResultfileTest()
@@ -315,9 +317,9 @@ if __name__ == "__main__":
     # GUI()
     # DockerTest()
 
-    # dataname = "Composition/C"
-    # ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-    #                "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_CN2Days.xdmf"], dataname)
+    #dataname = "Composition/C"
+    #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
+    #               "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_LPC_5h.xdmf"], dataname)
     #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
     #                "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
 

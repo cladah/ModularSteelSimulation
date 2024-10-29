@@ -6,7 +6,7 @@ class Quenchingmodule(CalcModule):
         super().__init__("Quenching")
 
     def run(self):
-        from Sphere.Modulefiles.Solvers.ComsolSolver import runComsol
+        from Framework.Modulefiles.Solvers.ComsolSolver import runComsol
 
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")

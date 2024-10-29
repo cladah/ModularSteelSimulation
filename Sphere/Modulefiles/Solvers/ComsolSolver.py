@@ -4,8 +4,8 @@ import mph
 import os
 import csv
 import numpy as np
-from Sphere.HelpFile import readresultfile, read_input
-from Sphere.Datastream_file import readdatastream, adjustdatastream, getaxisvalues
+from Framework.HelpFile import readresultfile, read_input
+from Framework.Datastream_file import readdatastream, adjustdatastream, getaxisvalues
 def modeldatatoComsolfiles():
     # print("Adjusting phase transformation data to Comsol specifics")
     # xyz = readdatastream("nodes")

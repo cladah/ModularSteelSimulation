@@ -1,4 +1,4 @@
-from Sphere.HelpFile import getTTTdata
+from Framework.HelpFile import getTTTdata
 import numpy as np
 def JMAKfit(composition, phase):
     TTTdata = getTTTdata(composition,"TTTdata")

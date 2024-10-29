@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from Sphere.HelpFile import read_input
+from Framework.HelpFile import read_input
 import json
 
 def read_input_result(filename):

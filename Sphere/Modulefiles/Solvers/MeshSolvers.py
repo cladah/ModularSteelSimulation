@@ -1,5 +1,5 @@
 import gmsh
-from Sphere.HelpFile import read_input
+from Framework.HelpFile import read_input
 import numpy as np
 import meshio
 import pygmsh

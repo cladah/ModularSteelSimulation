@@ -1,7 +1,7 @@
 import numpy as np
 from tc_python import *
-from Sphere.HelpFile import read_input
-from Sphere.Datastream_file import getaxisvalues
+from Framework.HelpFile import read_input
+from Framework.Datastream_file import getaxisvalues
 
 
 def rounding5(x, rnr=1):
@@ -152,10 +152,12 @@ def TCcarburizing(activityair):
                       .with_isothermal_diffusion_calculation()
                       .with_reference_state("C", "GRAPHITE_A9")
                       .set_temperature(data['Thermo']["CNtemp"])
-                      .set_simulation_time(data['Thermo']["CNtime"])
+                      .set_simulation_time(data['Thermo']["CNtime"]*2)
                       .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                     .set_activity_for_element('C', str(activityair[0])))
-                      .with_spherical_geometry().remove_all_regions()
+                                                     .set_activity_for_element('C', str(activityair[0])), to=data['Thermo']["CNtime"])
+                      .with_right_boundary_condition(BoundaryCondition.closed_system(), to=data['Thermo']["CNtime"]*2)
+
+                      .with_cylindrical_geometry().remove_all_regions()
                       .add_region(austenite))
         logging.getLogger("tc_python").setLevel(logging.INFO)
         result = calculation.calculate()
@@ -196,7 +198,7 @@ def TCcarbonitriding(activityair):
                       .set_temperature(data['Thermo']["CNtemp"])
 
                       .set_simulation_time(data['Thermo']["CNtime"])
-                      .with_spherical_geometry().remove_all_regions()
+                      .with_cylindrical_geometry().remove_all_regions()
                       .add_region(austenite))
         if data["Thermo"]["CNPress"] > 0.1:
             calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
@@ -277,7 +279,7 @@ def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
         for i in range(boosts):
             #calculation.with_right_boundary_condition(saturatedAust, to=boost_t*(i+1)+rest_t*i)
             calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                           .set_activity_for_element('C', str(1.0)), to=boost_t*(i+1)+rest_t*i)
+                                           .set_activity_for_element('C', str(activityair[0])), to=boost_t*(i+1)+rest_t*i)
             calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))
         logging.getLogger("tc_python").setLevel(logging.INFO)
         result = calculation.calculate()
@@ -504,34 +506,45 @@ def calculateMartensite(composition):
 def calculateFerrite(temperatures, composition):
     print("Ferrite model")
     data = read_input()
-    database = "TCFE12"
-    kindatabase = "MOBFE7"
+    database = "TCFE13"
+    kindatabase = "MOBFE8"
     dependentmat = data['Material']["Dependentmat"]
     #composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
-
+    tmpcomp = composition.copy()
+    if tmpcomp["N"] == 0.0:
+        print("Taking away nitrogen from calculation")
+        tmpcomp.pop('N', None)
     with TCPython() as start:
         calculation = (
             start
             .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
-                                                                      [dependentmat] + list(composition))
+                                                                      [dependentmat] + list(tmpcomp))
             .deselect_phase("*")
             .select_phase("FCC_A1")
             .select_phase("BCC_A2")
-            .select_phase("CEMENTITE")
+            #.select_phase("CEMENTITE")
             .get_system()
-            .with_property_model_calculation("Ferrite").set_temperature(1000).set_composition_unit(CompositionUnit.MASS_PERCENT)
+            .with_property_model_calculation("Ferrite")
+            .set_composition_unit(CompositionUnit.MASS_PERCENT)
+            .set_argument("Growth mode", "Orthoequilibrium (OE)")
+            .set_argument("GrainSize", "100")
+            .set_argument("GrainSize", "100")
             # .set_argument()
         )
-        for element in composition:
-            calculation.set_composition(element, composition[element])
+        for element in tmpcomp:
+            calculation.set_composition(element, tmpcomp[element])
 
-        # print("Available arguments: {}".format(calculation.get_arguments()))
+        print(calculation.get_model_description())
+        print("Available arguments: {}".format(calculation.get_arguments()))
         starttime, halftime, finishtime = list(), list(), list()
         for x in temperatures:
-            calc_result = (calculation.set_temperature(x)
-                           .calculate()  # Aktiverar beräkningen
-                           )
+            try:
+                calc_result = (calculation.set_temperature(x)
+                               .calculate()  # Aktiverar beräkningen
+                               )
+            except tc_python.exceptions.CalculationException:
+                print("TESTING")
             starttime.append(calc_result.get_value_of("Ferrite start"))
             halftime.append(calc_result.get_value_of("Ferrite half"))
             finishtime.append(calc_result.get_value_of("Ferrite finish"))

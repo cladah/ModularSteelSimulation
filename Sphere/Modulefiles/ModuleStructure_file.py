@@ -1,5 +1,5 @@
-from Sphere.Datastream_file import read_input
-from Sphere.HelpFile import checkruncondition, adjustinputcache
+from Framework.Datastream_file import read_input
+from Framework.HelpFile import checkruncondition, adjustinputcache
 
 
 class CalcModule:

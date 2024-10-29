@@ -1,6 +1,6 @@
 from .ModuleStructure_file import CalcModule
-from Sphere.HelpFile import saveresult, checkruncondition, getTTTdata, addTTTdata, read_input
-from Sphere.Datastream_file import readdatastream, adjustdatastream, readdatastreamcache
+from Framework.HelpFile import saveresult, checkruncondition, getTTTdata, addTTTdata, read_input
+from Framework.Datastream_file import readdatastream, adjustdatastream, readdatastreamcache
 from .Solvers.ThermocalcSolver import getTTTcompositions
 from .Solvers.TTTmodelfit import JMAKfit, KMfit
 import numpy as np

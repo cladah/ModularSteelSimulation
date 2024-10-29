@@ -1,6 +1,6 @@
 from .ModuleStructure_file import CalcModule
 from .Solvers.ThermocalcSolver import getTTTcompositions
-from Sphere.HelpFile import getTTTdata, addTTTdata
+from Framework.HelpFile import getTTTdata, addTTTdata
 from .Solvers.ThermocalcSolver import calculatePearlite, calculateBainite, calculateFerrite, calculateMartensite
 import numpy as np
 
