@@ -101,8 +101,8 @@ def looping():
         modules = list()
         modules.append(Meshingmodule())
         modules.append(Carbonizationmodule())
-        modules.append(TTTdiagrammodule())
-        modules.append(Transformationmodelmodule())
+        # modules.append(TTTdiagrammodule())
+        # modules.append(Transformationmodelmodule())
         #modules.append(Quenchingmodule())
 
         for currentmodule in modules:
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     # testing()
     # ResultfileTest()
     # TCtest()
-    modelling()
+    # modelling()
     # DatastreamPlotting("Composition/C")
     # print(getnames_results("Resultfiles/October2024_ref.xdmf"))
     #checkDB()
@@ -317,9 +317,9 @@ if __name__ == "__main__":
     # GUI()
     # DockerTest()
 
-    #dataname = "Composition/C"
-    #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-    #               "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_LPC_5h.xdmf"], dataname)
+    dataname = "Composition/C"
+    ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
+                   "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_LPC_5h.xdmf"], dataname)
     #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
     #                "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
 
