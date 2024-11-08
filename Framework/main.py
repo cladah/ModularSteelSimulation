@@ -13,7 +13,7 @@ from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationm
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
-from Framework.Modulefiles.Docker_file import rundocker
+from Framework.Modulefiles.Docker_file import rundocker, rundocker_1D
 
 from Datastream_file import getaxisvalues, readdatastream
 from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
@@ -147,22 +147,23 @@ def modelling():
 
 def DockerTest():
     print("Running Docker testing env")
-    mod = Meshingmodule()
-    mod.run()
-    rundocker()
+    #mod = Meshingmodule()
+    #mod.run()
+    #rundocker()
+    rundocker_1D()
     pass
 
 
 if __name__ == "__main__":
     if True:
-        from Modulefiles.Solvers.MeshSolvers import gmsh1D
-        gmsh1D()
+        # from Modulefiles.Solvers.MeshSolvers import gmsh1D
+        # gmsh1D()
         # modelling()
         # Result_GUI_show("Datastream.xdmf")
         # checkDB()
         # looping()
         # GUI()
-        # DockerTest()
+        DockerTest()
         # 
     if False:
         Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")

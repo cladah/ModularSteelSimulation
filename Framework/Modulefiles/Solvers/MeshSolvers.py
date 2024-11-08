@@ -48,6 +48,8 @@ def gmsh1D():
     gmsh.model.mesh.generate(gdim)
     gmsh.model.mesh.setOrder(1)
     # ----------------------
+    if not os.path.exists("Resultfiles"):
+        os.makedirs("Resultfiles")
     gmsh.write("Resultfiles/FNXMesh.msh")
     print(*gmsh.logger.get(), sep="\n")
     print(gmsh.model.mesh.get_elements())
