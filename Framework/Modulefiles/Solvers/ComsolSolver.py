@@ -635,6 +635,9 @@ def adjustComsol(model):
 
     #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
+    model.component("comp1").physics("audc").feature("ptran1").set("temperaturelimits", True)
+    model.component("comp1").physics("audc").feature("ptran2").set("temperaturelimits", True)
+    model.component("comp1").physics("audc").feature("ptran3").set("temperaturelimits", True)
     model.component("comp1").physics("audc").feature("ptran3").set("Tl", "20[degC]")
     model.component("comp1").physics("audc").feature("ptran3").set("Tu", "600[degC]")
     model.component("comp1").physics("audc").feature("ptran2").set("Tl", "20[degC]")
@@ -663,17 +666,22 @@ def Comsolexport(model):
                    "epl11", "epl12", "epl22", "epl23", "epl13", "epl33",
                    "sxx", "sxy", "sxz", "syy", "syz", "szz", "sp1", "sp2", "sp3",
                    "T", "Austenite", "Ferrite", "Pearlite", "Bainite", "Martensite"]
+
+    #resultdata = ["audc.phase1.xi", "audc.phase5.xi"]
+    #resultnames = ["Austenite", "Martensite"]
+    #resultdata = ["audc.phase5.xi", "audc.phase1.xi", "audc.phase2.xi", "audc.phase3.xi", "audc.phase4.xi"]
+    #resultnames = ["Martensite", "Austenite", "Ferrite", "Pearlite", "Bainite"]
     model.result().export().create("data1", "Data")
     model.result().export("data1").set("filename", "tmpComsol.csv")
-    model.result().export("data1").setIndex("looplevelinput", "all", 0)
-    model.result().export("data1").set("resolution", "custom")
-    model.result().export("data1").set("lagorder", "2")
-    # model.result().export("data1").set("header", False)
     data_dict = {}
     indx = ""
     for i in range(len(resultdata)):
         print("Exporting " + str(resultnames[i]))
+        model.result().export("data1").setIndex("looplevelinput", "all", 0)
+        model.result().export("data1").set("resolution", "custom")
+        model.result().export("data1").set("lagorder", "2")
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
+        model.result().export("data1").set("sort", True)
         model.result().export("data1").run()
 
 
@@ -698,14 +706,27 @@ def Comsolexport(model):
             data = np.array(data).astype(float)
             if isinstance(indx, str):
                 indx = getComsolindx(x, y)
+            print(np.shape(data))
 
-
+        # Adding data into dictionary
         for j in range(len(time)):
             if str(time[j]) not in data_dict.keys():
                 data_dict[str(time[j])] = dict()
             data_dict[str(time[j])][resultnames[i]] = data[indx, j]
     print("")
-    # print(data_dict.keys())
+    print("Result shapes")
+    print(np.shape(data_dict["600"]["Martensite"]))
+    print(np.shape(data_dict["600"]["Austenite"]))
+
+    import matplotlib.pyplot as plt
+    xdata = readdatastream("nodes")[:, 0]
+    print(data_dict["600"]["Martensite"])
+    plt.plot(xdata, data_dict["600"]["Martensite"], 'o')
+    plt.plot(xdata, data_dict["600"]["Austenite"], 'ro')
+    plt.show()
+
+
+
     # input("")
     # data_dict as [time][name]
     save_dict = dict()
@@ -744,10 +765,14 @@ def Comsolexport(model):
         save_dict[str(time[j])]["PrincipalStress"] = pstress
 
 
+
+
     for i in range(len(time)):
         adjustdatastream(save_dict[str(time[i])], t_data=time[i])
         print("Exported timestep " + time[i])
+
 def getComsolindx(xdata, ydata):
+    print("Getting comcol indx")
     xdata = np.array(xdata).astype(float)
     ydata = np.array(ydata).astype(float)
     nodes = readdatastream("nodes")
@@ -858,12 +883,10 @@ def runComsol(parent):
     #model.util.ModelUtil.showProgress(savedirec + "/Comsolprogress.txt")
     print("Adjusting model to input")
     model = adjustComsol(model)
+    model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.3)
     print("Running model")
-    # model.study("std1").feature("time").set("tlist", "range(0,1,30),range(60,60,600)")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(1,1,60),range(100,100,600)")
-    # model.study("std1").feature("time").set("tlist", "range(0,0.1,1)")
-    #model.util.ModelUtil.showProgress("testlogger.txt")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(2,1,60),range(100,100,600)")
     model.study("std1").run()
     model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)

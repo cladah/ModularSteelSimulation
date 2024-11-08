@@ -86,12 +86,12 @@ class resultTab(ctk.CTkFrame):
         if dataname == "Phasecomp":
             fig.gca().set_prop_cycle('color', colors)
             for i in range(len(data[1])):
-                plot1.plot(data[0], data[1][i])
+                plot1.plot(data[0]*1000, data[1][i])
             plot1.legend(["Martensite", "Austenite", "Bainite", "Ferrite", "Pearlite"])
         elif dataname == "Matcomp":
             fig.gca().set_prop_cycle('color', colors)
             for i in range(len(data[1])):
-                plot1.plot(data[0], data[1][i])
+                plot1.plot(data[0]*1000, data[1][i])
             plot1.legend(["C", "N", "Cr", "Ni", "Si"])
         elif len(np.shape(data[1])) == 3:
             #print("Testing")
@@ -120,12 +120,95 @@ class resultTab(ctk.CTkFrame):
             plot1.plot(data[0], data[1])
             plot1.legend(leg)
         else:
+
             fig.gca().set_prop_cycle('color', colors)
             plot1.plot(data[0], np.transpose(data[1]))
             plot1.legend(leg)
 
         plot1.set_xlabel(xlbl)
         plot1.set_ylabel(ylbl)
+
+
+        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas.draw()
+        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        toolbar = NavigationToolbar2Tk(canvas, self, pack_toolbar=False)
+        toolbar.grid(row=1, column=0, sticky="nsew")
+        toolbar.update()
+        canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+class CCTTab(ctk.CTkFrame):
+    def __init__(self, master, datadict):
+        super().__init__(master)
+        leg = ["Ferrite", "", "Bainite", "", "Pearlite", "", "Martensite", ""]
+        #colors = ['#CC2929', '#CC2929', '#CCCC29', '#CCCC29', '#29CC29', '#29CC29', '#29CCCC', '#29CCCC', '#2929CC', '#2929CC']
+        colors = ['#29CCCC', '#29CCCC', '#29CC29', '#29CC29', '#2929CC', '#2929CC', '#CC2929', '#CC2929']
+        CCTdata = ['JMAK_tau_Ferrite', 'JMAK_n_Ferrite', 'JMAK_tau_Bainite', 'JMAK_n_Bainite', 'JMAK_tau_Pearlite',
+                   'JMAK_n_Pearlite', 'KM_Ms_Martensite', 'KM_b_Martensite']
+        Tgrid = np.linspace(0, 1000, 100)
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        mpl.rcParams["font.size"] = 32
+        fig, plots = plt.subplots(1, 2)
+        fig.set_dpi(50)
+        fig.set_figwidth(5)
+        fig.set_figheight(4)
+
+        self.tabs_frame = ctk.CTkTabview(self)
+        self.tabs_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        plots[0].set_prop_cycle('color', colors)
+        plots[1].set_prop_cycle('color', colors)
+
+        for phase in ["Ferrite", "Bainite", "Pearlite"]:
+            z1 = datadict["JMAK_tau_" + phase][1][0, :]
+            z2 = datadict["JMAK_n_" + phase][1][0, :]
+            p1 = np.poly1d(z1)
+            p2 = np.poly1d(z2)
+            finish = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** (1 / 3.)
+            start = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** (1 / 3.)
+            indx = [i for i, v in enumerate(finish) if v < 1E12]
+            finish = finish[indx]
+            start = start[indx]
+            X = Tgrid[indx]
+            plots[0].plot(start, X - 273.15, label=phase)
+            plots[0].plot(finish, X - 273.15, linestyle="dashed")
+        z1 = datadict["KM_Ms_Martensite"][1][0]
+        z2 = datadict["KM_b_Martensite"][1][0]
+        start = z1 + np.log(0.98) / z2 - 273.15
+        finish = z1 + np.log(0.02) / z2 - 273.15
+        plots[0].plot([0.1, 1E12], [start, start], label=phase)
+        plots[0].plot([0.1, 1E12], [finish, finish], linestyle="dashed")
+
+
+        for phase in ["Ferrite", "Bainite", "Pearlite"]:
+            z1 = datadict["JMAK_tau_" + phase][1][-1, :]
+            z2 = datadict["JMAK_n_" + phase][1][-1, :]
+            p1 = np.poly1d(z1)
+            p2 = np.poly1d(z2)
+            finish = np.array(np.exp(p1(Tgrid))) * (-np.log(0.02)) ** (1 / 3.)
+            start = np.array(np.exp(p1(Tgrid))) * (-np.log(0.98)) ** (1 / 3.)
+            indx = [i for i, v in enumerate(finish) if v < 1E12]
+            finish = finish[indx]
+            start = start[indx]
+            X = Tgrid[indx]
+            plots[1].plot(start, X - 273.15, label=phase)
+            plots[1].plot(finish, X - 273.15, linestyle="dashed")
+        z1 = datadict["KM_Ms_Martensite"][1][-1]
+        z2 = datadict["KM_b_Martensite"][1][-1]
+        start = z1 + np.log(0.98) / z2 - 273.15
+        finish = z1 + np.log(0.02) / z2 - 273.15
+        plots[1].plot([0.1, 1E12], [start, start], label=phase)
+        plots[1].plot([0.1, 1E12], [finish, finish], linestyle="dashed")
+
+        plots[0].title.set_text("Core TTT")
+        plots[1].title.set_text("Surface TTT")
+        for i in range(2):
+
+            plots[i].legend(leg)
+            plots[i].set_xscale('log')
+            plots[i].set_xlabel('Time [s]')
+            plots[i].set_ylabel('Temperature [degC]')
+            plots[i].set_ylim([0, 900])
 
 
         canvas = FigureCanvasTkAgg(fig, master=self)
@@ -175,8 +258,13 @@ class resultFrame(ctk.CTkFrame):
         excl_comp = ["Composition/C", "Composition/N", 'Composition/Cr', 'Composition/Mn', 'Composition/Ni', 'Composition/Mo', 'Composition/Si']
         excl_phases = ["Austenite", "Bainite", "Ferrite", "Pearlite"]
         tabs = list(getnames_results(filename))
+        if 'JMAK_tau_Ferrite' in tabs:
+            CCT = True
+        else:
+            CCT = False
         tabs = [i for i in tabs if i not in excl and i not in excl_comp and i not in excl_phases]
         allpoints = read_results(filename, "nodes")
+
 
         radius = np.max(allpoints[:, 0])
         points = [[0, 0, 0],
@@ -225,6 +313,13 @@ class resultFrame(ctk.CTkFrame):
                 tmpdata = np.transpose(np.array(alldata_dict[tabs[i]][1]))
             tab0 = self.tabs_frame.add(tabs[i])
             tab0frame = resultTab(tab0, tabs[i], [alldata_dict[tabs[i]][0], tmpdata], points_leg)
+            tab0.rowconfigure(0, weight=1)
+            tab0.columnconfigure(0, weight=1)
+            tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        if CCT:
+            print("CCT frame")
+            tab0 = self.tabs_frame.add("CCT")
+            tab0frame = CCTTab(tab0, alldata_dict)
             tab0.rowconfigure(0, weight=1)
             tab0.columnconfigure(0, weight=1)
             tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")

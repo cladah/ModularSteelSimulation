@@ -1,18 +1,18 @@
 {
   "Rerun": {
-    "All": false,
+    "All": true,
     "Meshing": false,
     "Carbonitriding": false,
     "Carburization": false,
-    "TTT": true,
-    "Transformationmodels": true,
-    "Quenching": false,
+    "TTT": false,
+    "Transformationmodels": false,
+    "Quenching": true,
     "Tempering": false,
     "Fatigue": false
   },
   "Datastream": {
-    "Savedirect": "October2024_Test.xdmf",
-    "Cachedirect": "Resultfiles/October2024_Test.xdmf"
+    "Savedirect": "Test",
+    "Cachedirect": "Resultfiles/October2024_LPC_4h.xdmf"
   },
   "Geometry": {
     "radius": 0.008,
@@ -504,10 +504,10 @@
   "Thermo": {
     "GrainSize": 100.0,
     "Austenitizingtemp": 1073.15,
-    "CNtemp": 1200,
-    "CNenv": "Methane",
-    "CNtime": 28800,
-    "CNPress": 100000.0,
+    "CNtemp": 1323.15,
+    "CNenv": "Acetylene",
+    "CNtime": 86400,
+    "CNPress": 3000.0,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 10,

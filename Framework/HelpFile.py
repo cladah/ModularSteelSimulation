@@ -173,3 +173,19 @@ def analyseTTTdatabase():
 def setupSimulation():
     pass
 
+
+def get_plotlbls(dataname):
+    xlbls = ["Radius [mm]", "Time [s]"]
+    ylbls = ["Weight [%]", "Stress [Pa]", "Strain [-]", "? [?]"]
+
+    if "Composition" in dataname:
+        xlbl = xlbls[0]
+        ylbl = ylbls[0]
+    elif dataname == "Stress":
+        xlbl = xlbls[1]
+        ylbl = ylbls[1]
+    else:
+        xlbl = xlbls[1]
+        ylbl = ylbls[-1]
+
+    return xlbl, ylbl

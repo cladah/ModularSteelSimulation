@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from tc_python import *
 from Framework.HelpFile import read_input
@@ -238,57 +240,76 @@ def TCcarburizing_LPC(activityair, boosts, boost_t, rest_t):
     """
     data = read_input()
     with TCPython() as session:
-        logging.getLogger("tc_python").setLevel(logging.ERROR)
+        logging.getLogger("tc_python").setLevel(logging.INFO)
         system = (session
-                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
+                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE13", "MOBFE8",
                                                                             [data['Material']["Dependentmat"]] + list(
                                                                                 data['Material']["Composition"]))
                   .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase(
             "FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
                   .get_system())
 
-        austenite = Region("Austenite")
-        austenite.set_width(data['Geometry']["radius"])
-        austenite.with_grid(CalculatedGrid.geometric()
-                            .set_no_of_points(data['Geometry']["nodes"])
-                            .set_geometrical_factor(data['Geometry']['meshscaling']))
-        austenite.add_phase("FCC_A1")
-        austenite.add_phase("FCC_A1#2")
-        austenite.add_phase("CEMENTITE_D011")
+
+
+
+        #austenite.add_phase("FCC_A1#2")
+        #austenite.add_phase("CEMENTITE_D011")
         austeniteprofile = CompositionProfile()
         for element in data['Material']["Composition"]:
             austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
-        austenite.with_composition_profile(austeniteprofile)
-        total_t = boost_t*boosts + rest_t*boosts
-        calculation = (system
-                       .with_isothermal_diffusion_calculation()
-                       .with_reference_state("C", "GRAPHITE_A9")
-                       .set_temperature(data['Thermo']["CNtemp"])
-                       .set_simulation_time(total_t)
-                       .with_cylindrical_geometry().remove_all_regions()
-                       .add_region(austenite))
-        comp = data['Material']["Composition"]
 
-        saturatedAust = BoundaryCondition.fixed_compositions()
-        for element in data['Material']["Composition"]:
-            if element == "C":
-                print(element)
-                saturatedAust.set_composition("C", 1.26)
-            else:
-                saturatedAust.set_composition(element, data['Material']["Composition"][element])
+        austenite = (Region("Austenite").set_width(data['Geometry']["radius"])
+                     .with_grid(CalculatedGrid.geometric()
+                                .set_no_of_points(data['Geometry']["nodes"])
+                                .set_geometrical_factor(data['Geometry']['meshscaling']))
+                     .with_composition_profile(austeniteprofile)
+                     .add_phase("FCC_A1"))
+
+        BC_Diffusion = BoundaryCondition.mixed_zero_flux_and_activity().set_zero_flux_for_element("C")
+        BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.0))
+
+        total_t = boost_t*boosts + rest_t*boosts
+        print(boost_t)
+        boost_calculation = (system
+                             .with_isothermal_diffusion_calculation()
+                             .with_reference_state("C", "GRAPHITE_A9")
+                             .set_temperature(data['Thermo']["CNtemp"])
+                             .with_cylindrical_geometry()
+                             .remove_all_regions()
+                             .add_region(austenite)
+                             .with_right_boundary_condition(BC_Boost)
+                             .set_simulation_time(boost_t))
+        results_boost = boost_calculation.calculate()
+        print(boost_t + rest_t)
+        # First diffusion
+        diffusion_calculation = (results_boost.with_continued_calculation()
+                                 .with_right_boundary_condition(BC_Diffusion)
+                                 .set_simulation_time(boost_t + rest_t))
+        results_diffusion = diffusion_calculation.calculate()
+
         for i in range(boosts):
-            #calculation.with_right_boundary_condition(saturatedAust, to=boost_t*(i+1)+rest_t*i)
-            calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                           .set_activity_for_element('C', str(activityair[0])), to=boost_t*(i+1)+rest_t*i)
-            calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))
-        logging.getLogger("tc_python").setLevel(logging.INFO)
-        result = calculation.calculate()
+            if i == 0:
+                continue
+            # Boost cycle
+            print(boost_t*(i+1)+rest_t*(i))
+            boost_calculation = (results_diffusion.with_continued_calculation()
+                                 .with_right_boundary_condition(BC_Boost)
+                                 .set_simulation_time(boost_t*(i+1)+rest_t*i))
+            results_boost = boost_calculation.calculate()
+            # Diffusion cycle
+            print(boost_t*(i+1)+rest_t*(i+1))
+            diffusion_calculation = (results_boost.with_continued_calculation()
+                                     .with_right_boundary_condition(BC_Diffusion)
+                                     .set_simulation_time(boost_t*(i+1) + rest_t*(i+1)))
+            results_diffusion = diffusion_calculation.calculate()
+
+
         mass_frac = dict()
         composition = []
         composition.append(data['Material']["Dependentmat"])
         composition.append(data['Material']["Composition"])
         for element in data['Material']["Composition"]:
-            distance, mass_frac_temp = result.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
+            distance, mass_frac_temp = results_diffusion.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
             mass_frac[element] = mass_frac_temp
         return distance, mass_frac
 
@@ -529,25 +550,27 @@ def calculateFerrite(temperatures, composition):
             .set_composition_unit(CompositionUnit.MASS_PERCENT)
             .set_argument("Growth mode", "Orthoequilibrium (OE)")
             .set_argument("GrainSize", "100")
-            .set_argument("GrainSize", "100")
             # .set_argument()
         )
         for element in tmpcomp:
             calculation.set_composition(element, tmpcomp[element])
 
-        print(calculation.get_model_description())
-        print("Available arguments: {}".format(calculation.get_arguments()))
+        # print(calculation.get_model_description())
+        # print("Available arguments: {}".format(calculation.get_arguments()))
         starttime, halftime, finishtime = list(), list(), list()
         for x in temperatures:
             try:
                 calc_result = (calculation.set_temperature(x)
                                .calculate()  # Aktiverar beräkningen
                                )
+                starttime.append(calc_result.get_value_of("Ferrite start"))
+                halftime.append(calc_result.get_value_of("Ferrite half"))
+                finishtime.append(calc_result.get_value_of("Ferrite finish"))
             except tc_python.exceptions.CalculationException:
-                print("TESTING")
-            starttime.append(calc_result.get_value_of("Ferrite start"))
-            halftime.append(calc_result.get_value_of("Ferrite half"))
-            finishtime.append(calc_result.get_value_of("Ferrite finish"))
+                print("No result")
+                starttime.append(np.nan)
+                halftime.append(np.nan)
+                finishtime.append(np.nan)
         # print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return starttime, halftime, finishtime
 def calculateTTT(temperatures, composition):

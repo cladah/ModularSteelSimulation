@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from CGUImodule import MainApp
 from Result_GUI import Result_MainApp, Compare_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
-from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input, analyseTTTdatabase
+from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input, analyseTTTdatabase, get_plotlbls
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
@@ -17,7 +17,7 @@ from Framework.Modulefiles.Docker_file import rundocker
 
 from Datastream_file import getaxisvalues, readdatastream
 from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
-
+from Postprocessing.dataextraction import DatastreamPlotting, ResultPlotting, export_data
 
 def progressmonitor(tid, module):
     """
@@ -132,10 +132,10 @@ def modelling():
 
     modules = list()
     modules.append(Meshingmodule())
-    modules.append(Carbonizationmodule())
-    modules.append(TTTdiagrammodule())
-    modules.append(Transformationmodelmodule())
-    modules.append(Quenchingmodule())
+    #modules.append(Carbonizationmodule())
+    #modules.append(TTTdiagrammodule())
+    #modules.append(Transformationmodelmodule())
+    #modules.append(Quenchingmodule())
 
     for currentmodule in modules:
         currentmodule.run()
@@ -152,90 +152,6 @@ def DockerTest():
     rundocker()
     pass
 
-
-def xmdftesting():
-
-    t_data = 0
-
-    with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
-        points, cells = reader.read_points_cells()
-        pd_list, cd_list, t_list = list(), list(), list()
-        for k in range(reader.num_steps):
-            t, point_data, cell_data = reader.read_data(k)
-            t_list.append(t)
-            pd_list.append(point_data)
-            cd_list.append(cell_data)
-    print(len(pd_list[0]["Composition/C"]))
-    print(np.array(np.ones((len(pd_list[0]["Composition/C"]), 5))))
-
-    data = {"ones":np.array(np.ones((len(pd_list[0]["Composition/C"]), 5)))}
-    data = {"ones":np.array([[1,1,1,1,1,1] for i in range(len(pd_list[0]["Composition/C"]))])}
-
-    if t_data not in t_list:
-        t_list.append(t_data)
-        pd_list.append(data)
-        cd_list.append({})
-    else:
-        indx = t_list.index(t_data)
-        for key in data.keys():
-            pd_list[indx][key] = data[key]
-
-    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-        writer.write_points_cells(points, cells)
-        for i in range(len(t_list)):
-            writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
-
-
-def ResultfileTest():
-    import matplotlib.pyplot as plt
-    import csv
-    import pandas as pd
-    def smoothen(x, winsize=5):
-        return np.array(pd.Series(x).rolling(winsize).mean())[winsize - 1:]
-
-    with open("Resultfiles/Testing.txt", 'r') as file:
-        #reader = csv.reader(file, delimiter="\t")
-        r = []
-        y = []
-        for row in file.readlines():
-            row = row.split()
-            r.append(np.sqrt(float(row[0])**2+float(row[1])**2))
-            y.append(float(row[2]))
-        r, y = zip(*sorted(zip(r, y)))
-        plt.plot(smoothen(r,50), smoothen(y,50))
-        plt.show()
-
-
-def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
-    import matplotlib.pyplot as plt
-    for filename in filenames:
-        names = getnames_results(filename)
-        print("Results in " + filename)
-        print(names)
-        tmpdata = read_results_axis(filename, dataname, tid)
-        xyz = read_results_axis(filename, "nodes")
-        plt.plot(xyz[:, 0]/1000, tmpdata)
-    plt.legend(filenames)
-    plt.title(dataname)
-    #plt.xlabel("Time [s]")
-    #plt.ylabel("Temperature [degC]")
-    plt.rcParams.update({'font.size': 30})
-    plt.show()
-    print("Done")
-
-
-def checkDB():
-    analyseTTTdatabase()
-
-
-def DatastreamPlotting(dataname):
-    import matplotlib.pyplot as plt
-    filename = "Datastream.xdmf"
-    print(getnames_results("Datastream.xdmf"))
-    y = read_results_axis(filename, dataname)
-    x = read_results_axis(filename, "nodes")
-    plt.plot(x[:, 0], y)
-    plt.show()
 
 def TCtest():
     version = '2022b'
@@ -300,34 +216,22 @@ def TCtest():
             'Lists the databases: (should be a complete list of the installed databases that you have license for or do not require license)')
         print(session.get_databases())
 
+
 if __name__ == "__main__":
-    #from TC_Error import TC_Dictra_Err
+    if True:
+        modelling()
+        Result_GUI_show("Datastream.xdmf")
+        # checkDB()
+        # looping()
+        # GUI()
+        # DockerTest()
+        # 
+    if False:
+        Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
+        # export_data("Resultfiles/October2024_LPC_4h_2.xdmf", "vonMises", -1)
 
-    #TC_Dictra_Err()
-    # TCtest()
-    # testing()
-    # ResultfileTest()
-    # TCtest()
-    # modelling()
-    # DatastreamPlotting("Composition/C")
-    # print(getnames_results("Resultfiles/October2024_ref.xdmf"))
-    #checkDB()
-
-    # looping()
-    # GUI()
-    # DockerTest()
-
-    dataname = "Composition/C"
-    ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-                   "Resultfiles/October2024_700C.xdmf", "Resultfiles/October2024_LPC_5h.xdmf"], dataname)
-    #ResultPlotting(["Resultfiles/October2024_900C.xdmf", "Resultfiles/October2024_Ref.xdmf",
-    #                "Resultfiles/October2024_LPC.xdmf","Resultfiles/October2024_LPC_4h.xdmf"], dataname)
-
-    # DatastreamPlotting("Composition/C")
-
-    # Result_GUI_show("Resultfiles/October2024_900C.xdmf")
-    # Result_GUI_show("Resultfiles/October2024_LPC.xdmf")
-
-
-    #data = read_input()
-    #savedatastream(data["Datastream"]["Savedirect"])
+    if False:
+        files = ["Resultfiles/October2024_LPC_Test2.xdmf", "Resultfiles/October2024_Test.xdmf"]
+        dataname = "Composition/C"
+        ResultPlotting(files, dataname)
+    pass
