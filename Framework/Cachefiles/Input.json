@@ -11,7 +11,7 @@
     "Fatigue": false
   },
   "Datastream": {
-    "Savedirect": "Test",
+    "Savedirect": "Test.xdmf",
     "Cachedirect": "Resultfiles/October2024_LPC_4h.xdmf"
   },
   "Geometry": {
