@@ -30,6 +30,7 @@ class Quenchingmodule(CalcModule):
 
                 if self.program == 'FCSx':
                     print('FeniCSx not implemented')
+
                     # rundocker(self)
                 elif self.program == 'Comsol':
                     print('Using COMSOL for FEM calculation')

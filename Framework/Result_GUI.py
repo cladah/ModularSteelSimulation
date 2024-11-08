@@ -202,6 +202,10 @@ class CCTTab(ctk.CTkFrame):
 
         plots[0].title.set_text("Core TTT")
         plots[1].title.set_text("Surface TTT")
+        if "T" in datadict.keys():
+            plots[0].plot(datadict["T"][0], np.array(datadict["T"][1])[:, 0]-273.15, label="Temperature", color="k")
+            plots[1].plot(datadict["T"][0], np.array(datadict["T"][1])[:, -1]-273.15, label="Temperature", color="k")
+            leg.append("Temperature")
         for i in range(2):
 
             plots[i].legend(leg)

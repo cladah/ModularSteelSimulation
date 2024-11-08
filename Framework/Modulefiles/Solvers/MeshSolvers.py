@@ -5,7 +5,53 @@ import meshio
 import pygmsh
 import os
 
+def gmsh1D():
+    print('Remeshing 1D')
 
+    data = read_input()
+    r = data['Geometry']['radius']
+    tmpgeo = [data['Geometry']['meshscaling'] ** i for i in range(data['Geometry']['nodes'] - 1)]
+    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(data['Geometry']['nodes'] - 1)])
+    rnodes = r * tmpgeo / np.max(tmpgeo)
+    lc = rnodes[-1] - rnodes[-2]
+    gmsh.initialize()
+    gmsh.option.setNumber("General.Terminal", 0)
+    gmsh.logger.start()
+
+    gmsh.clear()
+    gmsh.model.add("Line")
+    gdim = 1
+    gmsh.option.setNumber("Geometry.Tolerance", 1.E-6)
+
+    # Adding three points
+    gmsh.model.occ.addPoint(0, 0, 0, 1)
+    gmsh.model.occ.addPoint(r, 0, 0, lc, 2)
+
+    # Adding lines and a curveloop between points
+    gmsh.model.occ.addLine(1, 2, 1)
+
+    # Adding surface between lines
+    gmsh.model.occ.synchronize()
+
+    # Physical group for surface
+    gmsh.model.addPhysicalGroup(1, [1], 1, 'Radius')
+
+    # Geometric scaling of mesh
+    gmsh.model.mesh.set_transfinite_curve(1, data['Geometry']['nodes'], 'Progression',
+                                          data['Geometry']['meshscaling'])
+
+    # Defining element order
+    # gmsh.model.mesh.set_order(2)
+    # gmsh.model.mesh.recombine()
+
+    # Generating mesh
+    gmsh.model.mesh.generate(gdim)
+    gmsh.model.mesh.setOrder(1)
+    # ----------------------
+    gmsh.write("Resultfiles/FNXMesh.msh")
+    print(*gmsh.logger.get(), sep="\n")
+    print(gmsh.model.mesh.get_elements())
+    gmsh.finalize()
 def gmshsolver(parent):
     print('Meshing with Gmsh')
 
