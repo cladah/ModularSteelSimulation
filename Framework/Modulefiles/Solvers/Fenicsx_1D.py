@@ -271,6 +271,7 @@ def FNX():
         )
         with io.XDMFFile(mesh.comm, out_file, "a") as xdmf:
             xdmf.write_function(u, n + 1)
+
 def FNXTest():
     # +
     from dolfinx import log, default_scalar_type
@@ -321,6 +322,14 @@ def FNXTest():
     v = ufl.TestFunction(V)
     u = fem.Function(V)
 
+    Temp = fem.Function(V)
+    Temp.name = "Temperature"
+    dTemp = ufl.TestFunction(V)
+
+    sig = fem.Function(V)
+
+
+
     # Define kinematic quantities used in the problem
 
     # +
@@ -358,6 +367,14 @@ def FNXTest():
     # To illustrate the difference between linear and hyperelasticity, the following lines can be uncommented to solve the linear elasticity problem.
     # ```
 
+    def sig(eps_el):
+        return lmbda * ufl.tr(eps_el) * ufl.Identity(3) + 2 * mu * eps_el
+
+    def eps(v):
+        e = ufl.sym(ufl.grad(v))
+        return e
+
+
     # +
     # P = 2.0 * mu * ufl.sym(ufl.grad(u)) + lmbda * ufl.tr(ufl.sym(ufl.grad(u))) * I
     # -
@@ -366,6 +383,13 @@ def FNXTest():
 
     metadata = {"quadrature_degree": 4}
     dx = ufl.Measure("dx", domain=domain, metadata=metadata)
+
+    #f = fem.Constant(domain, default_scalar_type(0))
+    #a = Temp * dTemp * dx + dt * ufl.dot(ufl.grad(Temp), ufl.grad(dTemp)) * dx
+    #L = (u_n + dt * f) * v * dx
+    #bilinear_form = fem.form(a)
+    #linear_form = fem.form(L)
+
     # Define form F (we want to find u such that F(u) = 0)
     F = ufl.inner(ufl.grad(v), P) * dx - ufl.inner(v, B) * dx
 
@@ -403,6 +427,8 @@ def FNXTest():
         u.x.scatter_forward()
         print(f"Time step {n}, Number of iterations {num_its}, Load {T.value}")
         print(u.x.array[0::6])
+
+        print(fem.Expression(sig(eps(u)), u.x).eval(domain))
         #print(magnitude.x.array)
 
     # <img src="./deformation.gif" alt="gif" class="bg-primary mb-1" width="800px">
