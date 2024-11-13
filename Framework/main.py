@@ -143,34 +143,30 @@ def modelling():
 
     removedatastreamcache()
     savedatastream(data["Datastream"]["Savedirect"])
-
+    Result_GUI_show("Datastream.xdmf")
 
 def DockerTest():
     print("Running Docker testing env")
-    #mod = Meshingmodule()
-    #mod.run()
     #rundocker()
     rundocker_1D()
     pass
-
+def vtxfile_test():
+    pass
 
 if __name__ == "__main__":
     if True:
-        # from Modulefiles.Solvers.MeshSolvers import gmsh1D
-        # gmsh1D()
         # modelling()
-        # Result_GUI_show("Datastream.xdmf")
         # checkDB()
         # looping()
         # GUI()
         DockerTest()
-        # 
+        #
     if False:
         Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
         # export_data("Resultfiles/October2024_LPC_4h_2.xdmf", "vonMises", -1)
 
     if False:
-        files = ["Resultfiles/October2024_LPC_Test2.xdmf", "Resultfiles/October2024_Test.xdmf"]
+        files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
         dataname = "Composition/C"
         ResultPlotting(files, dataname)
     pass

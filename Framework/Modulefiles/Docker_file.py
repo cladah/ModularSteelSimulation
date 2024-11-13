@@ -11,8 +11,8 @@ def rundocker():
 
     if 1 == 1:
         client = docker.from_env()
-        print('Creating docker container\n') # dokken92/dolfinx_mpc # dolfinx/dolfinx:v0.8.0
-        container = client.containers.run('ghcr.io/jorgensd/dolfinx_mpc:v0.8.1', ["python3", "Modulefiles/Solvers/Fenicsx_test.py"],
+        print('Creating docker container\n') # dokken92/dolfinx_mpc # dolfinx/dolfinx:v0.8.0 # ghcr.io/jorgensd/dolfinx_mpc:v0.8.1
+        container = client.containers.run('dolfinx/dolfinx:v0.9.1', ["python3", "Modulefiles/Solvers/Fenicsx_test.py"],
                                           detach=True,
                                           auto_remove=True,
                                           #tty=True,
@@ -50,7 +50,7 @@ def rundocker_1D():
 
     if 1 == 1:
         client = docker.from_env()
-        print('Creating docker container') # dokken92/dolfinx_mpc # dolfinx/dolfinx:v0.8.0
+        print('Creating docker container') # dokken92/dolfinx_mpc # dolfinx/dolfinx:v0.8.0 # dolfinx/dolfinx:stable
         container = client.containers.run('ghcr.io/jorgensd/dolfinx_mpc:v0.8.1', ["python3", "Modulefiles/Solvers/Fenicsx_1D.py"],
                                           detach=True,
                                           auto_remove=True,
