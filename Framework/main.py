@@ -151,7 +151,28 @@ def DockerTest():
     rundocker_1D()
     pass
 def vtxfile_test():
+    from adios2 import FileReader
+
+    with FileReader("FeniCSx/beam_stress.bp") as s:
+        # inspect variables
+        vars = s.available_variables()
+        for name, info in vars.items():
+            print("variable_name: " + name, end=" ")
+            for key, value in info.items():
+                print("\t" + key + ": " + value, end=" ")
+            print()
+        print()
     pass
+
+def FCSxfile_test():
+    with meshio.xdmf.TimeSeriesReader("FeniCSx/beam_stress.xdmf") as reader:
+        #points, cells = reader.read_points_cells()
+        for k in range(reader.num_steps):
+            print(k)
+            print(reader.domain)
+            #t, point_data, cell_data = reader.read_data(k)
+            #datanames = point_data.keys()
+            #print(datanames)
 
 if __name__ == "__main__":
     if True:
@@ -160,7 +181,8 @@ if __name__ == "__main__":
         # looping()
         # GUI()
         DockerTest()
-        #
+        # vtxfile_test()
+        # FCSxfile_test()
     if False:
         Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
         # export_data("Resultfiles/October2024_LPC_4h_2.xdmf", "vonMises", -1)

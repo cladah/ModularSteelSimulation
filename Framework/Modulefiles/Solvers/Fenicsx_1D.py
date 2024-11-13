@@ -27,6 +27,52 @@ from ufl import (
 from basix.ufl import element
 from dolfinx.io import XDMFFile, gmshio
 import gmsh  # type: ignore
+import meshio
+
+def createxdmf():
+    filename = "FCSX.xdmf"
+    mesh = meshio.read("FeniCSx/FCSX_Mesh.msh")
+    print(mesh.get_cells_type)
+    with meshio.xdmf.TimeSeriesWriter(filename) as writer:
+        writer.write_points_cells(points=mesh.points, cells={"line": mesh.get_cells_type("line")})
+        writer.write_data(0, cell_data={})
+
+def adjustxdmf(data, datapos="nodes", t_data=0.0):
+    # Adding data to xdmf file
+    try:
+        if type(data) == dict:
+            pass
+        else:
+            raise TypeError
+    except TypeError:
+        raise KeyError("datatype for datastream storage should be a dict")
+
+    try:
+        with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+            points, cells = reader.read_points_cells()
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
+    except meshio._exceptions.ReadError:
+        raise KeyError("No meshgrid for timeseries")
+    if t_data not in t_list:
+        t_list.append(t_data)
+        pd_list.append(data)
+        cd_list.append({})
+    else:
+        indx = t_list.index(t_data)
+        for key in data.keys():
+            pd_list[indx][key] = data[key]
+    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
+        writer.write_points_cells(points, cells)
+        for i in range(len(t_list)):
+            writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
+    #print("Added " + str(dataname) + " to datastream")
+    return
+
 def gmsh1D():
 
     print('Remeshing 1D')
@@ -65,12 +111,15 @@ def gmsh1D():
     #gmsh.model.mesh.setOrder(1)
     # ----------------------
     print(*gmsh.logger.get(), sep="\n")
+    gmsh.write("FeniCSx/FCSX_Mesh.msh")
     print("Created 1D mesh for FenicsX")
 
     return gmsh.model
 
 def FNX():
     gmshmodel = gmsh1D()
+    createxdmf(gmshmodel.mesh)
+    return
     gdim = 3
     mode = "w"
     gmsh_model_rank = 0
@@ -286,13 +335,15 @@ def FNXTest():
 
     # Creating calculation grid
     gmshmodel = gmsh1D()
+    createxdmf()
+
     gdim = 3
     gmsh_model_rank = 0
     mesh_comm = MPI.COMM_WORLD
     domain, ct, facets = gmshio.model_to_mesh(gmshmodel, mesh_comm, gmsh_model_rank, gdim=gdim)
     V = fem.functionspace(domain, ("Lagrange", 2, (gdim,)))
-    VT = fem.functionspace(domain, ("Lagrange", 1, (gdim, gdim)))
-    Vscal = fem.functionspace(domain, ("Lagrange", 1, (1,)))
+    VT = fem.functionspace(domain, ("Lagrange", 2, (gdim, gdim)))
+    Vscal = fem.functionspace(domain, ("Lagrange", 2, (1,)))
     x = SpatialCoordinate(domain)
 
     # Elasticity parameters
@@ -322,8 +373,8 @@ def FNXTest():
     circ_dofs = fem.locate_dofs_geometrical(V, circ)
     center_bc = np.array((0,) * domain.geometry.dim, dtype=default_scalar_type)
     # V.sub(0)
-    bcs = [fem.dirichletbc(u_bc, center_dofs, V), fem.dirichletbc(u_bc, circ_dofs, V)]
-    #bcs = [fem.dirichletbc(u_bc, center_dofs, V)]
+    #bcs = [fem.dirichletbc(u_bc, center_dofs, V), fem.dirichletbc(u_bc, circ_dofs, V)]
+    bcs = [fem.dirichletbc(u_bc, center_dofs, V)]
 
     # Next, we define the body force on the reference configuration (`B`), and nominal (first Piola-Kirchhoff) traction (`T`).
     BodF = fem.Constant(domain, default_scalar_type((0, 0, 0)))
@@ -372,7 +423,7 @@ def FNXTest():
     F_cyl = ufl.variable(I + ufl.as_tensor([[gradxyz[0, 0], (gradxyz[0, 1] - u[1])/x[0], gradxyz[0, 2]],
                                             [gradxyz[1, 0], (gradxyz[1, 1] - u[0])/x[0], gradxyz[1, 2]/x[0]],
                                             [gradxyz[2, 0], gradxyz[2, 1]/x[0], gradxyz[2, 2]]]))
-    F = F
+    F = F_cyl
     # Right Cauchy-Green tensor
     C = ufl.variable(F.T * F)
 
@@ -427,15 +478,20 @@ def FNXTest():
     u_sol_val.interpolate(u_sol)
 
 
-    eps_el_expr = fem.Expression(eps(u), VT.element.interpolation_points())
+    eps_el_expr = fem.Expression(ufl.as_tensor(eps(u)), VT.element.interpolation_points())
     eps_el_val = fem.Function(VT)
     eps_el_val.name = "Elastic strain"
     eps_el_val.interpolate(eps_el_expr)
 
-    sigma_expr = fem.Expression(sigma.expression(), VT.element.interpolation_points())
+    sigma_expr = fem.Expression(ufl.as_tensor(sigma.expression()), VT.element.interpolation_points())
     sigma_val = fem.Function(VT)
     sigma_val.name = "Stress"
     sigma_val.interpolate(sigma_expr)
+
+    test_expr = fem.Expression(ufl.as_tensor(sigma.expression()), VT.element.interpolation_points())
+    test_val = fem.Function(VT)
+    test_val.name = "Stress"
+    test_val.interpolate(sigma_expr)
 
     def get_values_scalar(var):
         tmpexpr = fem.Expression(var, Vscal.element.interpolation_points())
@@ -470,10 +526,13 @@ def FNXTest():
 
     metadata = {"quadrature_degree": 2}
     dx = ufl.Measure("dx", domain=domain, metadata=metadata)
+    #dr = ufl.Measure("dr", domain=domain, metadata=metadata)
+    #print(f"Cylinder volume: {2 * np.pi * fem.assemble(fem.Constant(domain, 1.0) * x[0] * dx(domain=domain))}")
 
     # Define form F (we want to find u such that F(u) = 0)
     Form = ufl.inner(ufl.grad(v), P) * dx - ufl.inner(v, BodF) * dx
-
+    # Cylindrical form?
+    Form = 2 * np.pi * ufl.inner(ufl.grad(v), P) * x[0] * dx - 2 * np.pi * ufl.inner(v, BodF) * x[0] * dx
     # As the varitional form is non-linear and written on residual form, we use the non-linear problem class from DOLFINx to set up required structures to use a Newton solver.
 
     problem = NonlinearProblem(Form, u, bcs)
@@ -511,12 +570,13 @@ def FNXTest():
         eps_el_val.interpolate(eps_el_expr)
         u_sol_val.interpolate(u_sol)
         magnitude.interpolate(us)
+        test_val(test_expr)
         #print(stress.x.array)
         #print(fem.Expression(sig(eps(u)), u.x).eval(domain))
         #print(magnitude.x.array)
-    get_values(E_GL)
+    #get_values(E_GL)
     #get_values(sigma)
-    get_values_vector(u)
+    #get_values_vector(u)
 
     from pathlib import Path
     results_folder = Path("FeniCSx")
@@ -526,31 +586,32 @@ def FNXTest():
     with io.VTXWriter(domain.comm, filename.with_suffix(".bp"), results) as vtx:
         vtx.write(0.0)
 
-    # from adios2 import FileReader
-    # from adios2 import Stream
-    # import adios4dolfinx as adx
-    return
-    fullfile = filename.with_suffix(".bp")
-    import adios2
-
-    print(fullfile)
-    with adios2.open(fullfile, "r") as fr:
-        # Loop through each variable in the file
-        for variable_name in fr.available_variables():
-            # Inquire and read the variable
-            data = fr.read(variable_name)
-            print(f"Variable: {variable_name}")
-            print(f"Data: {data}\n")
-    return
-
-
     #with dolfinx.io.XDMFFile(MPI.COMM_WORLD, "beam_stress.xdmf", "w") as xdmf:
     #    xdmf.write_mesh(domain)
     #    #xdmf.write_function(u_sol_val, "Displacement")
     #    xdmf.write_function(sigma_val, "Stress")
     #with io.XDMFFile(domain.comm, filename.with_suffix(".xdmf"), "w") as xdmf:
     #    xdmf.write_mesh(domain)
-    #    xdmf.write_function(u_sol_val)
+    #    xdmf.write_function(test_val)
+    print("Data")
+    print(eps_el_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :])
+    #print(np.shape(sigma_val.x.array.reshape(-1, gdim, gdim)))
+    #print(V.element.interpolation_points())
+    geom = fem.Function(V)
+    geom_exp = fem.Expression(x, V.element.interpolation_points())
+    geom.interpolate(geom_exp)
+    #print(geom.x.array.reshape(-1, gdim)[2::2, :])
+    #sigma_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :]
+    #adjustxdmf()
+    import meshio
+
+    with meshio.xdmf.TimeSeriesReader("FCSX.xdmf") as reader:
+        points, cells = reader.read_points_cells()
+        for k in range(reader.num_steps):
+            t, point_data, cell_data = reader.read_data(k)
+            datanames = point_data.keys()
+            print(datanames)
+
     # <img src="./deformation.gif" alt="gif" class="bg-primary mb-1" width="800px">
 def Solverloop(Du, sig):
     while nRes / nRes0 > tol and niter < Nitermax:
