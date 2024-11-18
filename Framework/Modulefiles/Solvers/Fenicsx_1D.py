@@ -787,23 +787,77 @@ def FNXTest_1D():
     print("Displacements")
     print(u_sol_val.x.array[indx])
     print(sigma_T[indx])
-    #print(fem.assemble(E_GL))
-    #print(np.shape(sigma_val.x.array.reshape(-1, gdim, gdim)))
-    #print(V.element.interpolation_points())
+
     geom = fem.Function(V)
     geom_exp = fem.Expression(x, V.element.interpolation_points())
     geom.interpolate(geom_exp)
     #print(geom.x.array.reshape(-1, gdim)[2::2, :])
     #sigma_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :]
     #adjustxdmf()
+    sigma_T = sigma_val.x.array.reshape(-1, gdim, gdim)
+
+
+    test_V = fem.functionspace(domain, ("Lagrange", 1, (3, 3)))
+
+    sigma_expr = fem.Expression(ufl.as_tensor(sigma.expression()), test_V.element.interpolation_points())
+    testinterpolation = fem.Function(test_V)
+    testinterpolation.name = "Stress"
+    testinterpolation.interpolate(sigma_expr)
+
+    with io.VTXWriter(domain.comm, filename.with_suffix(".bp"), [testinterpolation]) as vtx:
+        vtx.write(0.0)
+
+    with io.XDMFFile(domain.comm, "FCSX.xdmf", "w") as xdmf:
+        xdmf.write_mesh(domain)
+        #sigma_T.name = "Stress"
+        #xdmf.write_function(u_sol_val)
+        xdmf.write_function(testinterpolation, 0.0)
+
+    import meshio
+    try:
+        with meshio.xdmf.TimeSeriesReader("FCSX.xdmf") as reader:
+            reader.read_data(0)
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
+        print("RESULTS")
+        print(t_list)
+        print(cd_list)
+        print(pd_list)
+    except meshio._exceptions.ReadError:
+        raise KeyError("No meshgrid for timeseries")
+
+    return
+    # Example
+
+
+    with io.XDMFFile(domain.comm, filename.with_suffix(".xdmf"), "w") as xdmf:
+        xdmf.write_mesh(domain)
+        xdmf.write_function(uh)
+
+
     import meshio
 
-    with meshio.xdmf.TimeSeriesReader("FCSX.xdmf") as reader:
-        points, cells = reader.read_points_cells()
-        for k in range(reader.num_steps):
-            t, point_data, cell_data = reader.read_data(k)
-            datanames = point_data.keys()
-            print(datanames)
+
+    try:
+        with meshio.xdmf.TimeSeriesReader("FCSX.xdmf") as reader:
+            points, cells = reader.read_points_cells()
+            pd_list, cd_list, t_list = list(), list(), list()
+            for k in range(reader.num_steps):
+                t, point_data, cell_data = reader.read_data(k)
+                t_list.append(t)
+                pd_list.append(point_data)
+                cd_list.append(cell_data)
+    except meshio._exceptions.ReadError:
+        raise KeyError("No meshgrid for timeseries")
+    t_list.append(1.0)
+    indx_nodes = [0,2,4,6,8]
+    with meshio.xdmf.TimeSeriesWriter("FCSX.xdmf") as writer:
+        writer.write_points_cells(points, cells)
+        writer.write_data(t=1.0, point_data={"sigmaXX": sigma_val.x.array[0::9][indx][indx_nodes]})
 
 if __name__ == "__main__":
     FNXTest_1D()
