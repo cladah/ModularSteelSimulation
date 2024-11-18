@@ -580,13 +580,13 @@ def FNXTest_1D():
 
     # Deformation gradient
     #F = ufl.variable(I + ufl.grad(u))
-    #gradxyz = ufl.grad(u)
+    gradxyz = ufl.grad(u)
     #F_cyl = ufl.variable(I + ufl.as_tensor([[gradxyz[0, 0], (gradxyz[0, 1] - u[1])/x[0], gradxyz[0, 2]],
     #                                        [gradxyz[1, 0], (gradxyz[1, 1] + u[0])/x[0], gradxyz[1, 2]/x[0]],
     #                                        [gradxyz[2, 0], gradxyz[2, 1]/x[0], gradxyz[2, 2]]]))
-    F_cyl = ufl.variable(I + ufl.as_tensor([[u[0]*x[0], 0, 0],
-                                            [0, u[0]/x[0], 0],
-                                            [0, 0, 0]]))
+    F_cyl = ufl.variable(I + ufl.as_tensor([[gradxyz[0, 0], 0,          0],
+                                            [0,             u[0]/x[0],  0],
+                                            [0,             0,          -nu/(1-nu)*(gradxyz[0, 0] + u[0]/x[0])]]))
     #F_cyl = ufl.variable(I + ufl.as_tensor([[gradxyz[0, 0], (gradxyz[0, 1] - u[1]) / x[0], 0],
     #                                        [gradxyz[1, 0], (gradxyz[1, 1] + u[0]) / x[0], 0],
     #                                        [0, 0, 0]]))
@@ -698,19 +698,28 @@ def FNXTest_1D():
     #print(f"Cylinder volume: {2 * np.pi * fem.assemble(fem.Constant(domain, 1.0) * x[0] * dx(domain=domain))}")
 
     # Define form F (we want to find u such that F(u) = 0)
-    tmp = ufl.variable(ufl.grad(v))
-    print(np.shape(tmp))
-    gradv = ufl.as_tensor([[tmp,0,0],[0,0,0],[0,0,0]])
+    tmp = ufl.grad(v)
+    print("Shape" + str(np.shape(tmp)))
+    print(tmp)
+    gradv = ufl.as_tensor([[tmp[0, 0], 0, 0], [0, 0, 0], [0, 0, 0]])
+    gradv = ufl.as_tensor([[tmp[0, 0], 0,          0],
+                           [0,             v[0]/x[0],  0],
+                           [0,             0,          -nu/(1-nu)*(tmp[0, 0] + v[0]/x[0])]])
     testing = ufl.inner(gradv, P)
+    testing2 = ufl.inner(v, BodF)
     print(testing)
-    Form = ufl.inner(ufl.as_tensor([[ufl.grad(v),0,0],[0,0,0],[0,0,0]]), P) * x[0] * dx - ufl.inner(v, BodF) * x[0] * dx
+    print(testing2)
+
+    Form = ufl.inner(gradv, P) * x[0] * dx - ufl.inner(v, BodF) * x[0] * dx
+    print(Form)
+
     # Cylindrical form?
     #Form = ufl.inner(sigma(u), epsilon(v)) * ufl.dx - ufl.dot(f, v) * ufl.dx
-    F_form = ufl.derivative(Pi, u, v)
-    J_form = ufl.derivative(F_form, u)
+    #F_form = ufl.derivative(Pi, u, v)
+    #J_form = ufl.derivative(F_form, u)
     # Form = 2 * np.pi * ufl.inner(ufl.grad(v), P) * x[0] * dx - 2 * np.pi * ufl.inner(v, BodF) * x[0] * dx
     # As the varitional form is non-linear and written on residual form, we use the non-linear problem class from DOLFINx to set up required structures to use a Newton solver.
-    problem = NonlinearProblem(F_form, u, bcs, J=J_form)
+    #problem = NonlinearProblem(F_form, u, bcs, J=J_form)
     problem = NonlinearProblem(Form, u, bcs)
 
     # and then create and customize the Newton solver
@@ -725,9 +734,9 @@ def FNXTest_1D():
     # We create a function to plot the solution at each time step.
 
     # Compute magnitude of displacement to visualize in GIF
-    magnitude = fem.Function(Vscal)
-    us = fem.Expression(ufl.sqrt(sum([u[i] ** 2 for i in range(len(u))])), Vscal.element.interpolation_points())
-    magnitude.interpolate(us)
+    #magnitude = fem.Function(Vscal)
+    #us = fem.Expression(ufl.sqrt(sum([u[i] ** 2 for i in range(len(u))])), Vscal.element.interpolation_points())
+    #magnitude.interpolate(us)
     # -
 
     #stress = fem.functionspace(V, "P", 2)
@@ -745,7 +754,6 @@ def FNXTest_1D():
         sigma_val.interpolate(sigma_expr)
         eps_el_val.interpolate(eps_el_expr)
         u_sol_val.interpolate(u_sol)
-        magnitude.interpolate(us)
         test_val(test_expr)
         #print(stress.x.array)
         #print(fem.Expression(sig(eps(u)), u.x).eval(domain))
@@ -753,7 +761,6 @@ def FNXTest_1D():
     #get_values(E_GL)
     #get_values(sigma)
     #get_values_vector(u)
-
     from pathlib import Path
     results_folder = Path("FeniCSx")
     results_folder.mkdir(exist_ok=True, parents=True)
@@ -773,15 +780,12 @@ def FNXTest_1D():
     #print(eps_el_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :])
     #print(sigma_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :])
     sigma_T = sigma_val.x.array.reshape(-1, gdim, gdim)
-    elementnr = 4
-    indx = np.array([0, 2, 1], dtype='int')
-    for i in range(elementnr-1):
-        indx = np.concatenate([indx, np.add(int(2*i), [4, 3])])
-        print(indx)
     print(eps_el_val.x.array[0::9][indx])
     print(sigma_val.x.array[0::9][indx])
     print(sigma_val.x.array[4::9][indx])
     print(sigma_val.x.array[8::9][indx])
+    print("Displacements")
+    print(u_sol_val.x.array[indx])
     print(sigma_T[indx])
     #print(fem.assemble(E_GL))
     #print(np.shape(sigma_val.x.array.reshape(-1, gdim, gdim)))
