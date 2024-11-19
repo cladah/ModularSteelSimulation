@@ -35,7 +35,8 @@ def createxdmf():
     print(mesh.get_cells_type)
     with meshio.xdmf.TimeSeriesWriter(filename) as writer:
         writer.write_points_cells(points=mesh.points, cells={"line": mesh.get_cells_type("line")})
-        writer.write_data(0, cell_data={})
+        #writer.write_data(0, cell_data={})
+
 
 def adjustxdmf(data, datapos="nodes", t_data=0.0):
     # Adding data to xdmf file
@@ -151,10 +152,14 @@ def gmsh1D_Really1D():
 
     # Generating mesh
     gmsh.model.mesh.generate(gdim)
-    #gmsh.model.mesh.setOrder(1)
+    gmsh.model.mesh.setOrder(1)
     # ----------------------
     print(*gmsh.logger.get(), sep="\n")
+    print(gmsh.model.mesh.get_elements())
+
     gmsh.write("FeniCSx/FCSX_Mesh.msh")
+    tmpmesh = meshio.gmsh.read("FeniCSx/FCSX_Mesh.msh")
+    print(tmpmesh.get_cells_type("line"))
     print("Created 1D mesh for FenicsX")
 
     return gmsh.model
@@ -483,29 +488,32 @@ def FNXTest_1D():
     from mpi4py import MPI
     from dolfinx import fem, mesh, plot
     import basix
-
+    import meshio
+    print("Inside FNXTesting")
     # Creating calculation grid
     gmshmodel = gmsh1D_Really1D()
+
     createxdmf()
+
 
     gdim = 1
     gmsh_model_rank = 0
     mesh_comm = MPI.COMM_WORLD
     domain, ct, facets = gmshio.model_to_mesh(gmshmodel, mesh_comm, gmsh_model_rank, gdim=gdim)
-    V = fem.functionspace(domain, ("Lagrange", 2, (1,)))
-    VT = fem.functionspace(domain, ("Lagrange", 2, (3, 3)))
-    Vscal = fem.functionspace(domain, ("Lagrange", 2, (1,)))
+    V = fem.functionspace(domain, ("DG", 1, (1,)))
+    VT = fem.functionspace(domain, ("DG", 1, (3, 3)))
+    Vscal = fem.functionspace(domain, ("DG", 1, (1,)))
     x = SpatialCoordinate(domain)
 
     geom = fem.Function(V)
     geom_exp = fem.Expression(x, V.element.interpolation_points())
     geom.interpolate(geom_exp)
     elementnr = 4
-    indx = np.array([0, 2, 1], dtype='int')
-    for i in range(elementnr - 1):
-        indx = np.concatenate([indx, np.add(int(2 * i), [4, 3])])
-    print(geom.x.array[indx])
-
+    #indx = np.array([0, 2, 1], dtype='int')
+    #for i in range(elementnr - 1):
+    #    indx = np.concatenate([indx, np.add(int(2 * i), [4, 3])])
+    print(geom.x.array)
+    indx = [0,1,2,3]
 
     # Elasticity parameters
     E = default_scalar_type(200.0e9)
@@ -698,20 +706,13 @@ def FNXTest_1D():
     #print(f"Cylinder volume: {2 * np.pi * fem.assemble(fem.Constant(domain, 1.0) * x[0] * dx(domain=domain))}")
 
     # Define form F (we want to find u such that F(u) = 0)
-    tmp = ufl.grad(v)
-    print("Shape" + str(np.shape(tmp)))
-    print(tmp)
-    gradv = ufl.as_tensor([[tmp[0, 0], 0, 0], [0, 0, 0], [0, 0, 0]])
+    tmp  = ufl.grad(v)
     gradv = ufl.as_tensor([[tmp[0, 0], 0,          0],
                            [0,             v[0]/x[0],  0],
                            [0,             0,          -nu/(1-nu)*(tmp[0, 0] + v[0]/x[0])]])
-    testing = ufl.inner(gradv, P)
-    testing2 = ufl.inner(v, BodF)
-    print(testing)
-    print(testing2)
 
     Form = ufl.inner(gradv, P) * x[0] * dx - ufl.inner(v, BodF) * x[0] * dx
-    print(Form)
+
 
     # Cylindrical form?
     #Form = ufl.inner(sigma(u), epsilon(v)) * ufl.dx - ufl.dot(f, v) * ufl.dx
@@ -741,23 +742,55 @@ def FNXTest_1D():
 
     #stress = fem.functionspace(V, "P", 2)
     #stress.interpolate(stress_exp)
-    # Finally, we solve the problem over several time steps, updating the z-component of the traction
 
-    log.set_log_level(log.LogLevel.INFO)
-    tval0 = 1e9
-    for n in range(1, 10):
-        BodF.value[0] = n * tval0
-        num_its, converged = solver.solve(u)
-        assert (converged)
-        u.x.scatter_forward()
-        print(f"Time step {n}, Number of iterations {num_its}, Load {BodF.value}")
-        sigma_val.interpolate(sigma_expr)
-        eps_el_val.interpolate(eps_el_expr)
-        u_sol_val.interpolate(u_sol)
-        test_val(test_expr)
-        #print(stress.x.array)
-        #print(fem.Expression(sig(eps(u)), u.x).eval(domain))
-        #print(magnitude.x.array)
+    with meshio.xdmf.TimeSeriesReader("FCSX.xdmf") as reader:
+        points, cells = reader.read_points_cells()
+        pd_list, cd_list, t_list = list(), list(), list()
+        for k in range(reader.num_steps):
+            t, point_data, cell_data = reader.read_data(k)
+            t_list.append(t)
+            pd_list.append(point_data)
+            cd_list.append(cell_data)
+
+    #test_V = fem.functionspace(domain, ("DG", 0, (3, 3)))
+    test_V = fem.functionspace(domain, ("Lagrange", 1, (3, 3)))
+    # test_V = fem.functionspace(domain, ("Lagrange", 2, (3, 3)))
+    sigma_expr = fem.Expression(ufl.as_tensor(sigma.expression()), test_V.element.interpolation_points())
+    testinterpolation = fem.Function(test_V)
+    testinterpolation.name = "Stress"
+    testinterpolation.interpolate(sigma_expr)
+
+    # Finally, we solve the problem over several time steps, updating the z-component of the traction
+    #with meshio.xdmf.TimeSeriesWriter("FCSX.xdmf") as writer:
+    #    writer.write_points_cells(points, cells)
+    #    print("This works")
+    print(indx)
+    with meshio.xdmf.TimeSeriesWriter("FCSX.xdmf", data_format='XML') as writer:
+        writer.write_points_cells(points, cells)
+        #writer.write_data(0.1, point_data={"stress": testinterpolation.x.array.reshape(-1, 3, 3)})
+
+        log.set_log_level(log.LogLevel.INFO)
+        tval0 = 1e9
+        for n in range(1, 10):
+            BodF.value[0] = n * tval0
+            num_its, converged = solver.solve(u)
+            assert (converged)
+            u.x.scatter_forward()
+            print(f"Time step {n}, Number of iterations {num_its}, Load {BodF.value}")
+            #sigma_val.interpolate(sigma_expr)
+            #eps_el_val.interpolate(eps_el_expr)
+            #u_sol_val.interpolate(u_sol)
+            #test_val(test_expr)
+            testinterpolation.interpolate(sigma_expr)
+            a = testinterpolation.x.array.reshape(-1, 3, 3)
+            a[np.isnan(a)] = 0
+            print(a)
+            #print(tuple(tuple(i.reshape(-1)) for i in testinterpolation.x.array.reshape(-1, 3, 3)))
+            writer.write_data(float(n), point_data={"stress": a})
+            #print(stress.x.array)
+            #print(fem.Expression(sig(eps(u)), u.x).eval(domain))
+            #print(magnitude.x.array)
+    return
     #get_values(E_GL)
     #get_values(sigma)
     #get_values_vector(u)
@@ -780,13 +813,16 @@ def FNXTest_1D():
     #print(eps_el_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :])
     #print(sigma_val.x.array.reshape(-1, gdim, gdim)[2::2, :, :])
     sigma_T = sigma_val.x.array.reshape(-1, gdim, gdim)
-    print(eps_el_val.x.array[0::9][indx])
+    #print(eps_el_val.x.array[0::9][indx])
+    print("Stress R direction")
     print(sigma_val.x.array[0::9][indx])
+    print("Stress Phi direction")
     print(sigma_val.x.array[4::9][indx])
-    print(sigma_val.x.array[8::9][indx])
+    # Sigma Z
+    # print(sigma_val.x.array[8::9][indx])
     print("Displacements")
     print(u_sol_val.x.array[indx])
-    print(sigma_T[indx])
+    #print(sigma_T[indx])
 
     geom = fem.Function(V)
     geom_exp = fem.Expression(x, V.element.interpolation_points())
@@ -797,26 +833,26 @@ def FNXTest_1D():
     sigma_T = sigma_val.x.array.reshape(-1, gdim, gdim)
 
 
-    test_V = fem.functionspace(domain, ("Lagrange", 1, (3, 3)))
 
-    sigma_expr = fem.Expression(ufl.as_tensor(sigma.expression()), test_V.element.interpolation_points())
-    testinterpolation = fem.Function(test_V)
-    testinterpolation.name = "Stress"
-    testinterpolation.interpolate(sigma_expr)
 
     with io.VTXWriter(domain.comm, filename.with_suffix(".bp"), [testinterpolation]) as vtx:
         vtx.write(0.0)
 
+    print(np.shape(testinterpolation.x.array.reshape(-1, 3, 3)))
+    # THIS IS THE ERROR! Domain returns polyline theat doesn't work inside meshio
+
+
+    """
     with io.XDMFFile(domain.comm, "FCSX.xdmf", "w") as xdmf:
         xdmf.write_mesh(domain)
         #sigma_T.name = "Stress"
         #xdmf.write_function(u_sol_val)
         xdmf.write_function(testinterpolation, 0.0)
-
+    """
     import meshio
     try:
         with meshio.xdmf.TimeSeriesReader("FCSX.xdmf") as reader:
-            reader.read_data(0)
+            reader.read_points_cells()
             pd_list, cd_list, t_list = list(), list(), list()
             for k in range(reader.num_steps):
                 t, point_data, cell_data = reader.read_data(k)
