@@ -71,12 +71,15 @@ def create_mesh(data):
 
     return gmsh.model
 
+
 def create_xdmf():
     print('Creating temporary XDMF for FeniCSx specifics')
     filename = "FCSX.xdmf"
+    cell_type = "line"
+
     mesh = meshio.read("FeniCSx/FCSX_Mesh.msh")
     with meshio.xdmf.TimeSeriesWriter(filename) as writer:
-        writer.write_points_cells(points=mesh.points, cells={"line": mesh.get_cells_type("line")})
+        writer.write_points_cells(points=mesh.points, cells={cell_type: mesh.get_cells_type(cell_type)})
     print("Created temporary XDMF for FeniCSx")
 
 def cyl_grad(v, x, nu):
@@ -118,6 +121,8 @@ def Run_1D():
     # Fixed boundary condition
     u_bc = np.array((0,) * domain.geometry.dim, dtype=default_scalar_type)
 
+    def deltaT(tmpT):
+        return tmpT-TRef
     def center(dofs):
         return np.isclose(dofs[0], 0)
 
@@ -163,6 +168,7 @@ def Run_1D():
 
     # Deformation gradient
     gradxyz = ufl.grad(u)
+    #eps_th = I*alpha*deltaT(Temp)
     F_cyl = ufl.variable(I + ufl.as_tensor([[gradxyz[0, 0], 0, 0],
                                             [0, u[0] / x[0], 0],
                                             [0, 0, -nu / (1 - nu) * (gradxyz[0, 0] + u[0] / x[0])]]))
@@ -224,7 +230,11 @@ def Run_1D():
 
     # Define form F (we want to find u such that F(u) = 0)
     Form = ufl.inner(cyl_grad(v, x, nu), P) * x[0] * dx - ufl.inner(v, BodF) * x[0] * dx
-
+    """
+    therm_form = (cV * (dTheta - Thetaold) / dt * Theta_ +
+                  kappa * T0 * tr(eps(du - uold)) / dt * Theta_ +
+                  dot(k * grad(dTheta), grad(Theta_))) * dx
+    """
     # As the varitional form is non-linear and written on residual form, we use the non-linear problem class from DOLFINx to set up required structures to use a Newton solver.
     problem = NonlinearProblem(Form, u, bcs)
 
@@ -246,7 +256,10 @@ def Run_1D():
         tval0 = 1e9
         for n in range(1, 10):
             BodF.value[0] = n * tval0
-            num_its, converged = solver.solve(u)
+            try:
+                num_its, converged = solver.solve(u)
+            except Exception as e:
+                print(e)
             assert (converged)
             u.x.scatter_forward()
             print(f"Time step {n}, Number of iterations {num_its}, Load {BodF.value}")
