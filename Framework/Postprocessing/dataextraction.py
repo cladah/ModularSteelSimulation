@@ -28,13 +28,16 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
     plt.show()
     print("Done")
 
-def export_data(filename, dataname, t=0):
-
+def export_data(filename, datanames, t=0, n=1):
+    if type(datanames) != list:
+        datanames = [datanames]
     import pandas as pd
-    y = read_results_axis(filename, dataname, t)
     x = read_results_axis(filename, "nodes")[:, 0]
-    datadict = {"x": x, dataname: y}
-    print(datadict)
+    datadict = {"x": x}
+    for dataname in datanames:
+        y = read_results_axis(filename, dataname, t)
+        datadict[dataname] = y
+
     pd.DataFrame(datadict).to_csv("Resultfiles/TmpData.csv", index=False)
 
 def xmdftesting():

@@ -175,7 +175,7 @@ def FCSxfile_test():
             #print(datanames)
 
 if __name__ == "__main__":
-    if True:
+    if False:
         # modelling()
         # checkDB()
         # looping()
@@ -183,9 +183,9 @@ if __name__ == "__main__":
         DockerTest()
         # vtxfile_test()
         # FCSxfile_test()
-    if False:
-        Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
-        # export_data("Resultfiles/October2024_LPC_4h_2.xdmf", "vonMises", -1)
+    if True:
+        #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
+        export_data("Resultfiles/October2024_Ref.xdmf", ["Composition/C", "Martensite"], -1)
 
     if False:
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
