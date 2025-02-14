@@ -184,8 +184,8 @@ if __name__ == "__main__":
         # vtxfile_test()
         # FCSxfile_test()
     if True:
-        #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
-        export_data("Resultfiles/October2024_Ref.xdmf", ["Composition/C", "Martensite"], -1)
+        Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
+        #export_data("Resultfiles/October2024_Ref.xdmf", ["Composition/C", "Martensite"], -1)
 
     if False:
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
