@@ -141,8 +141,12 @@ def gmsh1D_Really1D():
 
     # Adding three points
     gmsh.model.occ.addPoint(0, 0, 0, 1)
+    gmsh.model.occ.addPoint(0, 0, 0, 1)
     gmsh.model.occ.addPoint(r, 0, 0, lc, 2)
+    gmsh.model.occ.addPoint(r, 0, 0, lc, 2)
+
     gmsh.model.occ.addLine(1, 2, 1)
+    #gmsh.model.occ.addCurveLoop()
     gmsh.model.occ.synchronize()
     gmsh.model.addPhysicalGroup(1, [1], 1, 'Radius')
 
@@ -895,5 +899,66 @@ def FNXTest_1D():
         writer.write_points_cells(points, cells)
         writer.write_data(t=1.0, point_data={"sigmaXX": sigma_val.x.array[0::9][indx][indx_nodes]})
 
+def FNX_axisym():
+    import numpy as np
+    from dolfinx import mesh, fem
+    from mpi4py import MPI
+    from ufl import TrialFunction, TestFunction, dx, grad, dot, sym, Identity, inner
+    from petsc4py import PETSc
+
+    # Material parameters
+    E = 210e9  # Young's modulus (Pa)
+    nu = 0.3  # Poisson's ratio
+    rho = 7800  # Density (kg/m^3)
+
+    # Derived parameters
+    lmbda = E * nu / ((1 + nu) * (1 - 2 * nu))  # Lamé's first parameter
+    mu = E / (2 * (1 + nu))  # Shear modulus
+
+    # Mesh and function space
+    r_min, r_max = 0.0, 0.008
+    num_elements = 5
+    domain = mesh.create_interval(MPI.COMM_WORLD, num_elements, [r_min, r_max])
+    V = fem.functionspace(domain, ("CG", 1))
+
+    # Boundary conditions
+    u = fem.Function(V)
+    u_r = fem.Function(V)
+    zero_displacement = fem.Constant(domain, PETSc.ScalarType(0.0))
+
+    # Apply displacement constraint at r=0 (fix centerline)
+    def boundary_r0(x):
+        return np.isclose(x[0], r_min)
+
+    bc_r0 = fem.dirichletbc(zero_displacement, fem.locate_dofs_geometrical(V, boundary_r0),V)
+
+    # Weak form for axisymmetric mechanics
+    u_trial = TrialFunction(V)
+    v_test = TestFunction(V)
+    r = ufl.SpatialCoordinate(domain)[0]  # Radial coordinate
+
+    # Axisymmetric strain-displacement relations
+    epsilon = grad(u_trial)  # Strain tensor in 1D
+    sigma = lmbda * epsilon + 2 * mu * epsilon  # Stress tensor
+    f_body = fem.Constant(domain, PETSc.ScalarType(1e6))  # Example body force in radial direction (Pa/m)
+
+    # Variational problem
+    a = inner(sigma, grad(v_test)) * 2 * np.pi * r * dx  # Axisymmetric integration
+    L = f_body * v_test * 2 * np.pi * r * dx
+
+    # Assemble system
+    problem = fem.petsc.LinearProblem(a, L, bcs=[bc_r0], u=u, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+
+    # Solve
+    u = problem.solve()
+
+    # Output results
+    with dolfinx.io.XDMFFile(domain.comm, "axisymmetric_deformation.xdmf", "w") as file:
+        file.write_mesh(domain)
+        file.write_function(u)
+
+    print("Solution stored in 'axisymmetric_deformation.xdmf'")
+
+
 if __name__ == "__main__":
-    FNXTest_1D()
+    FNX_axisym()
