@@ -1,4 +1,6 @@
 import time
+import tkinter
+
 import meshio
 import numpy as np
 from matplotlib import pyplot as plt
@@ -52,6 +54,10 @@ def Result_GUI_show(filename):
     """
         Using Tkinter to run the GUI
     """
+    if filename == "":
+        root = tkinter.Tk()
+        root.withdraw()
+        filename = tkinter.filedialog.askopenfilename(filetypes=(("xdmf files", "*.xdmf"),))
     print("Opening result window...")
     ctk.set_appearance_mode("dark")
     app = Result_MainApp(filename)
@@ -176,15 +182,16 @@ def FCSxfile_test():
 
 if __name__ == "__main__":
     if False:
-        # modelling()
+        modelling()
         # checkDB()
         # looping()
         # GUI()
-        DockerTest()
+        #DockerTest()
         # vtxfile_test()
         # FCSxfile_test()
     if True:
-        Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
+        #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
+        Result_GUI_show("")
         #export_data("Resultfiles/October2024_Ref.xdmf", ["Composition/C", "Martensite"], -1)
 
     if False:

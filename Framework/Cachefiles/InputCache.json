@@ -1,18 +1,18 @@
 {
   "Rerun": {
-    "All": false,
+    "All": true,
     "Meshing": false,
     "Carbonitriding": false,
     "Carburization": false,
-    "TTT": true,
+    "TTT": false,
     "Transformationmodels": true,
     "Quenching": true,
     "Tempering": false,
     "Fatigue": false
   },
   "Datastream": {
-    "Savedirect": "October2024_LPC_2h_2.xdmf",
-    "Cachedirect": "Resultfiles/October2024_LPC_2h.xdmf"
+    "Savedirect": "LPC_SKF_2025.xdmf",
+    "Cachedirect": "Resultfiles/LPC_SKF_2025.xdmf"
   },
   "Geometry": {
     "radius": 0.008,
@@ -506,12 +506,23 @@
     "Austenitizingtemp": 1073.15,
     "CNtemp": 1323.15,
     "CNenv": "Acetylene",
-    "CNtime": 86400,
-    "CNPress": 3000.0,
-    "BoostNr": 4,
+    "CNtime": 21600,
+    "CNPress": 500.0,
+    "BoostNr": 7,
+    "BoostTime": 90,
+    "DiffTime": [
+      300,
+      600,
+      900,
+      1200,
+      1500,
+      1800,
+      2700,
+      7200
+    ],
     "tempertemp": 3600,
     "quenchtime": 3600,
-    "quench_steps": 10,
+    "quench_steps": 1,
     "quenchmedium": "oil",
     "quenchtemp": 293.15
   },

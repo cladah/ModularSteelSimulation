@@ -1,0 +1,16 @@
+{
+    "GrainSize": 100.0,
+    "Austenitizingtemp": 1073.15,
+    "CNtemp": 1323.15,
+    "CNenv": "Acetylene",
+    "CNtime": 21600,
+    "CNPress": 500.0,
+    "BoostNr": 7,
+    "BoostTime": 90,
+    "DiffTime": [300, 600, 900, 1200, 1500, 1800, 2700, 7200],
+    "tempertemp": 3600,
+    "quenchtime": 3600,
+    "quench_steps": 1,
+    "quenchmedium": "oil",
+    "quenchtemp": 293.15
+}

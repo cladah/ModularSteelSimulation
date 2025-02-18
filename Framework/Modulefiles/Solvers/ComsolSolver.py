@@ -437,7 +437,7 @@ def setupComsol(model):
         model.component("comp1").physics("audc").feature("phase" + str(i)).set("IsotropicHardeningModel",
                                                                        "LinearIsotropicHardening")
     for i in range(1, 5):
-        model.component("comp1").physics("audc").feature("ptran" + str(i)).set("recovery", True)
+        model.component("comp1").physics("audc").feature("ptran" + str(i)).set("recovery", "on")
 
     model.component("comp1").material("audcmat").propertyGroup("ElastoplasticModel").set("Et", "h_A(T)")
 
@@ -635,9 +635,9 @@ def adjustComsol(model):
 
     #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
-    model.component("comp1").physics("audc").feature("ptran1").set("temperaturelimits", True)
-    model.component("comp1").physics("audc").feature("ptran2").set("temperaturelimits", True)
-    model.component("comp1").physics("audc").feature("ptran3").set("temperaturelimits", True)
+    model.component("comp1").physics("audc").feature("ptran1").set("temperaturelimits", "on")
+    model.component("comp1").physics("audc").feature("ptran2").set("temperaturelimits", "on")
+    model.component("comp1").physics("audc").feature("ptran3").set("temperaturelimits", "on")
     model.component("comp1").physics("audc").feature("ptran3").set("Tl", "20[degC]")
     model.component("comp1").physics("audc").feature("ptran3").set("Tu", "600[degC]")
     model.component("comp1").physics("audc").feature("ptran2").set("Tl", "20[degC]")
@@ -681,7 +681,7 @@ def Comsolexport(model):
         model.result().export("data1").set("resolution", "custom")
         model.result().export("data1").set("lagorder", "2")
         model.result().export("data1").setIndex("expr", resultdata[i], 0)
-        model.result().export("data1").set("sort", True)
+        model.result().export("data1").set("sort", "on")
         model.result().export("data1").run()
 
 
@@ -869,6 +869,7 @@ def runComsol(parent):
     #client = mph.start()
 
     print("Setting up model")
+    print(os.path.isfile("Resultfiles/Comsolmodel.mph"))
     if os.path.isfile("Resultfiles/Comsolmodel.mph"):
         print("Comsolmodel.mph file exist")
         pymodel = client.load("Resultfiles/Comsolmodel.mph")
@@ -880,15 +881,18 @@ def runComsol(parent):
         model = pymodel.java
         model = setupComsol(model)
         print("Base Comsol model created")
+        model.save('Resultfiles/Comsolmodel')
     #model.util.ModelUtil.showProgress(savedirec + "/Comsolprogress.txt")
     print("Adjusting model to input")
-    model = adjustComsol(model)
-    model.save('Resultfiles/Comsolmodel')
+    #model = adjustComsol(model)
+    #model.save(savedirec)
+
+    #model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.3)
     print("Running model")
-    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(2,1,60),range(100,100,600)")
-    model.study("std1").run()
-    model.save('Resultfiles/Comsolmodel')
+    #model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(2,1,60),range(100,100,600)")
+    #model.study("std1").run()
+    #model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
     print("Comsol model successfully ran")
     print("Exporting results")

@@ -39,7 +39,7 @@ class Carbonizationmodule(CalcModule):
                 composition = TCcarburizing(activityenv)
             else:
                 boosts = data["Thermo"]["BoostNr"]
-                composition = TCcarburizing_LPC(activityenv, boosts, 300, 1500)
+                composition = TCcarburizing_LPC(activityenv, boosts, data["Thermo"]["BoostTime"], data["Thermo"]["DiffTime"])
             self.updateprogress(0.9)
 
             """

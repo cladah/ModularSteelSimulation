@@ -1,15 +1,16 @@
 from Framework.Datastream_file import read_input
-from Framework.HelpFile import checkruncondition, adjustinputcache
+from Framework.HelpFile import checkruncondition, adjustinputcache, read_modinput
 
 
 class CalcModule:
-    def __init__(self, modulename, runcondition=True, programs=None):
+    def __init__(self, modulename, runcondition=True, programs=None, inputfile=None):
         self.data = read_input()
         self.runcondition = runcondition
         self.module = modulename
         self.progress = 0.0
         self.program = self.data["Programs"][modulename]
         self.__programs = programs
+        self.inputfile = inputfile
 
         # Setup methods
         self.check_runcondition()
@@ -35,3 +36,8 @@ class CalcModule:
 
     def possibleprograms(self):
         return self.__programs
+
+    def writemodelinput(self,):
+        readmodelinput(self.inputfile)
+
+        return

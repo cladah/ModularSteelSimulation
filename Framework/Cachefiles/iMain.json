@@ -1,0 +1,50 @@
+{
+  "Rerun": {
+    "All": true,
+    "Meshing": false,
+    "Carbonitriding": false,
+    "Carburization": false,
+    "TTT": false,
+    "Transformationmodels": true,
+    "Quenching": true,
+    "Tempering": false,
+    "Fatigue": false
+  },
+  "Datastream": {
+    "Savedirect": "LPC_SKF_2025.xdmf",
+    "Cachedirect": "Resultfiles/LPC_SKF_2025.xdmf"
+  },
+  "Geometry": {
+    "radius": 0.008,
+    "innerradius": 0.0,
+    "thickness": 0.008,
+    "nodes": 50,
+    "meshscaling": 0.9
+  },
+  "Material": {
+    "Name": "Grade 159",
+    "Dependentmat": "Fe",
+    "Composition": {
+      "C": 0.2,
+      "N": 0.025,
+      "Cr": 1.6,
+      "Mn": 0.5,
+      "Ni": 1.5,
+      "Mo": 0.3,
+      "Si": 0.2
+    }
+  },
+  "Programs": {
+    "Test": "Test",
+    "Meshing": "Gmsh",
+    "Coupling": "Stagg",
+    "Carbonitriding": "TC",
+    "Carburization": "TC",
+    "TTT": "TC",
+    "Transformationmodels": "Python",
+    "Quenching": "Comsol",
+    "Thermal": "FCSx",
+    "FEM": "Comsol",
+    "Phasetr": "FCSx"
+  }
+}

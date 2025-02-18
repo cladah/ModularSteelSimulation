@@ -510,7 +510,7 @@
     "CNPress": 500.0,
     "BoostNr": 7,
     "BoostTime": 90,
-    "DiffTime": [300, 600, 900, 1200, 1500, 1800, 2700, 7200],
+    "DiffTime": 5,
     "tempertemp": 3600,
     "quenchtime": 3600,
     "quench_steps": 1,

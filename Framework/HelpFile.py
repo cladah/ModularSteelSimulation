@@ -189,3 +189,9 @@ def get_plotlbls(dataname):
         ylbl = ylbls[-1]
 
     return xlbl, ylbl
+
+def read_modinput(inputfile):
+    f = open(inputfile, 'r')
+    data = json.load(f)
+    f.close()
+    return data
