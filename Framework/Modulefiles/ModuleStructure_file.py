@@ -38,6 +38,6 @@ class CalcModule:
         return self.__programs
 
     def writemodelinput(self,):
-        readmodelinput(self.inputfile)
+        moddata = read_modinput(self.inputfile)
 
         return
