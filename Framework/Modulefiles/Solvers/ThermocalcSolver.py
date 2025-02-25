@@ -241,22 +241,12 @@ def GeneralDiffusion(Activity, boosts, boost_t, diff_t, compgrid):
     modeldata = read_input()
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.INFO)
-        try:
-            system = (session
-                      .select_thermodynamic_and_kinetic_databases_with_elements("TCFE13", "MOBFE8",
-                                                                                [generaldata['Material']["Dependentmat"]] + list(generaldata['Material']["Composition"]))
-                      .without_default_phases().select_phase("FCC_A1").select_phase("GAS")
-                      .select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
-                      .get_system())
-        except Exception as tc_python.exceptions.DatabaseException:
-            system = (session
-                      .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
-                                                                                [generaldata['Material'][
-                                                                                     "Dependentmat"]] + list(
-                                                                                    generaldata['Material']["Composition"]))
-                      .without_default_phases().select_phase("FCC_A1").select_phase("GAS")
-                      .select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
-                      .get_system())
+        system = (session
+                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE13", "MOBFE8",
+                                                                            [generaldata['Material']["Dependentmat"]] + list(generaldata['Material']["Composition"]))
+                  .without_default_phases().select_phase("FCC_A1").select_phase("GAS")
+                  .select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
+                  .get_system())
         """
         Adding information to the austenite profile.
         Material elements

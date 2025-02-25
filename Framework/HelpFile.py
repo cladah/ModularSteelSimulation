@@ -170,9 +170,6 @@ def analyseTTTdatabase():
         #print(TTTdata[key]["Modeldata"])
         #print(TTTdata[key]["TTTdata"])
 
-def setupSimulation():
-    pass
-
 
 def get_plotlbls(dataname):
     xlbls = ["Radius [mm]", "Time [s]"]
@@ -190,8 +187,32 @@ def get_plotlbls(dataname):
 
     return xlbl, ylbl
 
+def read_geninput():
+    f = open("Cachefiles/iMain.json", 'r')
+    data = json.load(f)
+    f.close()
+    return data
 def read_modinput(inputfile):
     f = open(inputfile, 'r')
     data = json.load(f)
     f.close()
     return data
+def reset_output():
+    ginput = read_geninput()
+    from datetime import datetime
+    with open("Resultfiles/output.txt", "w", encoding="utf-8") as file:
+        file.write(datetime.now().strftime("%Y-%m-%d, %H:%M:%S") + "\nRunning Modular Steel Processing Simulation (MSPS)\n")
+        file.write("Simulation software created by Clas Dahlin (2025)\n")
+
+        file.write("---------------------------------------------------------------------\n\n")
+        file.write("Modules used:\n")
+        for module in ginput["Modules"]:
+            file.write(str(module) + ": " + str(ginput["Programs"][module] + "\n"))
+        file.write("---------------------------------------------------------------------\n\n")
+        file.write("Data is saved using xdmf, with filename. " + str(ginput["Datastream"]["Savedirect"]) + "\n")
+        file.write("---------------------------------------------------------------------\n\n")
+
+def print_output(outputstr):
+    # Opening and appending output string to textfile
+    with open("Resultfiles/output.txt", "a", encoding="utf-8") as file:
+        file.write(outputstr + "\n")

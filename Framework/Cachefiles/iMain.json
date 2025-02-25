@@ -1,4 +1,6 @@
 {
+  "Modules": ["Meshing", "Test"],
+  "Inputs": ["iMain", "iDiff_1"],
   "Rerun": {
     "All": true,
     "Meshing": false,

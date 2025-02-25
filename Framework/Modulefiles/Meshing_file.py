@@ -1,15 +1,26 @@
 import os
 
-from .ModuleStructure_file import CalcModule
+from .ModuleStructure_file_new import CalcModule
 from .Solvers.MeshSolvers import gmshsolver, pygmshsolver
 import meshio
 
 
 class Meshingmodule(CalcModule):
-    def __init__(self):
-        super().__init__("Meshing")
+    def __init__(self, infile):
+        infile = "Cachefiles/" + infile + ".json"
+        super().__init__("Meshing", infile)
 
     def run(self):
+        outstr = ["Meshing module\n",
+                  "Radius: " + str(self.ginput["Geometry"]["radius"]),
+                  "Number of nodes: " + str(self.ginput["Geometry"]["nodes"]),
+                  "Mesh scaling factor: " + str(self.ginput["Geometry"]["meshscaling"]),
+                  "\n---------------------------------------------------------------------\n"]
+        for line in outstr:
+            self.writeoutput(line)
+            print(line)
+
+
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
 

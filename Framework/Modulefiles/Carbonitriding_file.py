@@ -1,4 +1,4 @@
-from .ModuleStructure_file import CalcModule
+from .ModuleStructure_file_new import CalcModule
 import numpy as np
 from numpy import interp
 from Framework.Datastream_file import readdatastreamcache, readdatastream, adjustdatastream
@@ -7,9 +7,25 @@ from .Solvers.ThermocalcSolver import TCequalibrium, TCcarbonitriding, TCcarburi
 
 class Carbonizationmodule(CalcModule):
     def __init__(self):
-        super().__init__("Carburization")
+        super().__init__("Carburization", "Cachefiles/iDiff.json")
 
     def run(self):
+        Carbtime = sum(self.minput["BoostTime"] + self.minput["DiffTime"])/3600
+        outstr = ["Diffusion module",
+                  "Grainsize is " + str(self.minput["GrainSize"]) + " \u03BCm",
+                  "Carburization temperature set to " + str(self.minput["CNtemp"]) + " \N{DEGREE SIGN}C",
+                  "Carburization pressure set to " + str(self.minput["CNPress"]) + " kPa",
+                  "Carbon potential set to " + str(self.minput["Cpotential"]),
+                  str(self.minput["BoostNr"]) + " boost cycles, with boost times of " + str(self.minput["BoostTime"]),
+                  "Diffusion times set to " + str(self.minput["DiffTime"]),
+                  "Total carburization time is " + str(round(Carbtime, 1)) + " hours",
+                  "---------------------------------------------------------------------\n\n"]
+
+        for line in outstr:
+            self.writeoutput(line)
+            print(line)
+
+
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
             for element in self.data["Material"]["Composition"].keys():

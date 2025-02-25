@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from CGUImodule import MainApp
 from Result_GUI import Result_MainApp, Compare_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
-from HelpFile import read_input, setupSimulation, createinputcache, change_input, reset_input, analyseTTTdatabase, get_plotlbls
+from HelpFile import read_input, createinputcache, change_input, reset_input, analyseTTTdatabase, get_plotlbls, read_geninput, reset_output
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
 from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
@@ -16,7 +16,7 @@ from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
 from Framework.Modulefiles.Docker_file import rundocker, rundocker_1D
-
+from Modulefiles.Testmod_file import TestModule
 from Datastream_file import getaxisvalues, readdatastream
 from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
 from Postprocessing.dataextraction import DatastreamPlotting, ResultPlotting, export_data
@@ -132,7 +132,7 @@ def modelling():
 
     data = read_input()
 
-    createdatastreamcache(data["Datastream"]["Cachedirect"])
+
     # resetdatastream()
     createinputcache()
 
@@ -180,6 +180,21 @@ def FCSxfile_test():
             #datanames = point_data.keys()
             #print(datanames)
 
+def setupSimulation():
+    print("Setting up simulation...")
+    reset_output()
+    ginput = read_geninput()
+    createdatastreamcache(ginput["Datastream"]["Cachedirect"])
+    createinputcache()
+    modules = list()
+    for i in range(len(ginput["Modules"])):
+        if ginput["Modules"][i] == "Meshing":
+            modules.append(Meshingmodule(ginput["Inputs"][i]))
+        elif ginput["Modules"][i] == "Test":
+            modules.append(TestModule())
+    print("Simulation structure setup.")
+    return modules
+
 if __name__ == "__main__":
     if False:
         modelling()
@@ -189,7 +204,7 @@ if __name__ == "__main__":
         #DockerTest()
         # vtxfile_test()
         # FCSxfile_test()
-    if True:
+    if False:
         #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
         Result_GUI_show("")
         #export_data("Resultfiles/October2024_Ref.xdmf", ["Composition/C", "Martensite"], -1)
@@ -198,4 +213,10 @@ if __name__ == "__main__":
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
         dataname = "Composition/C"
         ResultPlotting(files, dataname)
+    if True:
+        ginput = read_geninput()
+        modules = setupSimulation()
+        for module in modules:
+            module.run()
+            savedatastream(ginput["Datastream"]["Savedirect"])
     pass

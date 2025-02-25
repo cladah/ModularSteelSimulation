@@ -5,12 +5,8 @@
     "CNenv": "Acetylene",
     "CNtime": 21600,
     "CNPress": 500.0,
+    "Cpotential": 1,
     "BoostNr": 7,
-    "BoostTime": 90,
-    "DiffTime": [300, 600, 900, 1200, 1500, 1800, 2700, 7200],
-    "tempertemp": 3600,
-    "quenchtime": 3600,
-    "quench_steps": 1,
-    "quenchmedium": "oil",
-    "quenchtemp": 293.15
+    "BoostTime": [90, 90, 90, 90, 90, 90, 90],
+    "DiffTime": [300, 600, 900, 1200, 1500, 1800, 2700, 7200]
 }
