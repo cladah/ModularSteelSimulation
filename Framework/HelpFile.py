@@ -188,6 +188,12 @@ def get_plotlbls(dataname):
     return xlbl, ylbl
 
 def read_geninput():
+    """
+    Reading general input file.
+
+    Output:
+        data - struct
+    """
     f = open("Cachefiles/iMain.json", 'r')
     data = json.load(f)
     f.close()

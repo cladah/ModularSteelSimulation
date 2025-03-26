@@ -11,7 +11,8 @@ class Meshingmodule(CalcModule):
         super().__init__("Meshing", infile)
 
     def run(self):
-        outstr = ["Meshing module\n",
+        outstr = ["\n---------------------------------------------------------------------\n",
+                  "Meshing module: " + self.inputfile + "\n",
                   "Radius: " + str(self.ginput["Geometry"]["radius"]),
                   "Number of nodes: " + str(self.ginput["Geometry"]["nodes"]),
                   "Mesh scaling factor: " + str(self.ginput["Geometry"]["meshscaling"]),
@@ -20,16 +21,12 @@ class Meshingmodule(CalcModule):
             self.writeoutput(line)
             print(line)
 
-
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
 
             with meshio.xdmf.TimeSeriesReader("Datastream_Cache.xdmf") as reader:
                 points, cells = reader.read_points_cells()
 
-            # meshio.write("Datastream.xdmf",
-            #              meshio.Mesh(points=points,
-            #                          cells={"triangle": cells.get_cells_type("triangle")}))
             try:
                 os.remove("Datastream.xdmf")
                 os.remove("Datastream.h5")

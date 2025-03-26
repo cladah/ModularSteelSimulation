@@ -74,18 +74,6 @@ def looping():
         """
 
     setupSimulation()
-    """
-    differentin = [
-        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.3, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.4, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.5, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.4, "Mn": 0.5, "Ni": 1.5, "Mo": 0.3, "Si": 0.2}],
-        ["Material", "Composition", {"C": 0.2, "N": 0.025, "Cr": 1.6, "Mn": 0.5, "Ni": 1.3, "Mo": 0.3, "Si": 0.2}]]  # Double htc
-
-    saveloc = ["Ref.xdmf", "C03.xdmf", "C04.xdmf", "C05.xdmf", "Cr14.xdmf", "Ni13.xdmf"]
-    """
-
 
     differentin = [["Thermo", "CNtemp", 1173.15], ["Thermo", "CNtemp", 973.15], ["Thermo", "CNtime", 172800]]
     saveloc = ["October2024_900C.xdmf", "October2024_700C.xdmf", "October2024_CN2Days.xdmf"]
@@ -181,6 +169,13 @@ def FCSxfile_test():
             #print(datanames)
 
 def setupSimulation():
+    """
+    Simulation setup from information in iMain.json
+
+    :return:
+    modules - Modules in order of exicution (list)
+    """
+
     print("Setting up simulation...")
     reset_output()
     ginput = read_geninput()
@@ -188,14 +183,25 @@ def setupSimulation():
     createinputcache()
     modules = list()
     for i in range(len(ginput["Modules"])):
+        infile = ginput["Inputs"][i]
         if ginput["Modules"][i] == "Meshing":
-            modules.append(Meshingmodule(ginput["Inputs"][i]))
+            modules.append(Meshingmodule(infile))
         elif ginput["Modules"][i] == "Test":
-            modules.append(TestModule())
+            modules.append(TestModule(infile))
+        elif ginput["Modules"][i] == "Diff":
+            modules.append(Carbonizationmodule(infile))
+        elif ginput["Modules"][i] == "FEM":
+            modules.append(Quenchingmodule(infile))
+        else:
+            raise KeyError("Module input in iMain not supported")
     print("Simulation structure setup.")
     return modules
 
 if __name__ == "__main__":
+    """
+    ginput - General input (dict)
+    """
+
     if False:
         modelling()
         # checkDB()

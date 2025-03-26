@@ -1,6 +1,6 @@
 {
-  "Modules": ["Meshing", "Test"],
-  "Inputs": ["iMain", "iDiff_1"],
+  "Modules": ["Meshing", "Diff", "TTT", "Transform", "Quench"],
+  "Inputs": ["iMain", "iDiff_1", "iTTT", "iTrans", "iQuench"],
   "Rerun": {
     "All": true,
     "Meshing": false,
@@ -40,6 +40,7 @@
     "Test": "Test",
     "Meshing": "Gmsh",
     "Coupling": "Stagg",
+    "Diff": "TC",
     "Carbonitriding": "TC",
     "Carburization": "TC",
     "TTT": "TC",

@@ -127,7 +127,7 @@ def TCequalibrium(type):
         print("Activity of nitrogen " + str(activityN))
         return activityC, activityN
 
-def TCcarburizing(activityair):
+def TCcarburizing(ginput, minput, activityair):
     data = read_input()
     if activityair[0] > 1.:
         activityair = [1.0, activityair[1]]

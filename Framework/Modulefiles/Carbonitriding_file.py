@@ -6,12 +6,14 @@ from Framework.HelpFile import read_input
 from .Solvers.ThermocalcSolver import TCequalibrium, TCcarbonitriding, TCcarburizing, TCcarburizing_LPC
 
 class Carbonizationmodule(CalcModule):
-    def __init__(self):
-        super().__init__("Carburization", "Cachefiles/iDiff.json")
+    def __init__(self, infile):
+        infile = "Cachefiles/" + infile + ".json"
+        super().__init__("Carburization", infile)
 
     def run(self):
         Carbtime = sum(self.minput["BoostTime"] + self.minput["DiffTime"])/3600
-        outstr = ["Diffusion module",
+        outstr = ["\n---------------------------------------------------------------------\n",
+                  "Diffusion module: " + self.inputfile + "\n",
                   "Grainsize is " + str(self.minput["GrainSize"]) + " \u03BCm",
                   "Carburization temperature set to " + str(self.minput["CNtemp"]) + " \N{DEGREE SIGN}C",
                   "Carburization pressure set to " + str(self.minput["CNPress"]) + " kPa",
@@ -28,7 +30,7 @@ class Carbonizationmodule(CalcModule):
 
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
-            for element in self.data["Material"]["Composition"].keys():
+            for element in self.ginput["Material"]["Composition"].keys():
                 elementvalues = readdatastreamcache("Composition/" + element)
                 adjustdatastream({"Composition/" + element: elementvalues}, "nodes")
             print("Carburization module done\n")
@@ -37,7 +39,6 @@ class Carbonizationmodule(CalcModule):
 
         if self.program == "TC":
             print("Carburization module")
-            data = read_input()
             self.updateprogress(0.1)
 
             print('Running carburization module with ThermoCalc')
@@ -51,11 +52,11 @@ class Carbonizationmodule(CalcModule):
                 P<0.01atm -> Low pressure carurizing
                 P>0.01atm -> Atmosphere pressure carurizing
             """
-            if data["Thermo"]["CNPress"] > 10000:
-                composition = TCcarburizing(activityenv)
+            if self.minput["CNPress"] > 10000:
+                composition = TCcarburizing(self.ginput, self.minput, activityenv)
             else:
-                boosts = data["Thermo"]["BoostNr"]
-                composition = TCcarburizing_LPC(activityenv, boosts, data["Thermo"]["BoostTime"], data["Thermo"]["DiffTime"])
+                boosts = self.minput["BoostNr"]
+                composition = TCcarburizing_LPC(activityenv, boosts, self.minput["BoostTime"], self.minput["DiffTime"])
             self.updateprogress(0.9)
 
             """

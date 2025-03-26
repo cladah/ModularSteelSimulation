@@ -1,12 +1,14 @@
 from .ModuleStructure_file_new import CalcModule
 
 class TestModule(CalcModule):
-    def __init__(self):
-        super().__init__("Test", "Cachefiles/iDiff_1.json")
+    def __init__(self, infile):
+        infile = "Cachefiles/" + infile + ".json"
+        super().__init__("Test", infile)
 
     def run(self):
         Carbtime = sum(self.minput["BoostTime"] + self.minput["DiffTime"])/3600
-        outstr = ["Diffusion module",
+        outstr = ["\n---------------------------------------------------------------------\n",
+                  "Diffusion module: " + self.inputfile + "\n",
                   "Grainsize is " + str(self.minput["GrainSize"]) + " \u03BCm",
                   "Carburization temperature set to " + str(self.minput["CNtemp"]) + " \N{DEGREE SIGN}C",
                   "Carburization pressure set to " + str(self.minput["CNPress"]) + " kPa",
