@@ -1,4 +1,4 @@
-from .ModuleStructure_file import CalcModule
+from .ModuleStructure_file_new import CalcModule
 import meshio
 
 class Quenchingmodule(CalcModule):
@@ -7,7 +7,21 @@ class Quenchingmodule(CalcModule):
         super().__init__("Quenching", infile)
 
     def run(self):
+        outstr = ["\n---------------------------------------------------------------------\n",
+                  "Quenching module: " + self.inputfile + "\n",
+                  "Material type: " + self.minput["Materialtype"],
+                  "Phase mixing model: " + self.minput["MixtureModel"],
+                  "Quenching type: " + self.minput["quenchmedium"],
+                  "Starting temp: ",
+                  "Quench temp: " + str(self.minput["quenchtemp"]-273.15),
+                  "Quenching time: " + str(self.minput["quenchtime"]) + " seconds",
+                  "Phases: ",
+                  "Element quad: " + str(2),
+                  "\n---------------------------------------------------------------------\n\n"]
 
+        for line in outstr:
+            self.writeoutput(line)
+            print(line)
 
 
 
