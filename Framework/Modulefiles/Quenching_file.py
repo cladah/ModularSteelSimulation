@@ -2,10 +2,15 @@ from .ModuleStructure_file import CalcModule
 import meshio
 
 class Quenchingmodule(CalcModule):
-    def __init__(self):
-        super().__init__("Quenching")
+    def __init__(self,infile):
+        infile = "Cachefiles/" + infile + ".json"
+        super().__init__("Quenching", infile)
 
     def run(self):
+
+
+
+
         from Framework.Modulefiles.Solvers.ComsolSolver import runComsol
 
         if not self.check_runcondition():

@@ -1,4 +1,4 @@
-from .ModuleStructure_file import CalcModule
+from .ModuleStructure_file_new import CalcModule
 from Framework.HelpFile import saveresult, checkruncondition, getTTTdata, addTTTdata, read_input
 from Framework.Datastream_file import readdatastream, adjustdatastream, readdatastreamcache
 from .Solvers.ThermocalcSolver import getTTTcompositions
@@ -7,10 +7,24 @@ import numpy as np
 
 
 class Transformationmodelmodule(CalcModule):
-    def __init__(self):
-        super().__init__("Transformationmodels")
+    def __init__(self, infile):
+        infile = "Cachefiles/" + infile + ".json"
+        super().__init__("TransformMod", infile)
 
     def run(self):
+        models  = {"JMAK":"1-exp(-\u03C4t^n)","KM":"1-exp(-\u03B2(Ms-T))"}
+        outstr = ["\n---------------------------------------------------------------------\n",
+                  "Transformation model function module: " + self.inputfile + "\n",
+                  "Ferrite: " + models[self.minput["Ferrite"]["model"]],
+                  "Perlite: " + models[self.minput["Perlite"]["model"]],
+                  "Bainite: " + models[self.minput["Bainite"]["model"]],
+                  "Martensite: " + models[self.minput["Martensite"]["model"]],
+                  "\n---------------------------------------------------------------------\n\n"]
+
+        for line in outstr:
+            self.writeoutput(line)
+            print(line)
+
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
             precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Pearlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",

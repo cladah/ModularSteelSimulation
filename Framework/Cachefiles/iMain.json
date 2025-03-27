@@ -1,6 +1,6 @@
 {
-  "Modules": ["Meshing", "Diff", "TTT", "Transform", "Quench"],
-  "Inputs": ["iMain", "iDiff_1", "iTTT", "iTrans", "iQuench"],
+  "Modules": ["Meshing", "Diffusion", "TTTdiagram", "TransformMod", "Quench"],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_1", "iFEM", "iFEM"],
   "Rerun": {
     "All": true,
     "Meshing": false,
@@ -40,12 +40,12 @@
     "Test": "Test",
     "Meshing": "Gmsh",
     "Coupling": "Stagg",
-    "Diff": "TC",
+    "Diffusion": "TC",
     "Carbonitriding": "TC",
     "Carburization": "TC",
-    "TTT": "TC",
-    "Transformationmodels": "Python",
-    "Quenching": "Comsol",
+    "TTTdiagram": "TC",
+    "TransformMod": "Python",
+    "Quench": "Comsol",
     "Thermal": "FCSx",
     "FEM": "Comsol",
     "Phasetr": "FCSx"

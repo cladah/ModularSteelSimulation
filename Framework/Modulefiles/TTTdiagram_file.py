@@ -1,4 +1,4 @@
-from .ModuleStructure_file import CalcModule
+from .ModuleStructure_file_new import CalcModule
 from .Solvers.ThermocalcSolver import getTTTcompositions
 from Framework.HelpFile import getTTTdata, addTTTdata
 from .Solvers.ThermocalcSolver import calculatePearlite, calculateBainite, calculateFerrite, calculateMartensite
@@ -6,10 +6,23 @@ import numpy as np
 
 
 class TTTdiagrammodule(CalcModule):
-    def __init__(self):
-        super().__init__("TTT")
+    def __init__(self, infile):
+        infile = "Cachefiles/" + infile + ".json"
+        super().__init__("TTTdiagram", infile)
 
     def run(self):
+        outstr = ["\n---------------------------------------------------------------------\n",
+                  "Transformation diagram module: " + self.inputfile + "\n",
+                  "Grainsize is " + str(self.minput["GrainSize"]) + " \u03BCm",
+                  "Upper temperature set to: " + str(1000) + " \N{DEGREE SIGN}C",
+                  "Lower temperature set to: " + str(0) + " \N{DEGREE SIGN}C",
+                  "Number of steps: " + str(40),
+                  "\n---------------------------------------------------------------------\n\n"]
+
+        for line in outstr:
+            self.writeoutput(line)
+            print(line)
+
         if not self.runcondition:
             print("Using precalculated " + str(self.module) + " simulation")
             print("TTT diagram module done\n")
@@ -20,6 +33,7 @@ class TTTdiagrammodule(CalcModule):
             TTTcompositions = getTTTcompositions()
             compnr = len(TTTcompositions)
             i = 1
+            print("Number of TTT calculations are " + str(compnr))
             for tmpcomp in TTTcompositions:
                 print(tmpcomp)
                 runTTTcalc(tmpcomp)
@@ -31,11 +45,12 @@ class TTTdiagrammodule(CalcModule):
 
 def runTTTcalc(composition):
     # Take away values that are 0 EXCEPT N AND C!
-    keys = composition.keys()
+    tmpcomp = composition.copy()
+    keys = tmpcomp.keys()
     for key in keys:
         if key in ["C", "N"]:
             continue
-        if composition[key] == 0.:
+        if tmpcomp[key] == 0.0:
             del composition[key]
     #
     if bool(getTTTdata(composition, "TTTdata")):

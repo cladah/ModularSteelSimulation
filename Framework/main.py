@@ -11,7 +11,7 @@ from Datastream_file import createdatastreamcache, removedatastreamcache, saveda
 from HelpFile import read_input, createinputcache, change_input, reset_input, analyseTTTdatabase, get_plotlbls, read_geninput, reset_output
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
-from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
+from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule, Diffusionmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
@@ -188,9 +188,13 @@ def setupSimulation():
             modules.append(Meshingmodule(infile))
         elif ginput["Modules"][i] == "Test":
             modules.append(TestModule(infile))
-        elif ginput["Modules"][i] == "Diff":
-            modules.append(Carbonizationmodule(infile))
-        elif ginput["Modules"][i] == "FEM":
+        elif ginput["Modules"][i] == "Diffusion":
+            modules.append(Diffusionmodule(infile))
+        elif ginput["Modules"][i] == "TTTdiagram":
+            modules.append(TTTdiagrammodule(infile))
+        elif ginput["Modules"][i] == "TransformMod":
+            modules.append(Transformationmodelmodule(infile))
+        elif ginput["Modules"][i] == "Quench":
             modules.append(Quenchingmodule(infile))
         else:
             raise KeyError("Module input in iMain not supported")

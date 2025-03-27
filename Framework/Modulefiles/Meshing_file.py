@@ -3,7 +3,8 @@ import os
 from .ModuleStructure_file_new import CalcModule
 from .Solvers.MeshSolvers import gmshsolver, pygmshsolver
 import meshio
-
+from Framework.Datastream_file import adjustdatastream, readdatastream
+import numpy as np
 
 class Meshingmodule(CalcModule):
     def __init__(self, infile):
@@ -43,3 +44,11 @@ class Meshingmodule(CalcModule):
             pygmshsolver(self)
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
+        print("Setting starting point for calculation")
+        nodes = readdatastream("nodes")
+        tmpelvalues = np.full(len(nodes), 0)
+        for element in self.ginput["Material"]["Composition"].keys():
+            tmpelvalues.fill(self.ginput["Material"]["Composition"][element])
+            adjustdatastream({"Composition/" + element: tmpelvalues}, "nodes")
+
+
