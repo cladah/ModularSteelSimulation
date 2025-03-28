@@ -8,7 +8,7 @@ import numpy as np
 
 class Meshingmodule(CalcModule):
     def __init__(self, infile):
-        infile = "Cachefiles/" + infile + ".json"
+        infile = "Inputs/" + infile + ".json"
         super().__init__("Meshing", infile)
 
     def run(self):

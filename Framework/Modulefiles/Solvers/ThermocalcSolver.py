@@ -237,6 +237,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
     :param compgrid: Composition grid for carbon and nitrogen
     :return: Coposition along x-axis.
     """
+    print("Running Thermocalc diffusion solver")
     boosts = minput["BoostNr"]
     boost_t = minput["BoostTime"]
     diff_t = minput["DiffTime"]

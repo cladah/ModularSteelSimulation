@@ -189,14 +189,18 @@ def get_plotlbls(dataname):
 
 def read_geninput():
     """
-    Reading general input file.
+    Reading general input files.
 
     Output:
         data - struct
     """
-    f = open("Cachefiles/iMain.json", 'r')
-    data = json.load(f)
-    f.close()
+    fin = open("Inputs/input.json", 'r')
+    inputdata = json.load(fin)
+    fmain = open("Inputs/" + inputdata["InputDirectory"] + "/iMain.json", 'r')
+    data = json.load(fmain)
+    data.update(inputdata)
+    fin.close()
+    fmain.close()
     return data
 def read_modinput(inputfile):
     f = open(inputfile, 'r')

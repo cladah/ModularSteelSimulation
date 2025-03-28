@@ -126,7 +126,7 @@ class Carbonitridingmodule(CalcModule):
 class Diffusionmodule(CalcModule):
 
     def __init__(self, infile):
-        infile = "Cachefiles/" + infile + ".json"
+        infile = "Inputs/" + infile + ".json"
         super().__init__("Diffusion", infile)
 
     def run(self):
@@ -156,12 +156,11 @@ class Diffusionmodule(CalcModule):
             return
 
         if self.program == "TC":
-            print("Carburization module")
             self.updateprogress(0.1)
 
-            print('Running carburization module with ThermoCalc')
+            print('Running diffusion module with ThermoCalc')
             activityenv = TCequalibrium("env")
-            print("Avtivity of atmosphere calculated")
+            print("Activity of atmosphere calculated")
             self.updateprogress(0.2)
 
             composition = dict()

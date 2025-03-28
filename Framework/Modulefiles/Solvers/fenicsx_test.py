@@ -38,7 +38,7 @@ domain = mesh.read_mesh()
 # ---------------------------------------------------------#
 # Reading datastream
 # ---------------------------------------------------------#
-f = open('Cachefiles/Input.json', 'r')
+f = open('Cachefiles/input.json', 'r')
 data = json.load(f)
 f.close()
 

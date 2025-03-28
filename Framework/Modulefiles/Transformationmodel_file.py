@@ -1,5 +1,5 @@
 from .ModuleStructure_file_new import CalcModule
-from Framework.HelpFile import saveresult, checkruncondition, getTTTdata, addTTTdata, read_input
+from Framework.HelpFile import saveresult, checkruncondition, getTTTdata, addTTTdata, read_input, read_geninput
 from Framework.Datastream_file import readdatastream, adjustdatastream, readdatastreamcache
 from .Solvers.ThermocalcSolver import getTTTcompositions
 from .Solvers.TTTmodelfit import JMAKfit, KMfit
@@ -8,7 +8,7 @@ import numpy as np
 
 class Transformationmodelmodule(CalcModule):
     def __init__(self, infile):
-        infile = "Cachefiles/" + infile + ".json"
+        infile = "Inputs/" + infile + ".json"
         super().__init__("TransformMod", infile)
 
     def run(self):
@@ -75,7 +75,7 @@ def TTTfit(composition):
 
 def TTTinterpolatetonodes():
     from scipy import interpolate
-    data = read_input()
+    data = read_geninput()
 
     fullcomposition = dict()
     for element in data['Material']['Composition'].keys():
@@ -252,7 +252,7 @@ def TTTinterpolatetonodes():
 
 def TTTpolyfit():
     from scipy import interpolate
-    data = read_input()
+    data = read_geninput()
 
     # Getting composition for all nodes
     fullcomposition = dict()

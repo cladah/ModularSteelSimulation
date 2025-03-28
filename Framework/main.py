@@ -170,7 +170,7 @@ def FCSxfile_test():
 
 def setupSimulation():
     """
-    Simulation setup from information in iMain.json
+    Simulation setup from information in input.json
 
     :return:
     modules - Modules in order of exicution (list)
@@ -183,7 +183,7 @@ def setupSimulation():
     createinputcache()
     modules = list()
     for i in range(len(ginput["Modules"])):
-        infile = ginput["Inputs"][i]
+        infile = ginput["InputDirectory"] + "/" + ginput["Inputs"][i]
         if ginput["Modules"][i] == "Meshing":
             modules.append(Meshingmodule(infile))
         elif ginput["Modules"][i] == "Test":
@@ -194,7 +194,7 @@ def setupSimulation():
             modules.append(TTTdiagrammodule(infile))
         elif ginput["Modules"][i] == "TransformMod":
             modules.append(Transformationmodelmodule(infile))
-        elif ginput["Modules"][i] == "Quench":
+        elif ginput["Modules"][i] == "Quenching":
             modules.append(Quenchingmodule(infile))
         else:
             raise KeyError("Module input in iMain not supported")

@@ -7,7 +7,7 @@ import numpy as np
 
 class TTTdiagrammodule(CalcModule):
     def __init__(self, infile):
-        infile = "Cachefiles/" + infile + ".json"
+        infile = "Inputs/" + infile + ".json"
         super().__init__("TTTdiagram", infile)
 
     def run(self):

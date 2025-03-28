@@ -3,7 +3,7 @@ import meshio
 
 class Quenchingmodule(CalcModule):
     def __init__(self,infile):
-        infile = "Cachefiles/" + infile + ".json"
+        infile = "Inputs/" + infile + ".json"
         super().__init__("Quenching", infile)
 
     def run(self):

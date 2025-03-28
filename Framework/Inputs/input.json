@@ -1,0 +1,20 @@
+{
+    "Rerun": {
+        "All": true,
+        "Meshing": false,
+        "Carbonitriding": false,
+        "Carburization": false,
+        "TTT": false,
+        "Transformationmodels": true,
+        "Quenching": true,
+        "Tempering": false,
+        "Fatigue": false
+    },
+    "InputDirectory": "SKF",
+    "Modules": ["Meshing", "Diffusion", "TTTdiagram", "TransformMod", "Quenching"],
+    "Inputs": ["iMain", "iDiff_1", "iDiff_1", "iFEM", "iFEM"],
+    "Datastream": {
+        "Savedirect": "LPC_SKF_2025.xdmf",
+        "Cachedirect": "Resultfiles/LPC_SKF_2025.xdmf"
+    }
+}

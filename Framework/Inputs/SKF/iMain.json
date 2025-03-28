@@ -1,0 +1,33 @@
+{
+  "Geometry": {
+    "Type": "2Daxisym",
+    "radius": 0.008,
+    "innerradius": 0.0,
+    "thickness": 0.008,
+    "nodes": 50,
+    "meshscaling": 0.9
+  },
+  "Material": {
+    "Name": "Grade 159",
+    "Dependentmat": "Fe",
+    "Composition": {
+      "C": 0.2,
+      "N": 0.025,
+      "Cr": 1.6,
+      "Mn": 0.5,
+      "Ni": 1.5,
+      "Mo": 0.3,
+      "Si": 0.2
+    }
+  },
+  "Programs": {
+    "Meshing": "Gmsh",
+    "Coupling": "Stagg",
+    "Diffusion": "TC",
+    "TTTdiagram": "TC",
+    "TransformMod": "Python",
+    "Quenching": "Comsol",
+    "Thermal": "FCSx",
+    "FEM": "Comsol"
+  }
+}
