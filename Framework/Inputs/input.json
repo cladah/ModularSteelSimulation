@@ -10,11 +10,11 @@
         "Tempering": false,
         "Fatigue": false
     },
-    "InputDirectory": "SKF",
+    "InputDirectory": "159",
     "Modules": ["Meshing", "Diffusion", "TTTdiagram", "TransformMod", "Quenching"],
     "Inputs": ["iMain", "iDiff_1", "iDiff_1", "iFEM", "iFEM"],
     "Datastream": {
-        "Savedirect": "LPC_SKF_2025.xdmf",
-        "Cachedirect": "Resultfiles/LPC_SKF_2025.xdmf"
+        "Savedirect": "159A_2025.xdmf",
+        "Cachedirect": "Resultfiles/159A_2025.xdmf"
     }
 }
