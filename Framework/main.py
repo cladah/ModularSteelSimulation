@@ -229,4 +229,5 @@ if __name__ == "__main__":
         for module in modules:
             module.run()
             savedatastream(ginput["Datastream"]["Savedirect"])
+        Result_GUI_show("Resultfiles/159A_Carb.xdmf")
     pass

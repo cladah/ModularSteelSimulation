@@ -16,7 +16,7 @@ class Transformationmodelmodule(CalcModule):
         outstr = ["\n---------------------------------------------------------------------\n",
                   "Transformation model function module: " + self.inputfile + "\n",
                   "Ferrite: " + models[self.minput["Ferrite"]["model"]],
-                  "Perlite: " + models[self.minput["Perlite"]["model"]],
+                  "Pearlite: " + models[self.minput["Pearlite"]["model"]],
                   "Bainite: " + models[self.minput["Bainite"]["model"]],
                   "Martensite: " + models[self.minput["Martensite"]["model"]],
                   "\n---------------------------------------------------------------------\n\n"]
@@ -25,7 +25,7 @@ class Transformationmodelmodule(CalcModule):
             self.writeoutput(line)
             print(line)
 
-        if not self.runcondition:
+        if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
             precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Pearlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
                           "JMAK_n_Pearlite",
@@ -44,10 +44,6 @@ class Transformationmodelmodule(CalcModule):
 
 def runTTTmodelmodule(parent):
     print('\nTTT models module')
-    if not checkruncondition('Transformationmodels'):
-        print('Using precalculated phase transformation models')
-
-        return
     TTTcompositions = getTTTcompositions()
     compnr = len(TTTcompositions)
     i = 1
@@ -425,6 +421,5 @@ def TTTpolyfit():
         else:
             adjustdatastream({"KM_Ms_" + phase: np.array(res1)})
             adjustdatastream({"KM_b_" + phase: np.array(res2)})
-            print(np.array(res1))
         print(phase + " transformation model added to datastream")
     print("Transformation models interpolated to nodes")

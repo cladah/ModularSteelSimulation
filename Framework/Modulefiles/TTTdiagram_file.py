@@ -35,7 +35,6 @@ class TTTdiagrammodule(CalcModule):
             i = 1
             print("Number of TTT calculations are " + str(compnr))
             for tmpcomp in TTTcompositions:
-                print(tmpcomp)
                 runTTTcalc(tmpcomp)
                 self.updateprogress(i / compnr)
                 i = i + 1

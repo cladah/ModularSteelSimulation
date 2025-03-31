@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 from tc_python import *
-from Framework.HelpFile import read_input
+from Framework.HelpFile import read_geninput
 from Framework.Datastream_file import getaxisvalues
 
 
@@ -10,7 +10,6 @@ def rounding5(x, rnr=1):
     # Rounding to nearest 0.5
     base = .5/(10**rnr)
     return round(base * round(x/base), rnr+1)
-
 
 def getTTTcompositions():
     """
@@ -21,16 +20,16 @@ def getTTTcompositions():
 
 
     roundingTTT = 1
-    data = read_input()
+    ginput = read_geninput()
     TTTcompositions = list()
     fullcomposition = dict()
-    for element in data['Material']['Composition'].keys():
+    for element in ginput['Material']['Composition'].keys():
         fullcomposition[element] = getaxisvalues("Composition/" + element)
-    composition = data['Material']['Composition']
+    composition = ginput['Material']['Composition']
 
     mesh = list()
     # Creating grid of compositions
-    for element in data['Material']['Composition'].keys():
+    for element in ginput['Material']['Composition'].keys():
         if composition[element] != fullcomposition[element][-1]:
             if element == "C":
                 tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
@@ -61,7 +60,7 @@ def getTTTcompositions():
     for compnr in range(len(positions[0, :])):  # The number 0 here is correlated to the coal as it varies the most
         tmpcomp = dict()
         i = 0
-        for element in data['Material']['Composition'].keys():
+        for element in ginput['Material']['Composition'].keys():
             if element == "C" or element == "N":
                 tmpcomp[element] = rounding5(positions[i, compnr])
             else:
@@ -70,7 +69,7 @@ def getTTTcompositions():
         TTTcompositions.append(tmpcomp)
     return TTTcompositions
 
-def TCequalibrium(type):
+def TCequalibrium(ginput,minput,type):
     """
 
     :param type: Type of equalibrium
@@ -78,10 +77,9 @@ def TCequalibrium(type):
     :return: Activity for carbon and nitrogen, with graphite and gas as references.
     """
     print("Equalibrium calculation of type " + str(type))
-    data = read_input()
     if type == "env":
         database = "SSUB6"
-        material = setmaterial(data, type)
+        material = setmaterial(ginput, minput, type)
         dependentmat = material[0]
         composition = material[1]
         phases = ["GAS", "C_S"]
@@ -89,8 +87,8 @@ def TCequalibrium(type):
         referencestates = {"C": "C_S", "N": "GAS"}
     elif type == "mat":
         database = "TCFE12"
-        dependentmat = data['Material']["Dependentmat"]
-        composition = data['Material']["Composition"]
+        dependentmat = ginput['Material']["Dependentmat"]
+        composition = ginput['Material']["Composition"]
         phases = ["FCC_A1", "FCC_A1#2", "GAS", "GRAPHITE_A9"]
         dormantphases = ["GAS", "GRAPHITE_A9"]
         referencestates = {"C":"Graphite_A9", "N":"GAS"}
@@ -105,8 +103,8 @@ def TCequalibrium(type):
             .select_database_and_elements(database, [dependentmat] + list(composition))
             .get_system()
             .with_single_equilibrium_calculation()
-            .set_condition(ThermodynamicQuantity.temperature(), data['Thermo']["CNtemp"])
-            .set_condition(ThermodynamicQuantity.pressure(), data['Thermo']["CNPress"])
+            .set_condition(ThermodynamicQuantity.temperature(), minput["CNtemp"])
+            .set_condition(ThermodynamicQuantity.pressure(), minput["CNPress"])
             .set_phase_to_suspended('*')
             #.disable_global_minimization()
         )
@@ -272,9 +270,8 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
             # Go through all the points for the previous simulation and add them to the grid.
             #
             # ElementProfile.funct(PointByPointGrid.add_point())
-
         pointgrid = PointByPointGrid()
-        for i in range(len(compgrid)):
+        for i in range(len(compgrid["C"])):
             tmppoint = GridPoint(pos[i][0])
             for element in ginput["Material"]["Composition"].keys():
                 tmppoint.add_composition(element, compgrid[element][i])
@@ -292,8 +289,8 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
                      #.with_composition_profile(profile0)
 
         BC_Diffusion = BoundaryCondition.mixed_zero_flux_and_activity().set_zero_flux_for_element("C")
-        BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.0))
-
+        BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.2))
+        BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity().set_activity_for_element("C", str(2.0))
         current_time = boost_t[0]
         print(boost_t)
         boost_calculation = (system
@@ -426,64 +423,10 @@ def TCcarburizing_LPC(ginput, minput, activityair):
             mass_frac[element] = mass_frac_temp
         return distance, mass_frac
 
-def TCDiffusion_Test(activityair, boosts, boost_t, rest_t):
-    print("Running Low pressure carburization model in ThermoCalc Test")
-    """
-    :param activityair: Activity of carbon and nitrogen [aC, aN]
-    :param boosts: Nr of boost/rest cycles
-    :param boost_t: Time with high activity at boundary
-    :param rest_t: Time for diffusion between boosts
-    :return: Coposition along x-axis.
-    """
-    data = read_input()
-    with TCPython() as session:
-        logging.getLogger("tc_python").setLevel(logging.ERROR)
-        system = (session
-                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
-                                                                            [data['Material']["Dependentmat"]] + list(
-                                                                                data['Material']["Composition"]))
-                  .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase(
-            "FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
-                  .get_system())
 
-        austenite = Region("Austenite")
-        austenite.set_width(data['Geometry']["radius"])
-        austenite.with_grid(CalculatedGrid.geometric()
-                            .set_no_of_points(data['Geometry']["nodes"])
-                            .set_geometrical_factor(data['Geometry']['meshscaling']))
-        austenite.add_phase("FCC_A1")
-        austenite.add_phase("FCC_A1#2")
-        austenite.add_phase("CEMENTITE_D011")
-        austeniteprofile = CompositionProfile()
-        for element in data['Material']["Composition"]:
-            austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
-        austenite.with_composition_profile(austeniteprofile)
-        total_t = boost_t*boosts + rest_t*boosts
-        calculation = (system
-                       .with_isothermal_diffusion_calculation()
-                       .with_reference_state("C", "GRAPHITE_A9")
-                       .set_temperature(data['Thermo']["CNtemp"])
-                       .set_simulation_time(total_t)
-                       .with_cylindrical_geometry().remove_all_regions()
-                       .add_region(austenite))
-        for i in range(boosts):
-            calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                           .set_activity_for_element('C', str(1.0)), to=boost_t*(i+1)+rest_t*i)
-            calculation.with_right_boundary_condition(BoundaryCondition.closed_system(), to=boost_t*(i+1) + rest_t*(i+1))
-        logging.getLogger("tc_python").setLevel(logging.INFO)
-        result = calculation.calculate()
-        mass_frac = dict()
-        composition = []
-        composition.append(data['Material']["Dependentmat"])
-        composition.append(data['Material']["Composition"])
-        for element in data['Material']["Composition"]:
-            distance, mass_frac_temp = result.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
-            mass_frac[element] = mass_frac_temp
-        return distance, mass_frac
-
-def setmaterial(data,type):
+def setmaterial(ginput,minput,type):
     if type == "mat":
-        return data['Material']["Dependentmat"], data['Material']["Compositon"]
+        return ginput['Material']["Dependentmat"], ginput['Material']["Compositon"]
     elif type == "env":
         pass
     elif type == "Cenv":
@@ -493,23 +436,23 @@ def setmaterial(data,type):
     else:
         raise KeyError("TCcalculation error")
 
-    if data['Thermo']["CNenv"] == "Argon":
+    if minput["CNenv"] == "Argon":
         print('Using argon as atmosphere')
         env_dep = 'N'
         env_comp = {'H': 1, 'C': 1, 'O': 1}
-    elif data['Thermo']["CNenv"] == "Acetylene":
+    elif minput["CNenv"] == "Acetylene":
         """
         Low pressure atmosphere
         """
         print('Using acetylene as atmosphere')
         env_dep = 'N'
         env_comp = {'H': 7.7, 'C': 92.2}
-    elif data['Thermo']["CNenv"] == "Methane":
+    elif minput["CNenv"] == "Methane":
         print('Using methane as atmosphere')
         env_dep = 'N'
         env_comp = {'H': 4.5788, 'C': 13.6344, 'O': 18.1614}
         activityair = [1.471, 0.639]
-    elif data['Thermo']["CNenv"] == 'Propane':
+    elif minput["CNenv"] == 'Propane':
         print('Using propane as atmosphere')
         env_dep = 'N'
         env_comp = {'H': 3.2762, 'C': 14.0238, 'O': 18.6801}
@@ -520,10 +463,10 @@ def setmaterial(data,type):
 
 def calculatePearlite(temperatures, composition):
     print("Pearlite model")
-    data = read_input()
+    ginput = read_geninput()
     database = "TCFE12"
     kindatabase = "MOBFE7"
-    dependentmat = data['Material']["Dependentmat"]
+    dependentmat = ginput['Material']["Dependentmat"]
     phases = ["FCC_A1"]
 
     with TCPython() as start:
@@ -567,10 +510,10 @@ def calculatePearlite(temperatures, composition):
 
 def calculateBainite(temperatures, composition):
     print("Bainite model")
-    data = read_input()
+    ginput = read_geninput()
     database = "TCFE12"
     kindatabase = "MOBFE7"
-    dependentmat = data['Material']["Dependentmat"]
+    dependentmat = ginput['Material']["Dependentmat"]
     #composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
 
@@ -603,10 +546,10 @@ def calculateBainite(temperatures, composition):
     return starttime, halftime, finishtime
 def calculateMartensite(composition):
     print("Martensite model")
-    data = read_input()
+    ginput = read_geninput()
     database = "TCFE12"
     kindatabase = "MOBFE7"
-    dependentmat = data['Material']["Dependentmat"]
+    dependentmat = ginput['Material']["Dependentmat"]
     # composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
 
@@ -639,10 +582,10 @@ def calculateMartensite(composition):
 
 def calculateFerrite(temperatures, composition):
     print("Ferrite model")
-    data = read_input()
+    ginput = read_geninput()
     database = "TCFE12"
     kindatabase = "MOBFE7"
-    dependentmat = data['Material']["Dependentmat"]
+    dependentmat = ginput['Material']["Dependentmat"]
     #composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
     tmpcomp = composition.copy()
@@ -688,10 +631,10 @@ def calculateFerrite(temperatures, composition):
     return starttime, halftime, finishtime
 def calculateTTT(temperatures, composition):
     print("TTT model")
-    data = read_input()
+    ginput = read_geninput()
     database = "TCFE12"
     kindatabase = "MOBFE7"
-    dependentmat = data['Material']["Dependentmat"]
+    dependentmat = ginput['Material']["Dependentmat"]
     # composition = data['Material']["Composition"]
     phases = ["FCC_A1"]
 

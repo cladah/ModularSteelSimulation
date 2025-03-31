@@ -31,14 +31,24 @@ def reset_input(inputfile):
     f.close()
 def createinputcache():
     f = open('Cachefiles/InputCache.json', 'w')
-    data = read_input()
-    json.dump(data, f, indent=2)
+    totinput = dict()
+    ginput = read_geninput()
+    totinput.update(ginput)
+    for file in ginput["Inputs"]:
+        minput = read_modinput("Inputs/"+ginput["InputDirectory"] + "/" + file + ".json")
+        totinput.update(minput)
+    json.dump(totinput, f, indent=2)
     f.close()
 
 def createresultinput(filename):
     f = open("Resultfiles/" + filename + ".json", "w")
-    data = read_input()
-    json.dump(data, f, indent=2)
+    totinput = dict()
+    ginput = read_geninput()
+    totinput.update(ginput)
+    for file in ginput["Inputs"]:
+        minput = read_modinput("Inputs/"+ginput["InputDirectory"] + "/" + file + ".json")
+        totinput.update(minput)
+    json.dump(totinput, f, indent=2)
     f.close()
 
 def adjustinputcache(model):
@@ -79,23 +89,19 @@ def inputfile(filename):
         json.dump(newdata, f, indent=2)
         f.close()
 def checkruncondition(model):
-    f = open('Cachefiles/Input.json', 'r')
-    indata = json.load(f)
-    f.close()
+    ginput = read_geninput()
     f = open('Cachefiles/InputCache.json', 'r')
     cachedata = json.load(f)
     f.close()
 
-    modellist = list(indata["Rerun"].keys())
+    modulelist = list(ginput["Modules"])
     # Check rerun criteria
-    if indata["Rerun"]["All"] == True:
+    if ginput["RerunAll"] == True:
         return True
 
-    for m in modellist:
-        if indata['Rerun'][model] == True:
+    for i in range(len(modulelist)):
+        if ginput["Modules"][i] == model and ginput["Rerun"][i] == True:
             return True
-        #if m == model:
-        #    break
 
     return False
 

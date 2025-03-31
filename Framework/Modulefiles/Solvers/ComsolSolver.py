@@ -4,7 +4,7 @@ import mph
 import os
 import csv
 import numpy as np
-from Framework.HelpFile import readresultfile, read_input
+from Framework.HelpFile import readresultfile, read_modinput, read_geninput
 from Framework.Datastream_file import readdatastream, adjustdatastream, getaxisvalues
 def modeldatatoComsolfiles():
     # print("Adjusting phase transformation data to Comsol specifics")
@@ -302,8 +302,8 @@ def setupComsolSolver(model):
     model.sol("sol1").feature("t1").feature().remove("fcDef");
     model.sol("sol1").feature("t1").feature().remove("seDef");
     return model
-def setupComsol(model):
-    data = read_input()
+def setupComsol(model, minput):
+    ginput = read_geninput()
     directory = os.getcwd()
     if os.name == "posix":
         meshdirec = directory + '/Resultfiles/Mesh.nas'
@@ -383,10 +383,10 @@ def setupComsol(model):
         .set("IsotropicHardeningModel", "LinearIsotropicHardening")
     # model.component("comp1").physics("solid").feature("lemm1").feature("plsty1").set("Et_mat", "userdef")
     # model.component("comp1").physics("solid").feature("lemm1").feature("plsty1").set("Et", "100E9")
-    model.component("comp1").physics("solid").prop("d").set("d", data["Geometry"]["thickness"])
+    model.component("comp1").physics("solid").prop("d").set("d", ginput["Geometry"]["thickness"])
 
     model.component("comp1").physics().create("ht", "HeatTransfer", "geom1")
-    model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("dz", data["Geometry"]["thickness"])
+    model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("dz", ginput["Geometry"]["thickness"])
 
     model.component("comp1").physics().create("audc", "AusteniteDecomposition", "geom1")
     model.component("comp1").physics("solid").prop("StructuralTransientBehavior").set("StructuralTransientBehavior",
@@ -476,7 +476,7 @@ def setupComsol(model):
     model.component("comp1").physics("ht").feature("hf1").set("HeatFluxType", "ConvectiveHeatFlux")
     model.component("comp1").physics("ht").feature("hf1").selection().set(3)
     model.component("comp1").physics("ht").feature("hf1").set("h", "htc(T)")
-    model.component("comp1").physics("ht").feature("hf1").set("Text", str(data["Thermo"]["quenchtemp"]) + " [K]")
+    model.component("comp1").physics("ht").feature("hf1").set("Text", str(minput["quenchtemp"]) + " [K]")
     #model.component("comp1").physics("ht").create("hf1", "HeatFluxBoundary", 1)
     #model.component("comp1").physics("ht").feature("hf1").selection().set(3)
     #model.component("comp1").physics("ht").feature("hf1").set("q0_input", -1234.)
@@ -522,7 +522,7 @@ def setupComsol(model):
 
     model.component("comp1").common().create("minpt1", "CommonInputDef")
     model.component("comp1").common("minpt1").set("quantity", "strainreferencetemperature")
-    model.component("comp1").common("minpt1").set("value", str(data["Thermo"]["CNtemp"]) + "[K]")
+    model.component("comp1").common("minpt1").set("value", str(minput["CNtemp"]) + "[K]")
     model.component("comp1").common("minpt1").selection().set(1)
 
     model.component("comp1").physics("solid").feature("lemm1").create("iss1", "InitialStressandStrain", 2)
@@ -532,7 +532,7 @@ def setupComsol(model):
     model.save('Resultfiles/Comsolmodel')
     return model
 
-def adjustComsol(model):
+def adjustComsol(model, minput):
     print("Importing mesh to Comsol model")
     model.component("comp1").mesh("mesh1").feature("imp1").importData()
     model.component("comp1").mesh("mesh1").run()
@@ -540,11 +540,11 @@ def adjustComsol(model):
     print("Adding phase transformation models to Comsol model")
     #JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
     #JMAK_P = readresultfile("TTT_surface.hdf5","Pearlite/JMAK")
-    data = read_input()
+    ginput = read_geninput()
 
     # Heat flux
-    x = data["FEM"]["heatflux"]["T"]
-    y = data["FEM"]["heatflux"]["htc"]
+    x = minput["heatflux"]["T"]
+    y = minput["heatflux"]["htc"]
     for i in range(len(x)):
         model.func("htc").setIndex("table", x[i], i, 0)
         model.func("htc").setIndex("table", y[i], i, 1)
@@ -552,12 +552,12 @@ def adjustComsol(model):
     model.func("htc").setIndex("fununit", "W/(m^2*K)", 0)
 
     # Carbonnitriding temperature
-    model.component("comp1").physics("ht").feature("init1").set("Tinit", str(data["Thermo"]["CNtemp"]) + "[K]")
+    model.component("comp1").physics("ht").feature("init1").set("Tinit", str(minput["CNtemp"]) + "[K]")
     model.component("comp1").physics("audc").prop("HeatTransfer").set("minput_temperature_src", "root.comp1.T")
-    model.common("cminpt").set("modified", ("strainreferencetemperature", str(data["Thermo"]["CNtemp"]) + "[K]"))
+    model.common("cminpt").set("modified", ("strainreferencetemperature", str(minput["CNtemp"]) + "[K]"))
     # model.common("cminpt").set("modified", "temperature", str(data["Thermo"]["CNtemp"]) + "[degC]")
     # model.common("cminpt").set("modified", "temperature", str(data["Thermo"]["CNtemp"]) + "[degC]", "strainreferencetemperature", str(data["Thermo"]["CNtemp"]) + "[degC]")
-    model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("Tref", str(data["Thermo"]["CNtemp"]) + "[K]")
+    model.component("comp1").physics("ht").prop("PhysicalModelProperty").set("Tref", str(minput["CNtemp"]) + "[K]")
     materialprop = ["E","Cp","k","Sy", "alpha_k", "h"]
     materials = ["Austenite","Ferrite","Pearlite","Bainite","Martensite"]
     propunit = ["GPa", "J/(kg*K)", "W/(m*K)", "MPa", "1/K", "GPa"] # h = GPa
@@ -620,24 +620,24 @@ def adjustComsol(model):
                 model.func(prop + "_" + mat[0]).setIndex("fununit", "1/K", 0)
 
             else:
-                x = data["Material"][mat][prop]["T"]
-                y = data["Material"][mat][prop][prop]
+                x = minput[mat][prop]["T"]
+                y = minput[mat][prop][prop]
                 for i in range(len(x)):
                     model.func(prop + "_" + mat[0]).setIndex("table", x[i], i, 0)
                     model.func(prop + "_" + mat[0]).setIndex("table", y[i], i, 1)
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "degC", 0)
                 model.func(prop + "_" + mat[0]).setIndex("fununit", propunit[materialprop.index(prop)], 0)
 
-    if "Ferrite" in data["FEM"]["Phases"]:
+    if "Ferrite" in minput["Phases"]:
         model.component("comp1").physics("audc").feature("ptran1").active(True)
     else:
         model.component("comp1").physics("audc").feature("ptran1").active(False)
 
     #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
     model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
-    model.component("comp1").physics("audc").feature("ptran1").set("temperaturelimits", "on")
-    model.component("comp1").physics("audc").feature("ptran2").set("temperaturelimits", "on")
-    model.component("comp1").physics("audc").feature("ptran3").set("temperaturelimits", "on")
+    model.component("comp1").physics("audc").feature("ptran1").set("temperaturelimits", "1")
+    model.component("comp1").physics("audc").feature("ptran2").set("temperaturelimits", "1")
+    model.component("comp1").physics("audc").feature("ptran3").set("temperaturelimits", "1")
     model.component("comp1").physics("audc").feature("ptran3").set("Tl", "20[degC]")
     model.component("comp1").physics("audc").feature("ptran3").set("Tu", "600[degC]")
     model.component("comp1").physics("audc").feature("ptran2").set("Tl", "20[degC]")
@@ -706,29 +706,13 @@ def Comsolexport(model):
             data = np.array(data).astype(float)
             if isinstance(indx, str):
                 indx = getComsolindx(x, y)
-            print(np.shape(data))
 
         # Adding data into dictionary
         for j in range(len(time)):
             if str(time[j]) not in data_dict.keys():
                 data_dict[str(time[j])] = dict()
             data_dict[str(time[j])][resultnames[i]] = data[indx, j]
-    print("")
-    print("Result shapes")
-    print(np.shape(data_dict["600"]["Martensite"]))
-    print(np.shape(data_dict["600"]["Austenite"]))
 
-    import matplotlib.pyplot as plt
-    xdata = readdatastream("nodes")[:, 0]
-    print(data_dict["600"]["Martensite"])
-    plt.plot(xdata, data_dict["600"]["Martensite"], 'o')
-    plt.plot(xdata, data_dict["600"]["Austenite"], 'ro')
-    plt.show()
-
-
-
-    # input("")
-    # data_dict as [time][name]
     save_dict = dict()
     for j in range(len(time)):
         stress = data_dict[str(time[j])]["sxx"]
@@ -858,18 +842,22 @@ def resultconverter():
     adjustdatastream("edeve", data[:, 6][indxcomsol], "nodes")
 
 def runComsol(parent):
+    """
+    Setting up and running a simulation in ComsolMultiphysics using mph
+    Background comsol is running with java
+
+    :param parent:
+    :return:
+    """
+
     directory = os.getcwd()
     savedirec = directory + '/Resultfiles'
     client = mph.start()
-    #pymodel = client.load("Resultfiles/Comsolmodel.mph")
-    #model = pymodel.java
     modeldatatoComsolfiles()
     parent.updateprogress(0.1)
     print("Opening Comsol multiphysics")
-    #client = mph.start()
 
     print("Setting up model")
-    print(os.path.isfile("Resultfiles/Comsolmodel.mph"))
     if os.path.isfile("Resultfiles/Comsolmodel.mph"):
         print("Comsolmodel.mph file exist")
         pymodel = client.load("Resultfiles/Comsolmodel.mph")
@@ -879,20 +867,18 @@ def runComsol(parent):
         print("Creating Comsol model")
         pymodel = client.create()
         model = pymodel.java
-        model = setupComsol(model)
+        model = setupComsol(model, parent.minput)
         print("Base Comsol model created")
         model.save('Resultfiles/Comsolmodel')
     #model.util.ModelUtil.showProgress(savedirec + "/Comsolprogress.txt")
     print("Adjusting model to input")
-    #model = adjustComsol(model)
-    #model.save(savedirec)
-
-    #model.save('Resultfiles/Comsolmodel')
+    model = adjustComsol(model, parent.minput)
+    model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.3)
-    print("Running model")
-    #model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(2,1,60),range(100,100,600)")
-    #model.study("std1").run()
-    #model.save('Resultfiles/Comsolmodel')
+    print("Running model...")
+    model.study("std1").feature("time").set("tlist", "range(0,0.1,1),range(2,1,60),range(100,100,600)")
+    model.study("std1").run()
+    model.save('Resultfiles/Comsolmodel')
     parent.updateprogress(0.9)
     print("Comsol model successfully ran")
     print("Exporting results")

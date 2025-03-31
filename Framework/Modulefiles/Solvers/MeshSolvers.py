@@ -1,5 +1,5 @@
 import gmsh
-from Framework.HelpFile import read_input
+from Framework.HelpFile import read_geninput
 import numpy as np
 import meshio
 import pygmsh
@@ -57,10 +57,10 @@ def gmsh1D():
 def gmshsolver(parent):
     print('Meshing with Gmsh')
 
-    data = read_input()
-    r = data['Geometry']['radius']
-    tmpgeo = [data['Geometry']['meshscaling'] ** i for i in range(data['Geometry']['nodes'] - 1)]
-    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(data['Geometry']['nodes'] - 1)])
+    ginput = read_geninput()
+    r = ginput['Geometry']['radius']
+    tmpgeo = [ginput['Geometry']['meshscaling'] ** i for i in range(ginput['Geometry']['nodes'] - 1)]
+    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(ginput['Geometry']['nodes'] - 1)])
     rnodes = r * tmpgeo / np.max(tmpgeo)
     lc = rnodes[-1] - rnodes[-2]
     gmsh.initialize()
@@ -97,10 +97,10 @@ def gmshsolver(parent):
     gmsh.model.addPhysicalGroup(gdim, [1], 4, 'Sphere')
 
     # Geometric scaling of mesh
-    gmsh.model.mesh.set_transfinite_curve(1, data['Geometry']['nodes'], 'Progression',
-                                          data['Geometry']['meshscaling'])
-    gmsh.model.mesh.set_transfinite_curve(2, data['Geometry']['nodes'], 'Progression',
-                                          -data['Geometry']['meshscaling'])
+    gmsh.model.mesh.set_transfinite_curve(1, ginput['Geometry']['nodes'], 'Progression',
+                                          ginput['Geometry']['meshscaling'])
+    gmsh.model.mesh.set_transfinite_curve(2, ginput['Geometry']['nodes'], 'Progression',
+                                          -ginput['Geometry']['meshscaling'])
 
     # Defining element order
 

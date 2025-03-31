@@ -461,6 +461,7 @@
     "Bainite",
     "Martensite"
   ],
+  "CNtemp": 1323.15,
   "elementdim": 2,
   "elementtype": "Axisym2D",
   "element_f": 2,

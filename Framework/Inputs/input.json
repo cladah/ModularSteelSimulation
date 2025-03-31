@@ -1,20 +1,11 @@
 {
-    "Rerun": {
-        "All": true,
-        "Meshing": false,
-        "Carbonitriding": false,
-        "Carburization": false,
-        "TTT": false,
-        "Transformationmodels": true,
-        "Quenching": true,
-        "Tempering": false,
-        "Fatigue": false
-    },
+    "RerunAll": false,
     "InputDirectory": "159",
-    "Modules": ["Meshing", "Diffusion", "TTTdiagram", "TransformMod", "Quenching"],
-    "Inputs": ["iMain", "iDiff_1", "iDiff_1", "iFEM", "iFEM"],
+    "Modules": ["Meshing", "Diffusion", "TTTdiagram","TransformMod","Quenching"],
+    "Inputs": ["iMain", "iDiff_1", "iDiff_1","iFEM","iFEM"],
+    "Rerun": [false, false, false, false, true],
     "Datastream": {
-        "Savedirect": "159A_2025.xdmf",
-        "Cachedirect": "Resultfiles/159A_2025.xdmf"
+        "Savedirect": "159A_Carb2.xdmf",
+        "Cachedirect": "Resultfiles/159A_Carb.xdmf"
     }
 }

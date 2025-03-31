@@ -48,7 +48,7 @@ class Meshingmodule(CalcModule):
         nodes = readdatastream("nodes")
         tmpelvalues = np.full(len(nodes), 0)
         for element in self.ginput["Material"]["Composition"].keys():
-            tmpelvalues.fill(self.ginput["Material"]["Composition"][element])
+            tmpelvalues = np.full(len(nodes), self.ginput["Material"]["Composition"][element])
             adjustdatastream({"Composition/" + element: tmpelvalues}, "nodes")
 
 
