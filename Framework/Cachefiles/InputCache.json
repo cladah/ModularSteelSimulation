@@ -30,7 +30,7 @@
     "Thermal": "FCSx",
     "FEM": "Comsol"
   },
-  "RerunAll": false,
+  "RerunAll": true,
   "InputDirectory": "159",
   "Modules": [
     "Meshing",
@@ -54,7 +54,7 @@
     true
   ],
   "Datastream": {
-    "Savedirect": "159A_Carb2.xdmf",
+    "Savedirect": "159A_Carb.xdmf",
     "Cachedirect": "Resultfiles/159A_Carb.xdmf"
   },
   "GrainSize": 100.0,

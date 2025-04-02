@@ -123,7 +123,7 @@ def TCequalibrium(ginput,minput,type):
         activityN = calc_result.get_value_of(ThermodynamicQuantity.activity_of_component('N'))
         print("Activity of carbon " + str(activityC))
         print("Activity of nitrogen " + str(activityN))
-        return activityC, activityN
+        return minput["Cpotential"], activityN
 
 def TCcarburizing(ginput, minput, activityair):
     data = read_input()
@@ -290,7 +290,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
 
         BC_Diffusion = BoundaryCondition.mixed_zero_flux_and_activity().set_zero_flux_for_element("C")
         BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.2))
-        BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity().set_activity_for_element("C", str(2.0))
+        BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity().set_activity_for_element("C", str(Activity[0]))
         current_time = boost_t[0]
         print(boost_t)
         boost_calculation = (system

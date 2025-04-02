@@ -1,11 +1,11 @@
 {
-    "RerunAll": false,
+    "RerunAll": true,
     "InputDirectory": "159",
     "Modules": ["Meshing", "Diffusion", "TTTdiagram","TransformMod","Quenching"],
     "Inputs": ["iMain", "iDiff_1", "iDiff_1","iFEM","iFEM"],
     "Rerun": [false, false, false, false, true],
     "Datastream": {
-        "Savedirect": "159A_Carb2.xdmf",
+        "Savedirect": "159A_Carb.xdmf",
         "Cachedirect": "Resultfiles/159A_Carb.xdmf"
     }
 }
