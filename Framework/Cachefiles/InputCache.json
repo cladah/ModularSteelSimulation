@@ -54,8 +54,8 @@
     true
   ],
   "Datastream": {
-    "Savedirect": "159A_Carb.xdmf",
-    "Cachedirect": "Resultfiles/159A_Carb.xdmf"
+    "Savedirect": "159A_Carb3.xdmf",
+    "Cachedirect": "Resultfiles/159A_Carb3.xdmf"
   },
   "GrainSize": 100.0,
   "Austenitizingtemp": 1323.15,
@@ -63,7 +63,7 @@
   "CNenv": "Acetylene",
   "CNtime": 21600,
   "CNPress": 2000.0,
-  "Cpotential": 1.2,
+  "Cpotential": 1.5,
   "BoostNr": 5,
   "BoostTime": [
     210,

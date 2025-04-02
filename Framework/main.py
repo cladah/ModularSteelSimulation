@@ -214,20 +214,19 @@ if __name__ == "__main__":
         #DockerTest()
         # vtxfile_test()
         # FCSxfile_test()
-    if False:
+    if True:
         #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
         Result_GUI_show("")
-        #export_data("Resultfiles/October2024_Ref.xdmf", ["Composition/C", "Martensite"], -1)
-
+        #export_data("Resultfiles/159A_Carb3.xdmf", ["Composition/C", "Martensite"], -1)
     if False:
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
         dataname = "Composition/C"
         ResultPlotting(files, dataname)
-    if True:
+    if False:
         ginput = read_geninput()
         modules = setupSimulation()
         for module in modules:
             module.run()
             savedatastream(ginput["Datastream"]["Savedirect"])
-        Result_GUI_show(ginput["Datastream"]["Savedirect"])
+        Result_GUI_show("Resultfiles/" + ginput["Datastream"]["Savedirect"])
     pass
