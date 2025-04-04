@@ -207,17 +207,14 @@ if __name__ == "__main__":
     """
 
     if False:
-        modelling()
-        # checkDB()
-        # looping()
-        # GUI()
+        # modelling()
+        GUI()
         #DockerTest()
-        # vtxfile_test()
-        # FCSxfile_test()
     if True:
         #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
         Result_GUI_show("")
         #export_data("Resultfiles/159A_Carb3.xdmf", ["Composition/C", "Martensite"], -1)
+        #export_data("Resultfiles/159A_Carb3.xdmf", "All", -1)
     if False:
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
         dataname = "Composition/C"

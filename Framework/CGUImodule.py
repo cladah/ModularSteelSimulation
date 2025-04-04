@@ -11,7 +11,7 @@ from queue import Queue
 import meshio
 from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream, getnamesdatastream, gethistoryvalues
 from Modulefiles.Meshing_file import Meshingmodule
-from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule
+from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule, Diffusionmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
@@ -114,21 +114,21 @@ class rightFrame(ctk.CTkFrame):
             tab1.rowconfigure(0, weight=1)
             tab1.columnconfigure(0, weight=1)
             self.tabs_frame.set("Mesh")
-        elif type == "Carbonitriding" or type == "Carburization":
+        elif type == "Diffusion" or type == "Carburization":
             tab2 = self.tabs_frame.add("Carbonitriding")
             tab2frame = CNTab(tab2)
             tab2frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab2.rowconfigure(0, weight=1)
             tab2.columnconfigure(0, weight=1)
             self.tabs_frame.set("Carbonitriding")
-        elif type == "TTT":
+        elif type == "TTTdiagram":
             tab3 = self.tabs_frame.add("TTT diagrams")
             tab3frame = TTTTab(tab3)
             tab3frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
             tab3.rowconfigure(0, weight=1)
             tab3.columnconfigure(0, weight=1)
             self.tabs_frame.set("TTT diagrams")
-        elif type == "Transformationmodels":
+        elif type == "TransformMod":
             tab4 = self.tabs_frame.add("TTTmodel")
             tab4frame = TTTmodelTab(tab4)
             tab4frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -153,6 +153,7 @@ class infoTab(ctk.CTkScrollableFrame):
         import matplotlib as mpl
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
+        data = read_geninput()
         data = read_input()
         self.columnconfigure(0, weight=0)
         self.columnconfigure(3, weight=1)
@@ -166,8 +167,8 @@ class infoTab(ctk.CTkScrollableFrame):
                        "Number of nodes in radius: " + str(data["Geometry"]["nodes"]),
                        "Radius of sphere: " + str(data["Geometry"]["radius"]),
                        "Mesh program: " + data["Programs"]["Meshing"],
-                       "Carbonitriding program: " + data["Programs"]["Carbonitriding"],
-                       "TTT program: " + data["Programs"]["TTT"],
+                       "Carbonitriding program: " + data["Programs"]["Diffusion"],
+                       "TTT program: " + data["Programs"]["TTTdiagram"],
                        "FEM program: " + data["Programs"]["FEM"]]
         i = 0
         for info in infostrings:
@@ -199,17 +200,11 @@ class infoTab(ctk.CTkScrollableFrame):
 
         i = i + 1
 
-        # mpl.rcParams["font.size"] = 32
-        # text = ctk.CTkLabel(self, text="Temperature history:")
-        # text.grid(row=i, column=0, columnspan=4, sticky="nsew")
-        #
-        # i = i + 1
-        # Add plot of temperature
-        starttemp = data["Thermo"]["CNtemp"] - 273.15
-        quenchtemp = data["Thermo"]["quenchtemp"] - 273.15
+        starttemp = data["CNtemp"] - 273.15
+        quenchtemp = data["quenchtemp"] - 273.15
         tempertemp = 400  # data["Thermo"]["tempertemp"]
-        roomtemp = data["Thermo"]["quenchtemp"] - 273.15
-        holdCN = data["Thermo"]["CNtime"]
+        roomtemp = data["quenchtemp"] - 273.15
+        holdCN = data["CNtime"]
         holdquench = holdCN + 1800
         holdtemper = holdquench + 1800
         holdend = holdtemper + 1800
@@ -302,7 +297,6 @@ class CNTab(ctk.CTkFrame):
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-
         wC = getaxisvalues("Composition/C")
         wN = getaxisvalues("Composition/N")
         xyz = getaxisvalues("nodes")
@@ -817,14 +811,30 @@ class MainApp(ctk.CTk):
         #self.sidebar_frame.sidebar_button_2.configure(command=lambda: threading.Thread(target=self.test).start())
 
         self.programstate = ctk.IntVar(self, 0)
-        #self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())
+        #self.runall = ctk.IntVar(self, self.sidebar_frame.runall_switch.get())for i in range(len(ginput["Modules"])):
+        ginput = read_geninput()
         self.modules = Queue()
-        self.modules.put(Meshingmodule())
-        self.modules.put(Carbonizationmodule())
-        self.modules.put(TTTdiagrammodule())
-        self.modules.put(Transformationmodelmodule())
-        self.modules.put(Quenchingmodule())
-        self.input = read_input()
+        for i in range(len(ginput["Modules"])):
+            infile = ginput["InputDirectory"] + "/" + ginput["Inputs"][i]
+            if ginput["Modules"][i] == "Meshing":
+                self.modules.put(Meshingmodule(infile))
+            elif ginput["Modules"][i] == "Diffusion":
+                self.modules.put(Diffusionmodule(infile))
+            elif ginput["Modules"][i] == "TTTdiagram":
+                self.modules.put(TTTdiagrammodule(infile))
+            elif ginput["Modules"][i] == "TransformMod":
+                self.modules.put(Transformationmodelmodule(infile))
+            elif ginput["Modules"][i] == "Quenching":
+                self.modules.put(Quenchingmodule(infile))
+            else:
+                raise KeyError("Module input in iMain not supported")
+        #self.modules = Queue()
+        #self.modules.put(Meshingmodule())
+        #self.modules.put(Carbonizationmodule())
+        #self.modules.put(TTTdiagrammodule())
+        #self.modules.put(Transformationmodelmodule())
+        #self.modules.put(Quenchingmodule())
+        self.input = read_geninput()
 
 
     def test(self):

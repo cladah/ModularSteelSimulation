@@ -26,7 +26,6 @@ def read_results(filename, dataname, time=0):
             # Must read datapoints in order to read data
             points, cells = reader.read_points_cells()
             if time == -1:
-                # print("Getting last timestep")
                 n = reader.num_steps-1
                 t, point_data, cell_data = reader.read_data(n)
                 if dataname not in point_data.keys():

@@ -3,6 +3,7 @@
     "Austenitizingtemp": 1073.15,
     "CNtemp": 1323.15,
     "CNenv": "Acetylene",
+    "DiffType": "C",
     "CNtime": 21600,
     "CNPress": 500.0,
     "Cpotential": 1,

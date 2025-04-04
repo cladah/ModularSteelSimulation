@@ -455,6 +455,7 @@
   "quench_steps": 1,
   "quenchmedium": "oil",
   "quenchtemp": 293.15,
+  "PlaneStrain": false,
   "Phases": [
     "Austenite",
     "Pearlite",

@@ -1,4 +1,4 @@
-from Framework.ResultReading import read_results_axis, getnames_results
+from Framework.ResultReading import read_results_axis, getnames_results, read_results, read_results_all
 import numpy as np
 def DatastreamPlotting(dataname, t=0):
     import matplotlib.pyplot as plt
@@ -29,16 +29,33 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
     print("Done")
 
 def export_data(filename, datanames, t=0, n=1):
-    if type(datanames) != list:
+    if datanames == "All":
+       datanames = getnames_results(filename)
+    elif type(datanames) != list:
         datanames = [datanames]
+
     import pandas as pd
-    x = read_results_axis(filename, "nodes")[:, 0]
+    x = read_results(filename, "nodes")[:, 0]
+    #x = read_results_axis(filename, "nodes")[:, 0]
     datadict = {"x": x}
     for dataname in datanames:
-        y = read_results_axis(filename, dataname, t)
-        datadict[dataname] = y
+        print(dataname)
+        y = read_results(filename, dataname, t)
+        print(np.shape(y))
+        #y = read_results_axis(filename, dataname, t)
+        if len(np.shape(y)) == 1:
+            datadict[dataname] = y
+    datapd = pd.DataFrame(datadict).sort_values('x')
 
-    pd.DataFrame(datadict).to_csv("Resultfiles/TmpData.csv", index=False)
+    num_rows = len(datapd)
+    # Linearly increasing
+    roll = 50
+    datapd.rolling(roll, 1)
+    indices = np.geomspace(1, num_rows - 1, 50).astype(int)
+    indices = np.append([0], indices)
+    indices = np.unique(indices)
+    datapd = datapd.iloc[indices, :]
+    datapd.to_csv("Resultfiles/TmpData.csv", index=False)
 
 def xmdftesting():
     import meshio

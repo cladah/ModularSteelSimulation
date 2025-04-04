@@ -7,10 +7,13 @@ import numpy as np
 
 
 def read_input():
-    f = open('Cachefiles/Input.json', 'r')
-    data = json.load(f)
-    f.close()
-    return data
+    inputdata = read_geninput()
+    for file in inputdata["Inputs"]:
+        ftmp = open("Inputs/" + inputdata["InputDirectory"] + "/" + file + ".json", 'r')
+        tmpdata = json.load(ftmp)
+        inputdata.update(tmpdata)
+        ftmp.close()
+    return inputdata
 
 def change_inputfile(filename):
     f = open(filename, 'r')

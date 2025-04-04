@@ -290,7 +290,10 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
 
         BC_Diffusion = BoundaryCondition.mixed_zero_flux_and_activity().set_zero_flux_for_element("C")
         BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.2))
-        BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity().set_activity_for_element("C", str(Activity[0]))
+        if "C" in minput["DiffType"]:
+            BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity().set_activity_for_element("C", str(Activity[0]))
+        if "N" in minput["DiffType"]:
+            BC_Boost.mixed_zero_flux_and_activity().set_activity_for_element("N", str(Activity[1]))
         current_time = boost_t[0]
         print(boost_t)
         boost_calculation = (system
