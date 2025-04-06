@@ -84,7 +84,7 @@ def TCequalibrium(ginput,minput,type):
         composition = material[1]
         phases = ["GAS", "C_S"]
         dormantphases = ["C_S"]
-        referencestates = {"C": "C_S", "N": "GAS"}
+        referencestates = {"C": "C_S", "N": "GAS"} # N should have a different reference state? uses amonium?
     elif type == "mat":
         database = "TCFE12"
         dependentmat = ginput['Material']["Dependentmat"]
@@ -123,6 +123,11 @@ def TCequalibrium(ginput,minput,type):
         activityN = calc_result.get_value_of(ThermodynamicQuantity.activity_of_component('N'))
         print("Activity of carbon " + str(activityC))
         print("Activity of nitrogen " + str(activityN))
+        if "C" in minput["DiffType"]:
+            activityC = minput["Cpotential"]
+        if "N" in minput["DiffType"]:
+            #activityN = 1.0
+            print("Changing nitrogen activity to " + str(activityN))
         return minput["Cpotential"], activityN
 
 def TCcarburizing(ginput, minput, activityair):
@@ -261,15 +266,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
             if element in ["C", "N"]:
                 continue
             profile0.add(element, ElementProfile.constant(ginput['Material']["Composition"][element]))
-        #for element in ["C", "N"]:
-            #tmpgrid = PointByPointGrid()
-            #tmpcomp = compgrid[element]
-            #for i in range(len(tmpcomp)):
-            #    tmpgrid.add_point(GridPoint(pos[i]).add_composition(element, tmpcomp[i]))
-            # Previous grid points PointByPointGrid.add_point()
-            # Go through all the points for the previous simulation and add them to the grid.
-            #
-            # ElementProfile.funct(PointByPointGrid.add_point())
+
         pointgrid = PointByPointGrid()
         for i in range(len(compgrid["C"])):
             tmppoint = GridPoint(pos[i][0])
@@ -282,20 +279,18 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
         austenite = (Region("Austenite")
                      .with_point_by_point_grid_containing_compositions(pointgrid)
                      .add_phase("FCC_A1"))
-                     #.with_grid(CalculatedGrid.geometric()
-                     #           .set_no_of_points(ginput['Geometry']["nodes"])
-                     #           .set_geometrical_factor(ginput['Geometry']['meshscaling']))
-
-                     #.with_composition_profile(profile0)
 
         BC_Diffusion = BoundaryCondition.mixed_zero_flux_and_activity().set_zero_flux_for_element("C")
-        BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.2))
-        if "C" in minput["DiffType"]:
-            BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity().set_activity_for_element("C", str(Activity[0]))
+        #BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.2))
+        BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity()
         if "N" in minput["DiffType"]:
-            BC_Boost.mixed_zero_flux_and_activity().set_activity_for_element("N", str(Activity[1]))
+            BC_Boost.set_activity_for_element("N", str(Activity[1]))
+        if "C" in minput["DiffType"]:
+            BC_Boost.set_activity_for_element("C", str(Activity[0]))
+        else:
+            raise KeyError('Diffusion input wrong. Adjust The input to include Carbon (C) or Nitrogen (CN)')
+
         current_time = boost_t[0]
-        print(boost_t)
         boost_calculation = (system
                              .with_isothermal_diffusion_calculation()
                              .with_reference_state("C", "GRAPHITE_A9")
@@ -449,7 +444,8 @@ def setmaterial(ginput,minput,type):
         """
         print('Using acetylene as atmosphere')
         env_dep = 'N'
-        env_comp = {'H': 7.7, 'C': 92.2}
+        #env_comp = {'H': 7.7, 'C': 92.2}
+        env_comp = {'H': 3.7, 'C': 44.4}
     elif minput["CNenv"] == "Methane":
         print('Using methane as atmosphere')
         env_dep = 'N'

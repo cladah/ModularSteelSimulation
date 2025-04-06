@@ -159,7 +159,7 @@ class Diffusionmodule(CalcModule):
             self.updateprogress(0.1)
 
             print('Running diffusion module with ThermoCalc')
-            activityenv = TCequalibrium(self.ginput,self.minput,"env")
+            activityenv = TCequalibrium(self.ginput, self.minput, "env")
             print("Activity of atmosphere calculated")
             self.updateprogress(0.2)
 

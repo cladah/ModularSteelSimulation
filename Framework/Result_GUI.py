@@ -20,11 +20,11 @@ class resultTab(ctk.CTkFrame):
 
     def __init__(self, master, dataname, data, legdata, xlbl="Time [s]", ylbl = "?"):
         super().__init__(master)
-        y = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "vonMises stress [Pa]",
+        y = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [MPa]", "vonMises stress [MPa]",
              "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]",
              "Weight fraction [-]"]
         datanames = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Strain_pl", "Strain", "T"]
-        ynames = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [Pa]", "von-Mises stress [Pa]",
+        ynames = ["Phase fraction [-]", "Phase fraction [-]", "Phase fraction [-]", "Stress [MPa]", "von-Mises stress [MPa]",
              "Plastic strain [-]", "Elastic strain [-]", "Temperature [K]"]
         strainnames = ["Strain_tot"]
 
@@ -45,7 +45,7 @@ class resultTab(ctk.CTkFrame):
             xlbl = "Radius [mm]"
             leg = legdata
         elif "Stress" in dataname:
-            ylbl = "Stress [Pa]"
+            ylbl = "Stress [MPa]"
             xlbl = "Time [s]"
             leg = legdata
         elif "Strain" in dataname:
@@ -83,6 +83,9 @@ class resultTab(ctk.CTkFrame):
 
         #print(dataname)
         #print(len(np.shape(data[1][0])))
+        if "tress" in ylbl:
+            data[1] = data[1]/1e6
+
         if dataname == "Phasecomp":
             fig.gca().set_prop_cycle('color', colors)
             for i in range(len(data[1])):
@@ -100,7 +103,7 @@ class resultTab(ctk.CTkFrame):
             fig.gca().set_prop_cycle('color', colors)
 
             if len(data[1][0, :, 0]) == 6:
-                direction = ["x", "y", "z", "yz", "xz", "xy"]
+                direction = ["r", "phi", "z", "phiz", "rz", "rphi"]
             elif len(data[1][0, :, 0]) == 3:
                 direction = ["1", "2", "3"]
             else:
@@ -120,7 +123,6 @@ class resultTab(ctk.CTkFrame):
             plot1.plot(data[0], data[1])
             plot1.legend(leg)
         else:
-
             fig.gca().set_prop_cycle('color', colors)
             plot1.plot(data[0], np.transpose(data[1]))
             plot1.legend(leg)
@@ -301,7 +303,7 @@ class resultFrame(ctk.CTkFrame):
 
         tab0 = self.tabs_frame.add("Material composition")
         compositions = list()
-        elements = ["C", "N", "Cr", "Ni", "Si"]
+        elements = ["C", "N", "Cr", "Ni", "Si", "Mo", "Mn"]
         for el in elements:
             compositions.append(read_results_axis(filename, "Composition/" + el))
         pcompdata = [read_results_axis(filename, "nodes")[:, 0], compositions]
