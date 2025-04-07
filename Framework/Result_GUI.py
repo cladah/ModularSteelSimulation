@@ -83,19 +83,21 @@ class resultTab(ctk.CTkFrame):
 
         #print(dataname)
         #print(len(np.shape(data[1][0])))
-        if "tress" in ylbl:
+        if "tress_" in dataname or "Mises" in dataname:
+            print(dataname)
+            print(np.shape(data[1]))
             data[1] = data[1]/1e6
 
         if dataname == "Phasecomp":
             fig.gca().set_prop_cycle('color', colors)
             for i in range(len(data[1])):
                 plot1.plot(data[0]*1000, data[1][i])
-            plot1.legend(["Martensite", "Austenite", "Bainite", "Ferrite", "Pearlite"])
+            plot1.legend(legdata)
         elif dataname == "Matcomp":
             fig.gca().set_prop_cycle('color', colors)
             for i in range(len(data[1])):
                 plot1.plot(data[0]*1000, data[1][i])
-            plot1.legend(["C", "N", "Cr", "Ni", "Si"])
+            plot1.legend(legdata)
         elif len(np.shape(data[1])) == 3:
             #print("Testing")
             #print("Depth in xyz" + str(np.shape(data[1][:, 0, 0])))
@@ -264,6 +266,7 @@ class resultFrame(ctk.CTkFrame):
         excl_comp = ["Composition/C", "Composition/N", 'Composition/Cr', 'Composition/Mn', 'Composition/Ni', 'Composition/Mo', 'Composition/Si']
         excl_phases = ["Austenite", "Bainite", "Ferrite", "Pearlite"]
         tabs = list(getnames_results(filename))
+        print(tabs)
         if 'JMAK_tau_Ferrite' in tabs:
             CCT = True
         else:

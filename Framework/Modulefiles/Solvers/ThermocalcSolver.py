@@ -126,7 +126,7 @@ def TCequalibrium(ginput,minput,type):
         if "C" in minput["DiffType"]:
             activityC = minput["Cpotential"]
         if "N" in minput["DiffType"]:
-            #activityN = 1.0
+            activityN = activityN*500
             print("Changing nitrogen activity to " + str(activityN))
         return minput["Cpotential"], activityN
 
@@ -294,6 +294,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
         boost_calculation = (system
                              .with_isothermal_diffusion_calculation()
                              .with_reference_state("C", "GRAPHITE_A9")
+                             .with_reference_state("N", "GAS")
                              .set_temperature(minput["CNtemp"])
                              .with_cylindrical_geometry()
                              .remove_all_regions()

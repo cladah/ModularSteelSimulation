@@ -1,9 +1,10 @@
 {
-    "RerunAll": true,
+    "AllModules": ["Meshing", "Diffusion", "TTTdiagram","TransformMod", "Quenching"],
+    "RerunAll": false,
     "InputDirectory": "159_CN",
-    "Modules": ["Meshing", "Diffusion"],
-    "Inputs": ["iMain", "iDiff_1"],
-    "Rerun": [false, false, false, false, false],
+    "Modules": ["Meshing", "Diffusion","TTTdiagram","TransformMod"],
+    "Inputs": ["iMain", "iDiff_1","iDiff_1","iFEM","iFEM"],
+    "Rerun": [false, false, true, true, true],
     "Datastream": {
         "Savedirect": "159A_CN.xdmf",
         "Cachedirect": "Resultfiles/159A_CN.xdmf"

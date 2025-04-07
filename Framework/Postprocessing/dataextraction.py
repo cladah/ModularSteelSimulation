@@ -41,7 +41,6 @@ def export_data(filename, datanames, t=0, n=1):
     for dataname in datanames:
         print(dataname)
         y = read_results(filename, dataname, t)
-        print(np.shape(y))
         #y = read_results_axis(filename, dataname, t)
         if len(np.shape(y)) == 1:
             datadict[dataname] = y
