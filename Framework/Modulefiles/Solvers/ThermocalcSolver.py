@@ -30,9 +30,10 @@ def getTTTcompositions():
     mesh = list()
     # Creating grid of compositions
     for element in ginput['Material']['Composition'].keys():
-        if composition[element] != fullcomposition[element][-1]:
+        maxval = np.max(fullcomposition[element]) # changed from fullcomposition[element][-1]
+        if composition[element] != maxval:
             if element == "C":
-                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 5)
+                tmplist = np.linspace(composition[element], maxval, 4)
                 if rounding5(tmplist[0]) > 0:
                     tmplist = np.append([tmplist[0] - 0.05], tmplist)
                 #if round(tmplist[0], 1) > 0:
@@ -40,13 +41,13 @@ def getTTTcompositions():
                 tmplist = np.append(tmplist, [tmplist[-1] + 0.05])
                 tmplist = [rounding5(elem) for elem in tmplist]
             elif element == "N":
-                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+                tmplist = np.linspace(composition[element], maxval, 2)
                 if rounding5(tmplist[0]) > 0:
                     tmplist = np.append([tmplist[0] - 0.05], tmplist)
                 tmplist = np.append(tmplist, [tmplist[-1] + 0.05])
                 tmplist = [rounding5(elem) for elem in tmplist]
             else:
-                tmplist = np.linspace(composition[element], fullcomposition[element][-1], 2)
+                tmplist = np.linspace(composition[element], maxval, 2)
                 tmplist = [round(elem, 1) for elem in tmplist]
 
             tmplist = list(set(tmplist)) # getting unique values
@@ -290,12 +291,15 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
         else:
             raise KeyError('Diffusion input wrong. Adjust The input to include Carbon (C) or Nitrogen (CN)')
 
+        temp = minput["Temp"]
+
+
         current_time = boost_t[0]
         boost_calculation = (system
                              .with_isothermal_diffusion_calculation()
                              .with_reference_state("C", "GRAPHITE_A9")
                              .with_reference_state("N", "GAS")
-                             .set_temperature(minput["CNtemp"])
+                             .set_temperature(temp)
                              .with_cylindrical_geometry()
                              .remove_all_regions()
                              .add_region(austenite)

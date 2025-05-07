@@ -1,4 +1,31 @@
 {
+  "Modules": [
+    "Meshing",
+    "Diffusion",
+    "Diffusion",
+    "Diffusion",
+    "TTTdiagram",
+    "TransformMod",
+    "Quenching"
+  ],
+  "Inputs": [
+    "iMain",
+    "iDiff_1",
+    "iDiff_2",
+    "iDiff_Rehard",
+    "iDiff_Rehard",
+    "iFEM",
+    "iFEM"
+  ],
+  "Rerun": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true
+  ],
   "Geometry": {
     "Type": "2Daxisym",
     "radius": 0.008,
@@ -30,54 +57,24 @@
     "Thermal": "FCSx",
     "FEM": "Comsol"
   },
-  "AllModules": [
-    "Meshing",
-    "Diffusion",
-    "TTTdiagram",
-    "TransformMod",
-    "Quenching"
-  ],
-  "RerunAll": true,
+  "RerunAll": false,
   "InputDirectory": "159_Atm_1mm",
-  "Modules": [
-    "Meshing",
-    "Diffusion",
-    "TTTdiagram",
-    "TransformMod",
-    "Quenching"
-  ],
-  "Inputs": [
-    "iMain",
-    "iDiff_1",
-    "iDiff_1",
-    "iFEM",
-    "iFEM"
-  ],
-  "Rerun": [
-    false,
-    false,
-    false,
-    false,
-    false
-  ],
   "Datastream": {
-    "Savedirect": "159A_SKF.xdmf",
-    "Cachedirect": ""
+    "Savedirect": "159A_SKF_new.xdmf",
+    "Cachedirect": "Resultfiles/159A_SKF.xdmf"
   },
   "GrainSize": 100.0,
-  "Austenitizingtemp": 1243.15,
+  "Austenitizingtemp": 1113.15,
   "CNtemp": 1243.15,
   "CNenv": "Acetylene",
-  "DiffType": "CN",
+  "DiffType": "C",
   "CNtime": 21600,
-  "CNPress": 2000.0,
-  "Cpotential": 1.2,
+  "CNPress": 100000.0,
+  "Cpotential": 0.8,
   "BoostNr": 1,
-  "Temp": [
-    1243.15
-  ],
+  "Temp": 1113.15,
   "BoostTime": [
-    21600
+    1800
   ],
   "DiffTime": [
     0

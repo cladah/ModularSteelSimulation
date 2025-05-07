@@ -541,7 +541,7 @@ def adjustComsol(model, minput):
     #JMAK_B = readresultfile("TTT_surface.hdf5","Bainite/JMAK")
     #JMAK_P = readresultfile("TTT_surface.hdf5","Pearlite/JMAK")
     ginput = read_geninput()
-
+    direct = os.getcwd()
     # Heat flux
     x = minput["heatflux"]["T"]
     y = minput["heatflux"]["htc"]
@@ -571,17 +571,8 @@ def adjustComsol(model, minput):
         for prop in materialprop:
             # model.func("E_A").set("table", "[]")
             if prop in ["tau", "n"]:
-                # model.func(prop + "_" + mat[0]).set("source", "file")
-                # model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
-                # model.func(prop + "_" + mat[0]).set("nargs", "2")
-                # model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
-                # model.func(prop + "_" + mat[0]).setIndex("argunit", "K", 1)
-
-
-
-
                 model.func(prop + "_" + mat[0]).set("source", "file")
-                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("filename", direct + "/Resultfiles/" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "1")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
                 model.func(prop + "_" + mat[0]).setIndex("funcs", prop + "_" + mat[0] + "1", 0, 0)
@@ -610,13 +601,13 @@ def adjustComsol(model, minput):
 
             elif prop == "Ms":
                 model.func(prop + "_" + mat[0]).set("source", "file")
-                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("filename", direct + "/Resultfiles/" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "1")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
                 model.func(prop + "_" + mat[0]).setIndex("fununit", "K", 1)
             elif prop == "beta":
                 model.func(prop + "_" + mat[0]).set("source", "file")
-                model.func(prop + "_" + mat[0]).set("filename", "Resultfiles/" + mat + "_" + prop + ".csv")
+                model.func(prop + "_" + mat[0]).set("filename", direct + "Resultfiles/" + mat + "_" + prop + ".csv")
                 model.func(prop + "_" + mat[0]).set("nargs", "1")
                 model.func(prop + "_" + mat[0]).setIndex("argunit", "m", 0)
                 model.func(prop + "_" + mat[0]).setIndex("fununit", "1/K", 0)

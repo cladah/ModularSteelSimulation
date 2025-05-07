@@ -1,12 +1,8 @@
 {
-    "AllModules": ["Meshing", "Diffusion", "TTTdiagram","TransformMod", "Quenching"],
-    "RerunAll": true,
+    "RerunAll": false,
     "InputDirectory": "159_Atm_1mm",
-    "Modules": ["Meshing", "Diffusion","TTTdiagram","TransformMod","Quenching"],
-    "Inputs": ["iMain", "iDiff_1","iDiff_1","iFEM","iFEM"],
-    "Rerun": [false, false, false, false, false],
     "Datastream": {
-        "Savedirect": "159A_SKF.xdmf",
-        "Cachedirect": ""
+        "Savedirect": "159A_SKF_new.xdmf",
+        "Cachedirect": "Resultfiles/159A_SKF.xdmf"
     }
 }

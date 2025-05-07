@@ -1,7 +1,7 @@
 {
-  "Modules": ["Meshing", "Diffusion", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching"],
-  "Inputs": ["iMain", "iDiff_1", "iDiff_2", "iDiff_Rehard","iDiff_Rehard","iFEM","iFEM"],
-  "Rerun": [false, false, false, false, false, false, true],
+  "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching"],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iDiff_Rehard","iFEM","iFEM"],
+  "Rerun": [false, false, false, false, false, true],
   "Geometry": {
     "Type": "2Daxisym",
     "radius": 0.008,

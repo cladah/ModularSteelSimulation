@@ -454,6 +454,7 @@
   "quenchtime": 3600,
   "quench_steps": 1,
   "quenchmedium": "oil",
+  "quenchtemp": 293.15,
   "PlaneStrain": false,
   "Phases": [
     "Austenite",
@@ -461,8 +462,7 @@
     "Bainite",
     "Martensite"
   ],
-  "CNtemp": 1113.15,
-  "quenchtemp": 293.15,
+  "CNtemp": 1243.15,
   "elementdim": 2,
   "elementtype": "Axisym2D",
   "element_f": 2,

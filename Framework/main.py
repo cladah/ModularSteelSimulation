@@ -205,9 +205,8 @@ if __name__ == "__main__":
     """
     ginput - General input (dict)
     """
-    run = input("What do you want to run? 1 - Run 2 - GUI 3 - Result\n")
-    print(run)
-    print(type(run))
+    run = int(input("What do you want to run?, 1 - Run, 2 - GUI, 3 - Result\n: "))
+
     if int(run) == 1:
         print("Running normal input")
         ginput = read_geninput()
@@ -216,7 +215,7 @@ if __name__ == "__main__":
             module.run()
             savedatastream(ginput["Datastream"]["Savedirect"])
         Result_GUI_show("Resultfiles/" + ginput["Datastream"]["Savedirect"])
-    if run == 2:
+    elif run == 2:
         GUI()
         #DockerTest()
     elif run == 3:

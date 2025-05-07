@@ -1,0 +1,14 @@
+{
+    "GrainSize": 100.0,
+    "Austenitizingtemp": 523.15,
+    "CNtemp": 523.15,
+    "CNenv": "Acetylene",
+    "DiffType": "C",
+    "CNtime": 21600,
+    "CNPress": 100000.0,
+    "Cpotential": 1.0,
+    "BoostNr": 1,
+    "Temp": 523.15,
+    "BoostTime": [0.1],
+    "DiffTime": [25200]
+}
