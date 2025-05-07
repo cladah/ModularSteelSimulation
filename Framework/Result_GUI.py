@@ -84,8 +84,6 @@ class resultTab(ctk.CTkFrame):
         #print(dataname)
         #print(len(np.shape(data[1][0])))
         if "tress_" in dataname or "Mises" in dataname:
-            print(dataname)
-            print(np.shape(data[1]))
             data[1] = data[1]/1e6
 
         if dataname == "Phasecomp":
@@ -266,7 +264,6 @@ class resultFrame(ctk.CTkFrame):
         excl_comp = ["Composition/C", "Composition/N", 'Composition/Cr', 'Composition/Mn', 'Composition/Ni', 'Composition/Mo', 'Composition/Si']
         excl_phases = ["Austenite", "Bainite", "Ferrite", "Pearlite"]
         tabs = list(getnames_results(filename))
-        print(tabs)
         if 'JMAK_tau_Ferrite' in tabs:
             CCT = True
         else:

@@ -550,6 +550,8 @@ def adjustComsol(model, minput):
         model.func("htc").setIndex("table", y[i], i, 1)
     model.func("htc").setIndex("argunit", "degC", 0)
     model.func("htc").setIndex("fununit", "W/(m^2*K)", 0)
+    model.component("comp1").common("minpt1").set("value", str(minput["CNtemp"]) + "[K]")
+    model.component("comp1").physics("solid").prop("Type2D").set("Type2D", "PlaneStress")
 
     # Carbonnitriding temperature
     model.component("comp1").physics("ht").feature("init1").set("Tinit", str(minput["CNtemp"]) + "[K]")

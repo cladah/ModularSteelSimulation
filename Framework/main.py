@@ -205,13 +205,21 @@ if __name__ == "__main__":
     """
     ginput - General input (dict)
     """
-
-    if False:
-        # modelling()
+    run = input("What do you want to run? 1 - Run 2 - GUI 3 - Result\n")
+    print(run)
+    print(type(run))
+    if int(run) == 1:
+        print("Running normal input")
+        ginput = read_geninput()
+        modules = setupSimulation()
+        for module in modules:
+            module.run()
+            savedatastream(ginput["Datastream"]["Savedirect"])
+        Result_GUI_show("Resultfiles/" + ginput["Datastream"]["Savedirect"])
+    if run == 2:
         GUI()
         #DockerTest()
-    if True:
-        #Result_GUI_show("Resultfiles/October2024_LPC_4h_2.xdmf")
+    elif run == 3:
         Result_GUI_show("")
         #export_data("Resultfiles/159A_Carb3.xdmf", ["Composition/C", "Martensite"], -1)
         #export_data("Resultfiles/159A_Carb3.xdmf", "All", -1)
@@ -219,11 +227,4 @@ if __name__ == "__main__":
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
         dataname = "Composition/C"
         ResultPlotting(files, dataname)
-    if False:
-        ginput = read_geninput()
-        modules = setupSimulation()
-        for module in modules:
-            module.run()
-            savedatastream(ginput["Datastream"]["Savedirect"])
-        Result_GUI_show("Resultfiles/" + ginput["Datastream"]["Savedirect"])
-    pass
+
