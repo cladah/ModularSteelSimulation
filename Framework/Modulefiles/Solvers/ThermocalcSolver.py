@@ -131,107 +131,6 @@ def TCequalibrium(ginput,minput,type):
             print("Changing nitrogen activity to " + str(activityN))
         return minput["Cpotential"], activityN
 
-def TCcarburizing(ginput, minput, activityair):
-    data = read_input()
-    if activityair[0] > 1.:
-        activityair = [1.0, activityair[1]]
-    with TCPython() as session:
-        logging.getLogger("tc_python").setLevel(logging.ERROR)
-        system = (session
-                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7", [data['Material']["Dependentmat"]] + list(data['Material']["Composition"]))
-                  .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
-                  .get_system())
-        austenite = Region("Austenite")
-        austenite.set_width(data['Geometry']["radius"])
-        austenite.with_grid(CalculatedGrid.geometric()
-                       .set_no_of_points(data['Geometry']["nodes"])
-                       .set_geometrical_factor(data['Geometry']['meshscaling']))
-        austenite.add_phase("FCC_A1")
-        austenite.add_phase("FCC_A1#2")
-        #austenite.add_phase("CEMENTITE")
-        austeniteprofile = CompositionProfile()
-        for element in data['Material']["Composition"]:
-            austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
-        austenite.with_composition_profile(austeniteprofile)
-
-        calculation = (system
-                      .with_isothermal_diffusion_calculation()
-                      .with_reference_state("C", "GRAPHITE_A9")
-                      .set_temperature(data['Thermo']["CNtemp"])
-                      .set_simulation_time(data['Thermo']["CNtime"]*2)
-                      .with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                     .set_activity_for_element('C', str(0.8)), to=data['Thermo']["CNtime"])
-                      .with_right_boundary_condition(BoundaryCondition.closed_system(), to=data['Thermo']["CNtime"]*2)
-
-                      .with_cylindrical_geometry().remove_all_regions()
-                      .add_region(austenite))
-        logging.getLogger("tc_python").setLevel(logging.INFO)
-        result = calculation.calculate()
-        mass_frac = dict()
-        composition = []
-        composition.append(data['Material']["Dependentmat"])
-        composition.append(data['Material']["Composition"])
-        for element in data['Material']["Composition"]:
-            distance, mass_frac_temp = result.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
-            mass_frac[element] = mass_frac_temp
-
-        return distance, mass_frac
-
-def TCcarbonitriding(activityair):
-    data = read_input()
-    with TCPython() as session:
-        logging.getLogger("tc_python").setLevel(logging.ERROR)
-        system = (session
-                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7", [data['Material']["Dependentmat"]] + list(data['Material']["Composition"]))
-                  .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
-                  .get_system())
-        austenite = Region("Austenite")
-        austenite.set_width(data['Geometry']["radius"])
-        austenite.with_grid(CalculatedGrid.geometric()
-                       .set_no_of_points(data['Geometry']["nodes"])
-                       .set_geometrical_factor(data['Geometry']['meshscaling']))
-        austenite.add_phase("FCC_A1")
-        austenite.add_phase("FCC_A1#2")
-        #austenite.add_phase("CEMENTITE")
-        austeniteprofile = CompositionProfile()
-        for element in data['Material']["Composition"]:
-            austeniteprofile.add(element, ElementProfile.constant(data['Material']["Composition"][element]))
-        austenite.with_composition_profile(austeniteprofile)
-
-        calculation = (system
-                      .with_isothermal_diffusion_calculation()
-                      .with_reference_state("N", "GAS").with_reference_state("C", "GRAPHITE_A9")
-                      .set_temperature(data['Thermo']["CNtemp"])
-
-                      .set_simulation_time(data['Thermo']["CNtime"])
-                      .with_cylindrical_geometry().remove_all_regions()
-                      .add_region(austenite))
-        if data["Thermo"]["CNPress"] > 0.1:
-            calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                         .set_activity_for_element('C', str(activityair[0]))
-                                                         .set_activity_for_element('N', str(activityair[1]))) # CHANGED
-        else:
-            print("Low pressure carbonitriding")
-            boost_t = 5 * 60
-            rest_t = 16 * 60
-            for i in range(7):
-                calculation.with_right_boundary_condition(BoundaryCondition.mixed_zero_flux_and_activity()
-                                                          .set_activity_for_element('C', str(activityair[0])),
-                                                          to=boost_t + rest_t * i)
-                calculation.with_right_boundary_condition(BoundaryCondition.closed_system(),
-                                                          to=boost_t * i + rest_t * (1 + i))
-        logging.getLogger("tc_python").setLevel(logging.INFO)
-        result = calculation.calculate()
-        mass_frac = dict()
-        composition = []
-        composition.append(data['Material']["Dependentmat"])
-        composition.append(data['Material']["Composition"])
-        for element in data['Material']["Composition"]:
-            distance, mass_frac_temp = result.get_mass_fraction_of_component_at_time(element, SimulationTime.LAST)
-            mass_frac[element] = mass_frac_temp
-        return distance, mass_frac
-
-
 def TCDiffusionSolver(ginput, minput, Activity, compgrid):
     """
     :param activit: Activity of carbon and nitrogen [aC, aN]
@@ -282,35 +181,54 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
                      .add_phase("FCC_A1"))
 
         BC_Diffusion = BoundaryCondition.mixed_zero_flux_and_activity().set_zero_flux_for_element("C")
-        #BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(1.2))
+        #BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(Activity[1]))
         BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity()
         if "N" in minput["DiffType"]:
             BC_Boost.set_activity_for_element("N", str(Activity[1]))
         if "C" in minput["DiffType"]:
-            BC_Boost.set_activity_for_element("C", str(Activity[0]))
+            BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0,
+                                                                                    g=str(Activity[0]))
+            #BC_Boost.set_activity_for_element("C", str(Activity[0]))
         else:
             raise KeyError('Diffusion input wrong. Adjust The input to include Carbon (C) or Nitrogen (CN)')
 
-        temp = minput["Temp"]
 
-
+        current_time = 0
+        if len(minput["Temp"]) == 1:
+            calc = system.with_isothermal_diffusion_calculation()
+            calc.set_temperature(minput["Temp"][0])
+        else:
+            TempProf = TemperatureProfile()
+            TempProf.add_time_temperature(current_time, minput["Temp"][0])
+            for i in range(len(boost_t)):
+                current_time = current_time + boost_t[i]
+                TempProf.add_time_temperature(current_time, minput["Temp"][2*i])
+                current_time = current_time + diff_t[i]
+                TempProf.add_time_temperature(current_time, minput["Temp"][2*i+1])
+            calc = system.with_non_isothermal_diffusion_calculation()
+            calc.with_temperature_profile(TempProf)
         current_time = boost_t[0]
-        boost_calculation = (system
-                             .with_isothermal_diffusion_calculation()
+        #TemperatureProfile.add_time_temperature()
+        #boost_calculation = (system.with_non_isothermal_diffusion_calculation().with_temperature_profile(TemperatureProfile.add_time_temperature()))
+        boost_calculation = (calc
                              .with_reference_state("C", "GRAPHITE_A9")
                              .with_reference_state("N", "GAS")
-                             .set_temperature(temp)
                              .with_cylindrical_geometry()
                              .remove_all_regions()
                              .add_region(austenite)
                              .with_right_boundary_condition(BC_Boost)
                              .set_simulation_time(current_time))
-        results_boost = boost_calculation.calculate()
-        current_time = current_time + diff_t[0]
-        # First diffusion
-        diffusion_calculation = (results_boost.with_continued_calculation()
-                                 .with_right_boundary_condition(BC_Diffusion)
-                                 .set_simulation_time(current_time))
+        if current_time == 0:
+            current_time = current_time + diff_t[0]
+            diffusion_calculation = boost_calculation.with_right_boundary_condition(BC_Diffusion)
+            diffusion_calculation.set_simulation_time(current_time)
+        else:
+            results_boost = boost_calculation.calculate()
+            current_time = current_time + diff_t[0]
+            # First diffusion
+            diffusion_calculation = (results_boost.with_continued_calculation()
+                                     .with_right_boundary_condition(BC_Diffusion)
+                                     .set_simulation_time(current_time))
         results_diffusion = diffusion_calculation.calculate()
         for i in range(boosts):
             if i == 0:

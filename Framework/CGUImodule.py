@@ -11,7 +11,7 @@ from queue import Queue
 import meshio
 from Datastream_file import getaxisvalues, readdatastream, createdatastreamcache, savedatastream, getnamesdatastream, gethistoryvalues
 from Modulefiles.Meshing_file import Meshingmodule
-from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule, Diffusionmodule
+from Modulefiles.Carbonitriding_file import Diffusionmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule

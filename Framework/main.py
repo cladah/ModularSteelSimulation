@@ -11,7 +11,7 @@ from Datastream_file import createdatastreamcache, removedatastreamcache, saveda
 from HelpFile import read_input, createinputcache, change_input, reset_input, analyseTTTdatabase, get_plotlbls, read_geninput, reset_output
 import customtkinter as ctk
 from Modulefiles.Meshing_file import Meshingmodule
-from Modulefiles.Carbonitriding_file import Carbonitridingmodule, Carbonizationmodule, Diffusionmodule
+from Modulefiles.Carbonitriding_file import Diffusionmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
@@ -205,8 +205,7 @@ if __name__ == "__main__":
     """
     ginput - General input (dict)
     """
-    run = int(input("What do you want to run?, 1 - Run, 2 - GUI, 3 - Result\n: "))
-
+    run = int(input("What do you want to run?, 1 - Run, 2 - GUI, 3 - Result, 4 - Export\n: "))
     if int(run) == 1:
         print("Running normal input")
         ginput = read_geninput()
@@ -217,13 +216,13 @@ if __name__ == "__main__":
         Result_GUI_show("Resultfiles/" + ginput["Datastream"]["Savedirect"])
     elif run == 2:
         GUI()
-        #DockerTest()
     elif run == 3:
         Result_GUI_show("")
-        #export_data("Resultfiles/159A_Carb3.xdmf", ["Composition/C", "Martensite"], -1)
+    elif run == 4:
+        export_data("Resultfiles/159A_Carb3.xdmf", ["Composition/C", "Martensite"], -1)
         #export_data("Resultfiles/159A_Carb3.xdmf", "All", -1)
-    if False:
+    elif run == 5:
         files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
         dataname = "Composition/C"
         ResultPlotting(files, dataname)
-
+        #DockerTest()

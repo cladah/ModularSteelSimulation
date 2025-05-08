@@ -1,8 +1,8 @@
 {
-    "RerunAll": false,
+    "RerunAll": true,
     "InputDirectory": "159_Atm_1mm",
     "Datastream": {
-        "Savedirect": "159A_SKF_new.xdmf",
+        "Savedirect": "159A_SKF_new2.xdmf",
         "Cachedirect": "Resultfiles/159A_SKF.xdmf"
     }
 }

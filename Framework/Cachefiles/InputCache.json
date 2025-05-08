@@ -5,8 +5,7 @@
     "Diffusion",
     "Diffusion",
     "TTTdiagram",
-    "TransformMod",
-    "Quenching"
+    "TransformMod"
   ],
   "Inputs": [
     "iMain",
@@ -14,7 +13,6 @@
     "iDiff_2",
     "iDiff_Rehard",
     "iDiff_Rehard",
-    "iFEM",
     "iFEM"
   ],
   "Rerun": [
@@ -57,15 +55,15 @@
     "Thermal": "FCSx",
     "FEM": "Comsol"
   },
-  "RerunAll": false,
+  "RerunAll": true,
   "InputDirectory": "159_Atm_1mm",
   "Datastream": {
-    "Savedirect": "159A_SKF_new.xdmf",
+    "Savedirect": "159A_SKF_new2.xdmf",
     "Cachedirect": "Resultfiles/159A_SKF.xdmf"
   },
   "GrainSize": 100.0,
   "Austenitizingtemp": 1113.15,
-  "CNtemp": 1243.15,
+  "CNtemp": 1113.15,
   "CNenv": "Acetylene",
   "DiffType": "C",
   "CNtime": 21600,
@@ -534,7 +532,6 @@
   "quenchtime": 3600,
   "quench_steps": 1,
   "quenchmedium": "oil",
-  "quenchtemp": 293.15,
   "PlaneStrain": false,
   "Phases": [
     "Austenite",
@@ -542,6 +539,7 @@
     "Bainite",
     "Martensite"
   ],
+  "quenchtemp": 293.15,
   "elementdim": 2,
   "elementtype": "Axisym2D",
   "element_f": 2,

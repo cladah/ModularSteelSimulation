@@ -8,7 +8,7 @@
     "CNPress": 100000.0,
     "Cpotential": 1.2,
     "BoostNr": 1,
-    "Temp": 1243.15,
-    "BoostTime": [21600],
-    "DiffTime": [0]
+    "Temp": [1243,1243,1153,1153,2],
+    "BoostTime": [21600,1800],
+    "DiffTime": [1,1]
 }
