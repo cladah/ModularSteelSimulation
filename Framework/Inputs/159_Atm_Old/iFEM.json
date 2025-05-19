@@ -1,79 +1,4 @@
 {
-  "Modules": [
-    "Meshing",
-    "Diffusion",
-    "TTTdiagram",
-    "TransformMod"
-  ],
-  "Inputs": [
-    "iMain",
-    "iDiff_1",
-    "iDiff_1",
-    "iFEM"
-  ],
-  "Rerun": [
-    false,
-    false,
-    false,
-    false,
-    true
-  ],
-  "Geometry": {
-    "Type": "2Daxisym",
-    "radius": 0.008,
-    "innerradius": 0.0,
-    "thickness": 0.008,
-    "nodes": 50,
-    "meshscaling": 0.9
-  },
-  "Material": {
-    "Name": "Grade 159",
-    "Dependentmat": "Fe",
-    "Composition": {
-      "C": 0.2,
-      "N": 0.01,
-      "Cr": 1.6,
-      "Mn": 0.5,
-      "Ni": 1.6,
-      "Mo": 0.3,
-      "Si": 0.2
-    }
-  },
-  "Programs": {
-    "Meshing": "Gmsh",
-    "Coupling": "Stagg",
-    "Diffusion": "TC",
-    "TTTdiagram": "TC",
-    "TransformMod": "Python",
-    "Quenching": "Comsol",
-    "Thermal": "FCSx",
-    "FEM": "Comsol"
-  },
-  "RerunAll": true,
-  "InputDirectory": "159_Atm_Old",
-  "Datastream": {
-    "Savedirect": "159A_2024.xdmf",
-    "Cachedirect": "Resultfiles/159A_SKF.xdmf"
-  },
-  "GrainSize": 100.0,
-  "Austenitizingtemp": 1243.15,
-  "CNtemp": 1113.15,
-  "CNenv": "Acetylene",
-  "DiffType": "C",
-  "CNtime": 21600,
-  "CNPress": 100000.0,
-  "Cpotential": 1.0,
-  "BoostNr": 1,
-  "Temp": [
-    1173,
-    1173
-  ],
-  "BoostTime": [
-    36000
-  ],
-  "DiffTime": [
-    36000
-  ],
   "Materialtype": "Elastic",
   "MixtureModel": "RuleofMix",
   "Austenite": {
@@ -536,6 +461,7 @@
     "Bainite",
     "Martensite"
   ],
+  "CNtemp": 1113.15,
   "quenchtemp": 293.15,
   "elementdim": 2,
   "elementtype": "Axisym2D",

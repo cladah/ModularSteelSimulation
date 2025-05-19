@@ -9,6 +9,6 @@
     "Cpotential": 1.2,
     "BoostNr": 1,
     "Temp": [523.15],
-    "BoostTime": [1],
+    "BoostTime": [0],
     "DiffTime": [25200]
 }

@@ -186,6 +186,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
         if "N" in minput["DiffType"]:
             BC_Boost.set_activity_for_element("N", str(Activity[1]))
         if "C" in minput["DiffType"]:
+            print("BOOST FOR C set to " + str(Activity[0]))
             BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0,
                                                                                     g=str(Activity[0]))
             #BC_Boost.set_activity_for_element("C", str(Activity[0]))
