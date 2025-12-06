@@ -38,20 +38,37 @@ class Datastream:
         pass
 
 def createdatastream(domain):
+    datastream_name = "Datastream"
+    xdmf_path = os.path.join(os.getcwd(), f"{datastream_name}.xdmf")
+    h5_path = os.path.join(os.getcwd(), f"{datastream_name}.h5")
+
+    for path in [xdmf_path, h5_path]:
+        try:
+            os.remove(path)
+            print(f"Removed existing file: {path}")
+        except FileNotFoundError:
+            pass  # File alreaady doesn't exist
+
     try:
-        os.remove(os.getcwd() + "/Datastream.h5")
-        os.remove(os.getcwd() + "/Datastream.xdmf")
-    except FileNotFoundError:
-        pass
-    filename = os.getcwd() + "/Datastream.xdmf"
-    ginput = read_geninput()
-    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-        writer.write_points_cells(domain.points[:,:2], cells={"quad": domain.get_cells_type(list(domain.cells_dict.keys())[0])})
-        writer.write_data(0, cell_data={})
+        ginput = read_geninput()
+    except Exception as e:
+        raise KeyError(f"Error reading general input: {e}")
+
+    with meshio.xdmf.TimeSeriesWriter(xdmf_path) as writer:
+        cell_types = list(domain.cells_dict.keys())
+        if not cell_types:
+            raise ValueError("Domain contains no cells.")
+        first_cell_type = cell_types[0]
+        print(f"Celltype of mesh is set to {first_cell_type}")
+        cells = {first_cell_type: domain.get_cells_type(first_cell_type)}
+        writer.write_points_cells(domain.points[:, :2], cells=cells)
+        writer.write_data(0.0, point_data={}, cell_data={})
+
     for element in ginput["Material"]["Composition"].keys():
         tmpelvalues = np.full(len(domain.points), ginput["Material"]["Composition"][element])
         adjustdatastream({"Composition_" + element: tmpelvalues}, "nodes")
     print("Created datastream file")
+
 def adjustdatastream(data, datapos="nodes", t_data=0.0):
     dataname = list(data.keys())[0]
 
@@ -84,16 +101,28 @@ def adjustdatastream(data, datapos="nodes", t_data=0.0):
         if new == 0:
             writer.write_data(t_data, point_data=data)
     return
-def getnamesdatastream():
+def getnamesdatastream()-> list[str]:
+    data_names = []
+    xdmf_path = os.path.join(os.getcwd(), "Datastream.xdmf")
+    h5_path = os.path.join(os.getcwd(), "Datastream.h5")
+
+    # Checking if there is a datastream
+    if not os.path.exists("Datastream.xdmf") or not os.path.exists(h5_path):
+        print(f"Error: One or both files not found ({xdmf_path}, {h5_path}).")
+        return data_names
+
     with io.XDMFFile(MPI.COMM_WORLD, "Datastream.xdmf") as xdmf:
         mesh = xdmf.read_mesh()
-        with h5py.File("Datastream.h5", "r") as f:
-            for k in f.keys():
-                if k == "Function":
-                    for k in f["Function"]:
-                        print("  ", k)
 
-    return
+        with h5py.File(h5_path, "r") as f:
+            if "Function" in f:
+                function_group = f["Function"]
+                for key in function_group.keys():
+                    data_names.append(key)
+                    print(f"  Found data field: **{key}**")
+            else:
+                print(f"Warning: 'Function' group not found in {h5_path}.")
+    return data_names
 
 def readdatastream(dataname, time=0, all_t=0):
     try:

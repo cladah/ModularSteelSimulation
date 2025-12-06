@@ -73,10 +73,10 @@
       "Comsol"
     ]
   },
-  "RerunAll": false,
+  "RerunAll": true,
   "InputDirectory": "Test",
   "Datastream": {
-    "Savedirect": "Test5.xdmf",
+    "Savedirect": "Test6.xdmf",
     "Cachedirect": "Resultfiles/Test4.xdmf"
   },
   "GrainSize": 100.0,
