@@ -6,9 +6,10 @@
     "DiffType": "C",
     "CNtime": 21600,
     "CNPress": 100000.0,
-    "Cpotential": 1.2,
+    "Cpotential": 1.3,
     "BoostNr": 1,
-    "Temp": [1243,1243,1153,1153],
-    "BoostTime": [21600,1800],
-    "DiffTime": [1,1]
+    "Temp": [1243,1243],
+    "Temp_time": [0,21600],
+    "BoostTime": [21600],
+    "DiffTime": [0]
 }

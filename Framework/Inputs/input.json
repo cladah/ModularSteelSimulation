@@ -1,8 +1,8 @@
 {
-    "RerunAll": true,
-    "InputDirectory": "159_Atm_Old",
+    "RerunAll": false,
+    "InputDirectory": "Test",
     "Datastream": {
-        "Savedirect": "159A_2024.xdmf",
-        "Cachedirect": "Resultfiles/159A_SKF.xdmf"
+        "Savedirect": "Test5.xdmf",
+        "Cachedirect": "Resultfiles/Test4.xdmf"
     }
 }

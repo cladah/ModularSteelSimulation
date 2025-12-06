@@ -1,0 +1,40 @@
+{
+  "Modules": ["Meshing", "Diffusion", "Diffusion", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching"],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_2", "iDiff_3", "iDiff_Rehard","iDiff_Rehard","iFEM","iFEM"],
+  "Rerun": [false, false, false, false, false, false, false, true],
+  "Geometry": {
+    "Type": "4PointBend",
+    "height": 0.016,
+    "width": 0.12,
+    "thickness": 0.008,
+    "nodesWidth": 90,
+    "nodesHeight": 50,
+    "nodesRadius": 50,
+    "radius": 0.008,
+    "innerradius": 0.0,
+    "nodes": 50,
+    "meshscaling": 0.9
+  },
+  "Material": {
+    "Name": "Grade 159",
+    "Dependentmat": "Fe",
+    "Composition": {
+      "C": 0.2,
+      "N": 0.01,
+      "Cr": 1.9,
+      "Mn": 0.9,
+      "Mo": 0.5,
+      "Si": 0.3
+    }
+  },
+  "Programs": {
+    "Meshing": "Gmsh",
+    "Coupling": "Stagg",
+    "Diffusion": "TC",
+    "TTTdiagram": "TC",
+    "TransformMod": "Python",
+    "Quenching": "FCSx",
+    "Thermal": "FCSx",
+    "FEM": "FCSx"
+  }
+}

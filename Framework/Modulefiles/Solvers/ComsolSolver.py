@@ -63,6 +63,9 @@ def modeldatatoComsolfiles():
             tmpnames = ["tau", "n"]
         else:
             z1 = getaxisvalues("KM_Ms_" + phase)
+            #z1 = z1-20
+            #print("Lowering calculated Ms by 20 degC")
+            #print("Grainsize set to 10micm")
             z2 = getaxisvalues("KM_b_" + phase)
             z = [z1, z2]
             tmpnames = ["Ms", "beta"]
@@ -626,8 +629,8 @@ def adjustComsol(model, minput):
     else:
         model.component("comp1").physics("audc").feature("ptran1").active(False)
 
-    #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
-    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
+    model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2)) + 4E-7*solid.mises")
+    #model.component("comp1").physics("audc").feature("ptran4").set("Ms", "Ms_M(sqrt(x^2+y^2))")
     model.component("comp1").physics("audc").feature("ptran1").set("temperaturelimits", "1")
     model.component("comp1").physics("audc").feature("ptran2").set("temperaturelimits", "1")
     model.component("comp1").physics("audc").feature("ptran3").set("temperaturelimits", "1")

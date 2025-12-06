@@ -2,14 +2,15 @@ from .ModuleStructure_file_new import CalcModule
 import numpy as np
 from numpy import interp
 from Framework.Datastream_file import readdatastreamcache, readdatastream, adjustdatastream, getaxisvalues
-from Framework.HelpFile import read_input
-from .Solvers.ThermocalcSolver import TCequalibrium, TCcarburizing_LPC, TCDiffusionSolver
+from Framework.HelpFile import read_input, read_geninput,read_modinput
+from .Solvers.ThermocalcSolver import TCequalibrium, TCcarburizing_LPC, TCDiffusionSolver, TC_Cpot, TC_Mob
+from .Solvers.FCSxDiff import FCSxDiffSolver
 
 class Diffusionmodule(CalcModule):
 
-    def __init__(self, infile):
+    def __init__(self, infile, modulenr=0):
         infile = "Inputs/" + infile + ".json"
-        super().__init__("Diffusion", infile)
+        super().__init__("Diffusion", infile, modulenr)
 
     def run(self):
         Carbtime = sum(self.minput["BoostTime"] + self.minput["DiffTime"]) / 3600
@@ -30,9 +31,12 @@ class Diffusionmodule(CalcModule):
 
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
-            for element in self.ginput["Material"]["Composition"].keys():
-                elementvalues = readdatastreamcache("Composition/" + element)
-                adjustdatastream({"Composition/" + element: elementvalues}, "nodes")
+
+            elements = list(self.ginput["Material"]["Composition"].keys())
+            #elements.remove("C")
+            for element in elements:
+                elementvalues = readdatastreamcache("Composition_" + element)
+                adjustdatastream({"Composition_" + element: elementvalues}, "nodes")
             print("Carburization module done\n")
             self.updateprogress(1.0)
             return
@@ -47,25 +51,68 @@ class Diffusionmodule(CalcModule):
 
             composition = dict()
             for element in self.ginput["Material"]["Composition"].keys():
-                composition[element] = getaxisvalues("Composition/" + element, -1)
+                composition[element] = getaxisvalues("Composition_" + element, -1)
+
+
             # Adding geometry to composition?
             composition = TCDiffusionSolver(self.ginput, self.minput, activityenv, composition)
             self.updateprogress(0.9)
 
-            """
-                Interpolating the compositional values to nodal points 
-            """
+        elif self.program == "FCSx":
+            self.updateprogress(0.1)
 
-            xyz = readdatastream('nodes')
-            r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2)
-            calc_xyz = np.array(composition[0])
-            for element in composition[1].keys():
-                calc_value = np.array(composition[1][element])
-                nodevalues = interp(r, calc_xyz, calc_value) * 100
-                nodevalues = np.where(nodevalues < 0, 0, nodevalues)
-                adjustdatastream({"Composition/" + element: nodevalues}, "nodes")
-            self.updateprogress(1.0)
-            print("Carburization module done\n")
+            print('Running diffusion module with ThermoCalc and FeniCSx')
+            mobC = TC_Mob(self.ginput, self.minput)
+
+            print("Activity of atmosphere calculated")
+            self.updateprogress(0.2)
+
+            composition = dict()
+            for element in self.ginput["Material"]["Composition"].keys():
+                composition[element] = readdatastream("Composition_" + element, -1)
+
+            # Adding geometry to composition?
+            composition = FCSxDiffSolver(self.ginput, self.minput, mobC, composition)
+            self.updateprogress(0.9)
+            for element in composition.keys():
+                adjustdatastream({"Composition_" + element: composition[element]}, "nodes")
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
 
+        """
+            Interpolating the compositional values to nodal points 
+        """
+        print("Interpolating result to nodal points")
+        if self.ginput["Geometry"]["Type"] == "4PointBend":
+            fourpointbend_interp(self, composition)
+        elif self.ginput["Geometry"]["Type"] == "2Daxisym":
+            cylinder_interp(self, composition)
+        else:
+            raise KeyError("Type of geometry not supported for compositional "
+                           "interpolation in diffusion modell")
+
+        self.updateprogress(1.0)
+        print("Carburization module done\n")
+def fourpointbend_interp(parent, composition):
+    print("interpolation testing!")
+    xyz = readdatastream('nodes')
+    height = parent.ginput["Geometry"]["height"]
+    surf_dist = np.minimum(xyz[:,1], height-xyz[:,1])
+    print(np.min(surf_dist))
+    print(np.max(surf_dist))
+    calc_xyz = np.array(composition[0])
+    for element in composition[1].keys():
+        calc_value = np.array(composition[1][element])
+        nodevalues = interp(height-surf_dist, calc_xyz, calc_value) * 100
+        nodevalues = np.where(nodevalues < 0, 0, nodevalues)
+        adjustdatastream({"Composition_" + element: nodevalues}, "nodes")
+
+def cylinder_interp(parent, composition):
+    xyz = readdatastream('nodes')
+    r = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2)
+    calc_xyz = np.array(composition[0])
+    for element in composition[1].keys():
+        calc_value = np.array(composition[1][element])
+        nodevalues = interp(r, calc_xyz, calc_value) * 100
+        nodevalues = np.where(nodevalues < 0, 0, nodevalues)
+        adjustdatastream({"Composition_" + element: nodevalues}, "nodes")

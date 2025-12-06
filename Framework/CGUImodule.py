@@ -153,7 +153,6 @@ class infoTab(ctk.CTkScrollableFrame):
         import matplotlib as mpl
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
-        data = read_geninput()
         data = read_input()
         self.columnconfigure(0, weight=0)
         self.columnconfigure(3, weight=1)

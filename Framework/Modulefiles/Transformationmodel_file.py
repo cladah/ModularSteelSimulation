@@ -7,9 +7,9 @@ import numpy as np
 
 
 class Transformationmodelmodule(CalcModule):
-    def __init__(self, infile):
+    def __init__(self, infile, modulenr):
         infile = "Inputs/" + infile + ".json"
-        super().__init__("TransformMod", infile)
+        super().__init__("TransformMod", infile, modulenr)
 
     def run(self):
         models  = {"JMAK":"1-exp(-\u03C4t^n)","KM":"1-exp(-\u03B2(Ms-T))"}
@@ -253,7 +253,7 @@ def TTTpolyfit():
     # Getting composition for all nodes
     fullcomposition = dict()
     for element in data['Material']['Composition'].keys():
-        fullcomposition[element] = readdatastream("Composition/" + element)
+        fullcomposition[element] = readdatastream("Composition_" + element)
 
     # Getting all compositions from database
     compositions = getTTTcompositions()

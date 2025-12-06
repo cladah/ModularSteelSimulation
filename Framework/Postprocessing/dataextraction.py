@@ -29,6 +29,8 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
     print("Done")
 
 def export_data(filename, datanames, t=0, n=1):
+    print("\n---------------------------------------------------------------------\n")
+    print("Exporting data!")
     if datanames == "All":
        datanames = getnames_results(filename)
     elif type(datanames) != list:
@@ -55,7 +57,7 @@ def export_data(filename, datanames, t=0, n=1):
     indices = np.unique(indices)
     datapd = datapd.iloc[indices, :]
     datapd.to_csv("Resultfiles/TmpData.csv", index=False)
-
+    print("\n---------------------------------------------------------------------\n")
 def xmdftesting():
     import meshio
     t_data = 0
@@ -87,3 +89,43 @@ def xmdftesting():
         writer.write_points_cells(points, cells)
         for i in range(len(t_list)):
             writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
+
+def testread(filename, dataname, t=0.0):
+    import h5py
+    import pyvista as pv
+    xdmf = pv.read(filename)
+    if isinstance(xdmf, pv.MultiBlock):
+        print("Multiblock")
+        print(xdmf.keys())
+        timestep = xdmf[1]
+    else:
+        timestep = xdmf
+    print(timestep.GetPointData())
+    for method in dir(timestep):
+        if callable(getattr(timestep, method)):
+            #print(method)
+            pass
+    #print([method_name for method_name in dir(timestep)
+    # if callable(getattr(timestep, method_name))])
+
+    return timestep[dataname]
+    if dataname in mesh.point_data:
+        data = mesh.point_data[dataname]
+    elif dataname in mesh.cell_data:
+        data = mesh.cell_data[dataname]
+    else:
+        raise KeyError(f"Array '{dataname}' not found. "
+                       f"Available arrays: {list(mesh.point_data.keys()) + list(mesh.cell_data.keys())}")
+
+    return data
+
+
+    with h5py.File(filename, "r") as f:
+        for test in f:
+            print(test)
+        if dataname not in f:
+            raise KeyError(f"Dataset '{filename}' not found in {filename}. "
+                           f"Available keys: {list(f.keys())}")
+        data = f[dataname][()]  # Read dataset into numpy array
+    print(data)
+    return data

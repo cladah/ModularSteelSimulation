@@ -1,0 +1,16 @@
+{
+    "Geometry": 0,
+    "GrainSize": 100.0,
+    "Austenitizingtemp": 523.15,
+    "CNtemp": 523.15,
+    "CNenv": "Acetylene",
+    "DiffType": "C",
+    "CNtime": 21600,
+    "CNPress": 100000.0,
+    "Cpotential": 0.1,
+    "BoostNr": 1,
+    "Temp": [1153.15,523.15,523.15],
+    "Temp_time": [0,5000,25200],
+    "BoostTime": [0],
+    "DiffTime": [25200]
+}

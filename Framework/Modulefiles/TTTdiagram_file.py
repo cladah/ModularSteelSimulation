@@ -6,9 +6,9 @@ import numpy as np
 
 
 class TTTdiagrammodule(CalcModule):
-    def __init__(self, infile):
+    def __init__(self, infile, modulenr):
         infile = "Inputs/" + infile + ".json"
-        super().__init__("TTTdiagram", infile)
+        super().__init__("TTTdiagram", infile, modulenr)
 
     def run(self):
         outstr = ["\n---------------------------------------------------------------------\n",

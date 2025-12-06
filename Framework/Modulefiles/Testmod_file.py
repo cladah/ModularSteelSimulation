@@ -1,9 +1,9 @@
 from .ModuleStructure_file_new import CalcModule
 
 class TestModule(CalcModule):
-    def __init__(self, infile):
+    def __init__(self, infile, modulenr):
         infile = "Cachefiles/" + infile + ".json"
-        super().__init__("Test", infile)
+        super().__init__("Test", infile, modulenr)
 
     def run(self):
         Carbtime = sum(self.minput["BoostTime"] + self.minput["DiffTime"])/3600

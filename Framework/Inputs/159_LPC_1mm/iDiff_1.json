@@ -3,12 +3,13 @@
     "Austenitizingtemp": 1323.15,
     "CNtemp": 1323.15,
     "CNenv": "Acetylene",
-    "DiffType": "C",
+    "DiffType": "CN",
     "CNtime": 21600,
     "CNPress": 100.0,
-    "Cpotential": 1.2,
-    "BoostNr": 6,
-    "Temp": 1323.15,
-    "BoostTime": [120,120,120,120,120,120],
-    "DiffTime": [540,900,10,10,10]
+    "Cpotential": -1.0,
+    "Cactivity": 1.1,
+    "BoostNr": 7,
+    "Temp": [1323.15],
+    "BoostTime": [120,120,120,120,120,120,120],
+    "DiffTime": [540,900,1300,1300,1300,2000,6000]
 }

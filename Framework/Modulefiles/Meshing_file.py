@@ -7,9 +7,9 @@ from Framework.Datastream_file import adjustdatastream, readdatastream
 import numpy as np
 
 class Meshingmodule(CalcModule):
-    def __init__(self, infile):
+    def __init__(self, infile, modulenr):
         infile = "Inputs/" + infile + ".json"
-        super().__init__("Meshing", infile)
+        super().__init__("Meshing", infile, modulenr)
 
     def run(self):
         outstr = ["\n---------------------------------------------------------------------\n",
@@ -44,11 +44,11 @@ class Meshingmodule(CalcModule):
             pygmshsolver(self)
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
-        print("Setting starting point for calculation")
-        nodes = readdatastream("nodes")
-        tmpelvalues = np.full(len(nodes), 0)
-        for element in self.ginput["Material"]["Composition"].keys():
-            tmpelvalues = np.full(len(nodes), self.ginput["Material"]["Composition"][element])
-            adjustdatastream({"Composition/" + element: tmpelvalues}, "nodes")
+
+        #nodes = readdatastream("nodes")
+        #tmpelvalues = np.full(len(nodes), 0)
+        #for element in self.ginput["Material"]["Composition"].keys():
+        #    tmpelvalues = np.full(len(nodes), self.ginput["Material"]["Composition"][element])
+        #    adjustdatastream({"Composition/" + element: tmpelvalues}, "nodes")
 
 

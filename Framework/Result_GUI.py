@@ -7,8 +7,11 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
 import numpy as np
 import matplotlib as mpl
 import colorsys
-from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
+from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis, \
+    read_result_input, read_results_mesh
 from customtkinter import filedialog
+import dolfinx
+import pyvista as pv
 
 class resultTab(ctk.CTkFrame):
     """
@@ -205,8 +208,8 @@ class CCTTab(ctk.CTkFrame):
         plots[0].title.set_text("Core TTT")
         plots[1].title.set_text("Surface TTT")
         if "T" in datadict.keys():
-            plots[0].plot(datadict["T"][0], np.array(datadict["T"][1])[:, 0]-273.15, label="Temperature", color="k")
-            plots[1].plot(datadict["T"][0], np.array(datadict["T"][1])[:, -1]-273.15, label="Temperature", color="k")
+            plots[0].plot(datadict["T"][0], np.array(datadict["T"][1])-273.15, label="Temperature", color="k")
+            plots[1].plot(datadict["T"][0], np.array(datadict["T"][1])-273.15, label="Temperature", color="k")
             leg.append("Temperature")
         for i in range(2):
 
@@ -236,6 +239,53 @@ class headerFrame(ctk.CTkFrame):
         self.sidebar_button_1 = ctk.CTkButton(self, text="Continue")
         self.sidebar_button_1.grid(row=0, column=1, padx=20, pady=20, sticky="w")
 
+
+class meshtab(ctk.CTkFrame):
+    def __init__(self, master, filename):
+        super().__init__(master)
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        domain = read_results_mesh(filename)
+        allpoints = read_results(filename, "nodes")
+        V_linear = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
+        mesh = pv.UnstructuredGrid(*dolfinx.plot.vtk_mesh(V_linear))
+        fig, plot1 = plt.subplots(1, 1)
+        fig.set_dpi(50)
+        fig.set_figwidth(5)
+        fig.set_figheight(4)
+        print(allpoints[:,0])
+        print(np.shape(allpoints[:,1]))
+        plot1.triplot(allpoints[:,0],allpoints[:,1])
+        plot1.set_aspect('equal')
+        #plot1.contourf(allpoints,allpoints[:,0])
+        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas.draw()
+        canvas._tkcanvas.grid(row=0, column=0, sticky="nsew")
+        return
+
+
+        pl = pv.Plotter()
+        pl.add_mesh(mesh)
+        from PIL import ImageTk, Image
+        import fitz
+        pl.save_graphic('Resultfiles/tmpmesh.pdf')
+        doc = fitz.open('Resultfiles/tmpmesh.pdf')
+        page = doc.load_page(0)
+        pixmap = page.get_pixmap(dpi=300)
+        pixmap.save("Resultfiles/tmpmesh.png")
+        bearingimage = ctk.CTkImage(Image.open("Resultfiles/tmpmesh.png"), size=(50, 60))
+        imagelabel = ctk.CTkLabel(self, text="", image=bearingimage)
+
+    def quatplot(x, y, quatrangles, ax=None, **kwargs):
+        if not ax: ax = plt.gca()
+        xy = np.c_[x, y]
+        verts = xy[quatrangles]
+        pc = mpl.collections.PolyCollection(verts, **kwargs)
+        ax.add_collection(pc)
+        ax.autoscale()
+
 class resultFrame(ctk.CTkFrame):
     """
     Frame for result information. The information is structured in a tab view with graphs for each dataset in xdmf file.
@@ -256,12 +306,15 @@ class resultFrame(ctk.CTkFrame):
         # self.tabs_frame.columnconfigure(0, weight=1)
         self.tabs_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
+        jsonfile = filename
+        jsonfile = jsonfile.replace(".xdmf", ".json")
+        allinput = read_result_input(jsonfile)
 
         tabs = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Plastic strain", "Elastic strain", "Temperature", "Composition/C"]
         datanames = ["Austenite", "Bainite", "Martensite", "Stress", "vonMises", "Strain_pl", "Strain", "T", "Composition/C"]
 
         excl = ['JMAK_tau_Ferrite', 'JMAK_n_Ferrite', 'JMAK_tau_Bainite', 'JMAK_n_Bainite', 'JMAK_tau_Pearlite', 'JMAK_n_Pearlite', 'KM_Ms_Martensite', 'KM_b_Martensite']
-        excl_comp = ["Composition/C", "Composition/N", 'Composition/Cr', 'Composition/Mn', 'Composition/Ni', 'Composition/Mo', 'Composition/Si']
+        excl_comp = ["Composition_C", "Composition_N", 'Composition_Cr', 'Composition_Mn', 'Composition_Ni', 'Composition_Mo', 'Composition_Si']
         excl_phases = ["Austenite", "Bainite", "Ferrite", "Pearlite"]
         tabs = list(getnames_results(filename))
         if 'JMAK_tau_Ferrite' in tabs:
@@ -271,6 +324,12 @@ class resultFrame(ctk.CTkFrame):
         tabs = [i for i in tabs if i not in excl and i not in excl_comp and i not in excl_phases]
         allpoints = read_results(filename, "nodes")
 
+        # Creating mesh tab
+        tab0 = self.tabs_frame.add("Mesh")
+        tab0frame = meshtab(tab0,filename)
+        tab0.rowconfigure(0, weight=1)
+        tab0.columnconfigure(0, weight=1)
+        tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
         radius = np.max(allpoints[:, 0])
         points = [[0, 0, 0],
@@ -287,7 +346,6 @@ class resultFrame(ctk.CTkFrame):
         if np.shape(allpoints)[1] == 2:
             points = np.array(points)[:, 0:2]
 
-
         alldata_dict = read_results_all(filename, points)
         if "Martensite" in tabs:
             tab0 = self.tabs_frame.add("Phase composition")
@@ -295,18 +353,20 @@ class resultFrame(ctk.CTkFrame):
             phases = ["Martensite", "Austenite", "Bainite", "Ferrite", "Pearlite"]
             for phase in phases:
                 phases_data.append(read_results_axis(filename, phase, -1))
-            pcompdata = [read_results_axis(filename, "nodes")[:, 0], phases_data]
+            print(read_results_axis(filename, "nodes"))
+            pcompdata = [read_results_axis(filename, "nodes"), phases_data]
             tab0frame = resultTab(tab0, "Phasecomp", pcompdata, phases)
             tab0.rowconfigure(0, weight=1)
             tab0.columnconfigure(0, weight=1)
             tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
-
         tab0 = self.tabs_frame.add("Material composition")
         compositions = list()
-        elements = ["C", "N", "Cr", "Ni", "Si", "Mo", "Mn"]
+
+        elements = allinput["Material"]["Composition"].keys()
         for el in elements:
-            compositions.append(read_results_axis(filename, "Composition/" + el))
-        pcompdata = [read_results_axis(filename, "nodes")[:, 0], compositions]
+            compositions.append(read_results_axis(filename, "Composition_" + el))
+        nodepos = read_results_axis(filename, "nodes")
+        pcompdata = [nodepos, compositions]
         tab0frame = resultTab(tab0, "Matcomp", pcompdata, elements)
         tab0.rowconfigure(0, weight=1)
         tab0.columnconfigure(0, weight=1)
@@ -317,13 +377,14 @@ class resultFrame(ctk.CTkFrame):
                 tmpdata = np.transpose(np.array(alldata_dict[tabs[i]][1]), (1, 2, 0))
             elif len(np.shape(alldata_dict[tabs[i]][1])) == 2:
                 tmpdata = np.transpose(np.array(alldata_dict[tabs[i]][1]))
+            else:
+                tmpdata = alldata_dict[tabs[i]][1]
             tab0 = self.tabs_frame.add(tabs[i])
             tab0frame = resultTab(tab0, tabs[i], [alldata_dict[tabs[i]][0], tmpdata], points_leg)
             tab0.rowconfigure(0, weight=1)
             tab0.columnconfigure(0, weight=1)
             tab0frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         if CCT:
-            print("CCT frame")
             tab0 = self.tabs_frame.add("CCT")
             tab0frame = CCTTab(tab0, alldata_dict)
             tab0.rowconfigure(0, weight=1)

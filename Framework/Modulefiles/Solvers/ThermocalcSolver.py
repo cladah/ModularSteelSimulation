@@ -24,7 +24,7 @@ def getTTTcompositions():
     TTTcompositions = list()
     fullcomposition = dict()
     for element in ginput['Material']['Composition'].keys():
-        fullcomposition[element] = getaxisvalues("Composition/" + element)
+        fullcomposition[element] = getaxisvalues("Composition_" + element)
     composition = ginput['Material']['Composition']
 
     mesh = list()
@@ -69,6 +69,75 @@ def getTTTcompositions():
             i = i + 1
         TTTcompositions.append(tmpcomp)
     return TTTcompositions
+
+
+def TC_Cpot(ginput, minput):
+    database = "TCFE12"
+    dependentmat = ginput['Material']["Dependentmat"]
+    composition = ginput['Material']["Composition"]
+    phases = ["FCC_A1", "FCC_A1#2", "GAS", "GRAPHITE_A9"]
+    dormantphases = ["GAS", "GRAPHITE_A9"]
+    referencestates = {"C":"Graphite_A9", "N":"GAS"}
+
+    composition["C"] = minput["Cpotential"]
+
+    with TCPython() as start:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
+        # create and configure a single equilibrium calculation
+        calculation = (
+            start
+            .select_database_and_elements(database, [dependentmat] + list(composition))
+            .get_system()
+            .with_single_equilibrium_calculation()
+            .set_condition(ThermodynamicQuantity.temperature(), minput["CNtemp"])
+            .set_condition(ThermodynamicQuantity.pressure(), minput["CNPress"])
+            .set_phase_to_suspended('*')
+        )
+
+        for element in composition:
+            calculation.set_condition(ThermodynamicQuantity.mass_fraction_of_a_component(element),
+                                      composition[element] / 100)
+        for phase in phases:
+            calculation.set_phase_to_entered(phase)
+        for phase in dormantphases:
+            calculation.set_phase_to_dormant(phase)
+        for element in referencestates:
+            calculation.with_reference_state(element, referencestates[element])
+        logging.getLogger("tc_python").setLevel(logging.INFO)
+        calc_result = (calculation.calculate())  # Aktiverar beräkningen
+        activityC = calc_result.get_value_of(ThermodynamicQuantity.activity_of_component('C'))
+        activityN = calc_result.get_value_of(ThermodynamicQuantity.activity_of_component('N'))
+        print("Activity of carbon " + str(activityC))
+        print("Activity of nitrogen " + str(activityN))
+        return activityC
+
+def TC_Mob(ginput, minput):
+    database = "TCFE12"
+    dependentmat = ginput['Material']["Dependentmat"]
+    composition = ginput['Material']["Composition"]
+    phases = ["FCC_A1"]
+
+    with TCPython() as session:
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
+        # create and configure a single equilibrium calculation
+        calculation = (session
+                  .select_database_and_elements("MOBFE7",[ginput['Material']["Dependentmat"]] + list(ginput['Material']["Composition"]))
+                  .without_default_phases().select_phase("FCC_A1")
+                  .get_system()
+                  .with_single_equilibrium_calculation()
+                  .set_condition(ThermodynamicQuantity.temperature(), minput["CNtemp"])
+                  .set_condition(ThermodynamicQuantity.pressure(), minput["CNPress"]))
+        for element in composition:
+            calculation.set_condition(ThermodynamicQuantity.mass_fraction_of_a_component(element),
+                                      composition[element] / 100)
+        for phase in phases:
+            calculation.set_phase_to_entered(phase)
+        calc_result = (calculation.calculate())  # Aktiverar beräkningen
+        mobC = calc_result.get_value_of(DiffusionQuantity.mobility_of_component_in_phase("FCC_A1", "C"))
+        mobN = calc_result.get_value_of(DiffusionQuantity.mobility_of_component_in_phase("FCC_A1", "N"))
+        print("Mobility of carbon " + str(mobC))
+        print("Mobility of nitrogen " + str(mobN))
+        return mobC
 
 def TCequalibrium(ginput,minput,type):
     """
@@ -144,8 +213,14 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
     boosts = minput["BoostNr"]
     boost_t = minput["BoostTime"]
     diff_t = minput["DiffTime"]
+
+    if float(minput["Cpotential"])>=0.0:
+        Cact = TC_Cpot(ginput, minput)
+        Activity = [Cact, Activity[1]]
+    else:
+        Activity = [minput["Cactivity"], Activity[1]]
     with TCPython() as session:
-        logging.getLogger("tc_python").setLevel(logging.INFO)
+        logging.getLogger("tc_python").setLevel(logging.ERROR)
         system = (session
                   .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
                                                                             [ginput['Material']["Dependentmat"]] + list(ginput['Material']["Composition"]))
@@ -169,7 +244,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
 
         pointgrid = PointByPointGrid()
         for i in range(len(compgrid["C"])):
-            tmppoint = GridPoint(pos[i][0])
+            tmppoint = GridPoint(pos[i])
             for element in ginput["Material"]["Composition"].keys():
                 tmppoint.add_composition(element, compgrid[element][i])
             pointgrid.add_point(tmppoint)
@@ -184,12 +259,12 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
         #BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0, g=str(Activity[1]))
         BC_Boost = BoundaryCondition.mixed_zero_flux_and_activity()
         if "N" in minput["DiffType"]:
-            BC_Boost.set_activity_for_element("N", str(Activity[1]))
+            BC_Boost.set_activity_for_element("N", str("0.05"))
         if "C" in minput["DiffType"]:
             print("BOOST FOR C set to " + str(Activity[0]))
-            BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0,
-                                                                                    g=str(Activity[0]))
-            #BC_Boost.set_activity_for_element("C", str(Activity[0]))
+            #BC_Boost = BoundaryCondition.activity_flux_function().set_flux_function(element_name="C", f="-5E-8", n=1.0,
+            #                                                                        g=str(Activity[0]))
+            BC_Boost.set_activity_for_element("C", str(Activity[0]))
         else:
             raise KeyError('Diffusion input wrong. Adjust The input to include Carbon (C) or Nitrogen (CN)')
 
@@ -200,12 +275,8 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
             calc.set_temperature(minput["Temp"][0])
         else:
             TempProf = TemperatureProfile()
-            TempProf.add_time_temperature(current_time, minput["Temp"][0])
-            for i in range(len(boost_t)):
-                current_time = current_time + boost_t[i]
-                TempProf.add_time_temperature(current_time, minput["Temp"][2*i])
-                current_time = current_time + diff_t[i]
-                TempProf.add_time_temperature(current_time, minput["Temp"][2*i+1])
+            for i in range(len(minput["Temp"])):
+                TempProf.add_time_temperature(minput["Temp_time"][i], minput["Temp"][i])
             calc = system.with_non_isothermal_diffusion_calculation()
             calc.with_temperature_profile(TempProf)
         current_time = boost_t[0]
@@ -219,6 +290,14 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
                              .add_region(austenite)
                              .with_right_boundary_condition(BC_Boost)
                              .set_simulation_time(current_time))
+        if ginput["Geometry"]["Type"] in ["4PointBend"]:
+            boost_calculation.with_planar_geometry()
+        elif ginput["Geometry"]["Type"] in ["2Daxisym"]:
+            boost_calculation.with_cylindrical_geometry()
+        elif ginput["Geometry"]["Type"] == 2:
+            boost_calculation.with_spherical_geometry()
+        else:
+            raise KeyError('Geometry needs to have 0-Planar, 1-cylindrical, 2-spherical')
         if current_time == 0:
             current_time = current_time + diff_t[0]
             diffusion_calculation = boost_calculation.with_right_boundary_condition(BC_Diffusion)

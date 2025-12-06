@@ -2,9 +2,6 @@ import time
 import tkinter
 
 import meshio
-import numpy as np
-from matplotlib import pyplot as plt
-
 from CGUImodule import MainApp
 from Result_GUI import Result_MainApp, Compare_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
@@ -15,11 +12,12 @@ from Modulefiles.Carbonitriding_file import Diffusionmodule
 from Modulefiles.TTTdiagram_file import TTTdiagrammodule
 from Modulefiles.Transformationmodel_file import Transformationmodelmodule
 from Modulefiles.Quenching_file import Quenchingmodule
+from Modulefiles.MechanicalTest_file import MechTestModule
 from Framework.Modulefiles.Docker_file import rundocker, rundocker_1D
 from Modulefiles.Testmod_file import TestModule
 from Datastream_file import getaxisvalues, readdatastream
 from ResultReading import read_results_history, read_results, getnames_results, read_results_all, read_results_axis
-from Postprocessing.dataextraction import DatastreamPlotting, ResultPlotting, export_data
+from Postprocessing.dataextraction import DatastreamPlotting, ResultPlotting, export_data, testread
 
 def progressmonitor(tid, module):
     """
@@ -185,17 +183,19 @@ def setupSimulation():
     for i in range(len(ginput["Modules"])):
         infile = ginput["InputDirectory"] + "/" + ginput["Inputs"][i]
         if ginput["Modules"][i] == "Meshing":
-            modules.append(Meshingmodule(infile))
+            modules.append(Meshingmodule(infile, i))
         elif ginput["Modules"][i] == "Test":
-            modules.append(TestModule(infile))
+            modules.append(TestModule(infile, i))
         elif ginput["Modules"][i] == "Diffusion":
-            modules.append(Diffusionmodule(infile))
+            modules.append(Diffusionmodule(infile, i))
         elif ginput["Modules"][i] == "TTTdiagram":
-            modules.append(TTTdiagrammodule(infile))
+            modules.append(TTTdiagrammodule(infile, i))
         elif ginput["Modules"][i] == "TransformMod":
-            modules.append(Transformationmodelmodule(infile))
+            modules.append(Transformationmodelmodule(infile, i))
         elif ginput["Modules"][i] == "Quenching":
-            modules.append(Quenchingmodule(infile))
+            modules.append(Quenchingmodule(infile, i))
+        elif ginput["Modules"][i] == "MechTest":
+            modules.append(MechTestModule(infile, i))
         else:
             raise KeyError("Module input in iMain not supported")
     print("Simulation structure setup.")
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     """
     ginput - General input (dict)
     """
-    run = int(input("What do you want to run?, 1 - Run, 2 - GUI, 3 - Result, 4 - Export\n: "))
+    run = int(input("What do you want to run?, 1 - Run, 2 - GUI, 3 - Result, 4 - Export, 5 - Compare\n: "))
     if int(run) == 1:
         print("Running normal input")
         ginput = read_geninput()
@@ -219,10 +219,14 @@ if __name__ == "__main__":
     elif run == 3:
         Result_GUI_show("")
     elif run == 4:
-        export_data("Resultfiles/159A_Carb3.xdmf", ["Composition/C", "Martensite"], -1)
+        filename = tkinter.filedialog.askopenfilename(filetypes=(("xdmf files", "*.xdmf"),))
+        export_data(filename, ["Composition/C", "Martensite"], -1)
         #export_data("Resultfiles/159A_Carb3.xdmf", "All", -1)
     elif run == 5:
-        files = ["Resultfiles/October2024_LPC_4h_2.xdmf", "Resultfiles/October2024_LPC_2h.xdmf"]
+        file1 = tkinter.filedialog.askopenfilename(filetypes=(("xdmf files", "*.xdmf"),))
+        file2 = tkinter.filedialog.askopenfilename(filetypes=(("xdmf files", "*.xdmf"),))
         dataname = "Composition/C"
-        ResultPlotting(files, dataname)
+        ResultPlotting([file1,file2], dataname)
         #DockerTest()
+    elif run == 6:
+        testread("Datastream.xdmf", "Composition/C")

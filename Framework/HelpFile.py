@@ -5,7 +5,10 @@ import h5py
 from sqlitedict import SqliteDict
 import numpy as np
 
-
+def read_old_input(filename):
+    f = open(filename,'r')
+    data = json.load(f)
+    return data
 def read_input():
     inputdata = read_geninput()
     for file in inputdata["Inputs"]:
@@ -43,10 +46,11 @@ def createinputcache():
     json.dump(totinput, f, indent=2)
     f.close()
 
-def createresultinput(filename):
+def createresultinput():
+    ginput = read_geninput()
+    filename = ginput["Datastream"]["Savedirect"].split('.')[0]
     f = open("Resultfiles/" + filename + ".json", "w")
     totinput = dict()
-    ginput = read_geninput()
     totinput.update(ginput)
     for file in ginput["Inputs"]:
         minput = read_modinput("Inputs/"+ginput["InputDirectory"] + "/" + file + ".json")

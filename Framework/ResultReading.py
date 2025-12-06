@@ -1,5 +1,10 @@
 import meshio
 import numpy as np
+import json
+def read_result_input(filename):
+    f = open(filename,'r')
+    data = json.load(f)
+    return data
 def getnames_results(filename):
     with meshio.xdmf.TimeSeriesReader(filename) as reader:
         points, cells = reader.read_points_cells()
@@ -22,37 +27,44 @@ def read_results(filename, dataname, time=0):
     """
 
     try:
+        pd_list, cd_list, t_list = list(), list(), list()
         with meshio.xdmf.TimeSeriesReader(filename) as reader:
-            # Must read datapoints in order to read data
             points, cells = reader.read_points_cells()
-            if time == -1:
-                n = reader.num_steps-1
-                t, point_data, cell_data = reader.read_data(n)
-                if dataname not in point_data.keys():
-                    t, point_data, cell_data = reader.read_data(0)
-                if dataname not in point_data.keys():
-                    raise meshio._exceptions.ReadError()
-
-                return point_data[dataname]
-
+            # Handling special data names
             if dataname == "nodes":
                 return points
             elif dataname == "elements":
                 return cells
 
-            pd_list, cd_list, t_list = list(), list(), list()
+            if time == -1: # Last timestep
+                n = reader.num_steps-1
+                t, point_data, cell_data = reader.read_data(n)
+                if dataname not in point_data.keys():
+                    available = list(point_data.keys())
+                    raise KeyError(
+                        f"Datastream '{dataname}' not found. Available datastreams: {available}")
+                return point_data[dataname]
+
+
             for k in range(reader.num_steps):
                 t, point_data, cell_data = reader.read_data(k)
-                if t == time:
-                    return point_data[dataname]
                 t_list.append(t)
                 pd_list.append(point_data)
                 cd_list.append(cell_data)
-            print("Timestep not found")
-        raise KeyError("Timestep not found")
-    except meshio._exceptions.ReadError:
-        raise KeyError("Datastream "+ str(dataname)+" doesn't exist in datastream file. Data that exist is "
-                       + str(pd_list[0].keys()))
+
+                if t == time:
+                    if dataname not in point_data:
+                        available = list(point_data.keys())
+                        raise KeyError(
+                            f"Datastream '{dataname}' not found at time {t}. Available datastreams: {available}" )
+                    return point_data[dataname]
+            raise KeyError(f"Timestep {time} not found. Available timesteps: {t_list}")
+    except meshio._exceptions.ReadError as e:
+        available = list(pd_list[0].keys()) if pd_list else []
+        raise KeyError(
+            f"Error reading '{dataname}' from file '{filename}'. "
+            f"Available datastreams: {available}"
+        ) from e
 
 def read_results_history(filename, dataname, xyz):
     """
@@ -142,12 +154,42 @@ def read_results_all(filename, points_xyz):
                        + str(pd_list[0].keys()))
 
 def read_results_axis(filename, dataname, time=0):
-    node_y = read_results(filename, 'nodes')[:, 1]
-    indx = np.where(node_y == 0)
-    data = read_results(filename, dataname, time)[indx]
-    x = read_results(filename, 'nodes')[:, 0][indx]
+    jsonfile = filename.replace(".xdmf", ".json")
+    ginput = read_result_input(jsonfile)
+    if ginput["Geometry"]["Type"] == "2D":
+        node_y = read_results(filename, 'nodes')[:, 1]
+        indx = np.where(node_y == 0)
+        data = read_results(filename, dataname, time)[indx]
+        x = read_results(filename, 'nodes')[:, 0][indx]
 
-    # Sorting data in order from x=min(x) to x=max(x)
-    indx = np.argsort(x)
-    data = np.array(data)[indx]
+        # Sorting data in order from x=min(x) to x=max(x)
+        indx = np.argsort(x)
+        data = np.array(data)[indx]
+        if dataname == "nodes":
+            data = data[:, 0]
+    elif ginput["Geometry"]["Type"] == "4PointBend":
+        node_x = read_results(filename, 'nodes')[:, 0]
+        indx = np.where(node_x == 0)
+        data = read_results(filename, dataname, time)[indx]
+        node_y = read_results(filename, 'nodes')[:, 1][indx]
+        # Sorting data in order from x=min(x) to x=max(x)
+        indx = np.argsort(node_y)
+        data = np.array(data)[indx]
+        if dataname == "nodes":
+            data = data[:,1]
+    else:
+        raise KeyError("Geometry not implemented in read_results_axis")
     return data
+
+def read_results_mesh(filename):
+    import matplotlib as plt
+    from mpi4py import MPI
+    from dolfinx.io import gmshio, XDMFFile
+    reader = meshio.xdmf.TimeSeriesReader(filename)
+    num_steps = reader.num_steps
+    points, cells = reader.read_points_cells()
+    time_value, point_data, cell_data = reader.read_data(0)
+    with XDMFFile(MPI.COMM_WORLD, filename, "r") as infile:
+        # Read the mesh
+        domain = infile.read_mesh()
+    return domain
