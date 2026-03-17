@@ -55,6 +55,10 @@ class resultTab(ctk.CTkFrame):
             ylbl = "Strain - "
             xlbl = "Time [s]"
             leg = legdata
+        elif "Displacement" in dataname:
+            ylbl = "Displacement [m]"
+            xlbl = "x [m]"
+            leg = legdata
         else:
             ylbl = "?"
             xlbl = "Time [s]"
@@ -255,8 +259,8 @@ class meshtab(ctk.CTkFrame):
         fig.set_dpi(50)
         fig.set_figwidth(5)
         fig.set_figheight(4)
-        print(allpoints[:,0])
-        print(np.shape(allpoints[:,1]))
+        #print(allpoints[:,0])
+        #print(np.shape(allpoints[:,1]))
         plot1.triplot(allpoints[:,0],allpoints[:,1])
         plot1.set_aspect('equal')
         #plot1.contourf(allpoints,allpoints[:,0])
@@ -353,7 +357,7 @@ class resultFrame(ctk.CTkFrame):
             phases = ["Martensite", "Austenite", "Bainite", "Ferrite", "Pearlite"]
             for phase in phases:
                 phases_data.append(read_results_axis(filename, phase, -1))
-            print(read_results_axis(filename, "nodes"))
+            #print(read_results_axis(filename, "nodes"))
             pcompdata = [read_results_axis(filename, "nodes"), phases_data]
             tab0frame = resultTab(tab0, "Phasecomp", pcompdata, phases)
             tab0.rowconfigure(0, weight=1)

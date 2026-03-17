@@ -1,8 +1,8 @@
 {
     "RerunAll": true,
-    "InputDirectory": "Test",
+    "InputDirectory": "Test_2026",
     "Datastream": {
-        "Savedirect": "Test6.xdmf",
-        "Cachedirect": "Resultfiles/Test4.xdmf"
+        "Savedirect": "Test7.xdmf",
+        "Cachedirect": ""
     }
 }

@@ -375,8 +375,12 @@ def TTTpolyfit():
         print("Interpolating modeldata to gridpoints for " + phase)
         res1 = ""
         res2 = ""
-
-        for i in range(len(Z1[0])):
+        print(np.shape(Z1))
+        try:
+            looping = range(len(Z1[0]))
+        except:
+            looping = [0]
+        for i in looping:
             # Adding data to all points and making sure the position is correlating to composition
             interZ1 = np.transpose(np.array(Z1[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))
             interZ2 = np.transpose(np.array(Z2[:, i]).reshape(np.shape(np.transpose(np.meshgrid(*interX, indexing='ij')[0]))))

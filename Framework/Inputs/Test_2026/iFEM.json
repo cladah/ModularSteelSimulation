@@ -1,98 +1,4 @@
 {
-  "Modules": [
-    "Meshing",
-    "Diffusion",
-    "Diffusion",
-    "TTTdiagram",
-    "TransformMod",
-    "Quenching"
-  ],
-  "Inputs": [
-    "iMain",
-    "iDiff_1",
-    "iDiff_Rehard",
-    "iDiff_Rehard",
-    "iFEM",
-    "iFEM"
-  ],
-  "Rerun": [
-    true,
-    false,
-    false,
-    false,
-    false,
-    true
-  ],
-  "Geometry": {
-    "Type": "4PointBend",
-    "height": 0.012,
-    "width": 0.12,
-    "thickness": 0.008,
-    "nodesWidth": 90,
-    "nodesHeight": 30,
-    "nodesRadius": 50,
-    "radius": 0.008,
-    "innerradius": 0.0,
-    "nodes": 50,
-    "meshscaling": 0.9
-  },
-  "Material": {
-    "Name": "Grade 159",
-    "Dependentmat": "Fe",
-    "Composition": {
-      "C": 0.2,
-      "N": 0.01,
-      "Cr": 1.9,
-      "Mn": 0.9,
-      "Mo": 0.5,
-      "Si": 0.3
-    }
-  },
-  "Programs": {
-    "Meshing": "Gmsh",
-    "Coupling": "Stagg",
-    "Diffusion": "TC",
-    "TTTdiagram": "TC",
-    "TransformMod": "Python",
-    "Quenching": "FCSx",
-    "Thermal": "FCSx",
-    "FEM": "FCSx",
-    "MechTest": "FCSx",
-    "All": [
-      "Gmsh",
-      "TC",
-      "Python",
-      "FCSx",
-      "Comsol"
-    ]
-  },
-  "RerunAll": true,
-  "InputDirectory": "Test_2026",
-  "Datastream": {
-    "Savedirect": "Test7.xdmf",
-    "Cachedirect": ""
-  },
-  "GrainSize": 100.0,
-  "Austenitizingtemp": 1113.15,
-  "CNtemp": 1113.15,
-  "CNenv": "Acetylene",
-  "DiffType": "C",
-  "CNtime": 21600,
-  "CNPress": 100000.0,
-  "Cpotential": 0.9,
-  "BoostNr": 1,
-  "Temp": [
-    1113.15
-  ],
-  "Temp_time": [
-    0
-  ],
-  "BoostTime": [
-    1800
-  ],
-  "DiffTime": [
-    0
-  ],
   "LoadingType": "Force",
   "Pmax": 15000,
   "Umax": 0,
@@ -559,6 +465,7 @@
     "Bainite",
     "Martensite"
   ],
+  "CNtemp": 1113.15,
   "quenchtemp": 293.15,
   "elementdim": 2,
   "element_f": 2,

@@ -41,6 +41,7 @@ class MechTestModule(CalcModule):
 
         else:
             print('\nMechanical test module')
+
             if self.program == 'FCSx':
                 FCSx4PB_Force(self)
                 from Framework.Modulefiles.Solvers.FCSxPlasticity import FCSxPlast

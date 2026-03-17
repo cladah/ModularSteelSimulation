@@ -51,8 +51,8 @@ def MartensiteForm(domain, minput, V_fM, funcs):
     dtime = 0.01
     # Reading datastream data
     wtC_data = readdatastream("Composition_C")
-    Ms_data = readdatastream("KM_Ms_Martensite")
-    beta_data = readdatastream("KM_b_Martensite")
+    #Ms_data = readdatastream("KM_Ms_Martensite")
+    #beta_data = readdatastream("KM_b_Martensite")
     nodes = readdatastream("nodes")
     fMeq = 1.0
 
@@ -63,20 +63,22 @@ def MartensiteForm(domain, minput, V_fM, funcs):
     Ms.name = "Martensite starttemp"
     beta.name = "KM beta variable"
     wtC_interp = LinearNDInterpolator(nodes, wtC_data, fill_value=0.0)
-    Ms_interp = LinearNDInterpolator(nodes, Ms_data, fill_value=0.0)
-    beta_interp = LinearNDInterpolator(nodes, beta_data, fill_value=0.0)
+    #Ms_interp = LinearNDInterpolator(nodes, Ms_data, fill_value=0.0)
+    #beta_interp = LinearNDInterpolator(nodes, beta_data, fill_value=0.0)
 
     # Interpolating to calculation points
     uC.interpolate(lambda x: wtC_interp(x[0], x[1]))
-    Ms.interpolate(lambda x: Ms_interp(x[0], x[1]))
-    beta.interpolate(lambda x: beta_interp(x[0], x[1]))
+    #Ms.interpolate(lambda x: Ms_interp(x[0], x[1]))
+    #beta.interpolate(lambda x: beta_interp(x[0], x[1]))
 
     fM_expr = fem.Expression(ufl.conditional(ufl.gt(Ms, T), fMeq - ufl.exp(-beta * (Ms - T)), 0.0),
                              V_fM.element.interpolation_points())
+    fM_expr = fem.Expression(fMeq - ufl.exp(-beta * (0 - T)), V_fM.element.interpolation_points())
 
     #fM_cond = ufl.conditional(ufl.gt(Ms - T_out, 0.0), 1.0, 0.0)
     fM_cond = 1
-    fM_prob = ((fM - fM_old) / dtime + ((fMeq - fM) * beta * (T - T_old) * (50*vM(sigma(u, minput))- 50*vM(sigma(u_old, minput))) / dtime)) * dfM
+    #fM_prob = ((fM - fM_old) / dtime + ((fMeq - fM) * beta * (T - T_old) * (50*vM(sigma(u, minput))- 50*vM(sigma(u_old, minput))) / dtime)) * dfM
+    fM_prob = (fMeq - fM) * (50*vM(sigma(u, minput)))/ dtime*dfM
     fM_res = fM_cond * fM_prob * ufl.dx
     return fM_res, fM_expr
 
@@ -166,13 +168,22 @@ def TemperatureForm(domain, minput, V_T, funcs):
 
     return therm_res, s_old, s_expr
 def FCSx4PB_Force(parent):
-    print('Using FeniCSx solver for Mechanical FEM calculation')
+    print('Using FeniCSx solver for Mechanical FEM calculation. Force controlled.')
     ginput = parent.ginput
     minput = parent.minput
     nodes = readdatastream("nodes")
 
     domain = readDatastreamMesh()
     domain = mesh.create_rectangle(MPI.COMM_WORLD, [np.array([0,0]), np.array([0.12, 0.012])], [60, 20], cell_type=mesh.CellType.quadrilateral)
+    with io.XDMFFile(MPI.COMM_WORLD, "Resultfiles/Mesh.xdmf", "r") as file:
+        domain = file.read_mesh(name="Grid")
+    print(np.max(domain.geometry.x[:,1]))
+    xdmfpos = readdatastream('nodes')
+
+    matrix1_expanded = xdmfpos[:, np.newaxis, :]
+    differences = matrix1_expanded - domain.geometry.x[:, :2]
+    distances = np.linalg.norm(differences, axis=2)
+    best_match_indices = np.argmin(distances, axis=1)
 
     dtime = fem.Constant(domain, minput["quenchtime"]/minput["quench_steps"])
     tend = fem.Constant(domain, float(minput["quenchtime"]))
@@ -181,12 +192,13 @@ def FCSx4PB_Force(parent):
     VTe = element("Lagrange", domain.basix_cell(), 1)  # temperature finite element
     VfMe = element("Lagrange", domain.basix_cell(), 1)  # martensite finite element
     V = fem.functionspace(domain, basix.ufl.mixed_element([Vue, VTe, VfMe]))
-
     V_u, _ = V.sub(0).collapse()
     V_ux, _ = V.sub(0).sub(0).collapse()  # used for Dirichlet BC
     V_uy, _ = V.sub(0).sub(1).collapse()  # used for Dirichlet BC
     V_T, _ = V.sub(1).collapse()  # used for Dirichlet BC
     V_fM, _ = V.sub(2).collapse()
+
+    V_post = fem.functionspace(domain, element("P", domain.basix_cell(), 1, shape=(2,)))
 
     # Defining reference values
     Tref = fem.Function(V_T)
@@ -269,12 +281,12 @@ def FCSx4PB_Force(parent):
     t2_bc = fem.dirichletbc(uT_bc, t2_dofs, V.sub(0).sub(1))
 
     bcs = [b1_bc, b2_bc, t1_bc, t2_bc]
-    #bcs = []
     fM_res, fM_exp = MartensiteForm(domain, minput, V_fM, funcs)
     T_res, s_old, s_expr = TemperatureForm(domain, minput, V_T, funcs)
     u_res = DisplacementForm(domain, minput, V_u, funcs)
     #Mart_exp = ufl.conditional(ufl.gt(Ms, T_out), 1 - ufl.exp(-beta * (Ms - T_out)), 0.0)
 
+    Res = u_res+T_res+fM_res
     Res = u_res
     Jac = ufl.derivative(Res, U, dU)
 
@@ -330,8 +342,7 @@ def FCSx4PB_Force(parent):
     resultdict["Ferrite"] = np.zeros(len(fM_old.x.array))
     resultdict["Bainite"] = np.zeros(len(fM_old.x.array))
     resultdict["Pearlite"] = np.zeros(len(fM_old.x.array))
-    #resultdict["Displacement"] = u_old.x.array
-    adjustdatastream(resultdict, "nodes", current_t)
+    u_nodes = fem.Function(V_post)
 
 
     for loop_nr in range(2):
@@ -360,15 +371,348 @@ def FCSx4PB_Force(parent):
         fM_out = U.sub(2).collapse()
         fM_out.name = "Martensite"
         fM_out.interpolate(fM_exp)
-
+        u_nodes.interpolate(u_out)
     grid.point_data["uy"] = uy_out.x.array.real  # attach solution
 
-    #plotter = pv.Plotter()
-    #plotter.view_xy()
-    #plotter.add_mesh(grid, scalars="uy", cmap="viridis")
-    #plotter.show(title="FEniCSx solution with PyVista")
+    resultdict["Displacement"] = u_nodes.x.array[best_match_indices]
+    adjustdatastream(resultdict, "nodes", 0.0)
+    print("FeniCSx testing")
+    print(np.max(u_nodes.x.array))
+    print(np.shape(fM_out.x.array))
+    print(np.shape(u_nodes.x.array))
+    print(np.shape(u_out.x.array))
+
+    plotter = pv.Plotter()
+    plotter.view_xy()
+    plotter.add_mesh(grid, scalars="uy", cmap="viridis")
+    plotter.show(title="FEniCSx solution with PyVista")
 
     #adjustdatastream(data, "nodes", current_t)
+
+def FCSx4PB_Test(parent):
+    print('Using FeniCSx solver for Mechanical FEM calculation. TESTING MODULE')
+    ginput = parent.ginput
+    minput = parent.minput
+    nodes = readdatastream("nodes")
+
+    domain = readDatastreamMesh()
+    with io.XDMFFile(MPI.COMM_WORLD, "Resultfiles/Mesh.xdmf", "r") as file:
+        domain = file.read_mesh(name="Grid")
+
+    dtime = fem.Constant(domain, minput["quenchtime"]/minput["quench_steps"])
+    tend = fem.Constant(domain, float(minput["quenchtime"]))
+
+    Vue = element("P", domain.basix_cell(), 2, shape=(2,))  # displacement finite element
+    VfMe = element("Lagrange", domain.basix_cell(), 1)  # martensite finite element
+    VTe = element("Lagrange", domain.basix_cell(), 1)  # temperature finite element
+    V = fem.functionspace(domain, basix.ufl.mixed_element([Vue, VTe, VfMe]))
+
+    V_u, _ = V.sub(0).collapse()
+    V_ux, _ = V.sub(0).sub(0).collapse()  # used for Dirichlet BC
+    V_uy, _ = V.sub(0).sub(1).collapse()  # used for Dirichlet BC
+    V_T, _ = V.sub(1).collapse()
+    V_fM, _ = V.sub(2).collapse()
+
+    U = fem.Function(V)
+    dU = ufl.TrialFunction(V)
+    (u, T, fM) = ufl.split(U)
+    U_ = ufl.TestFunction(V)
+    (du, dT, dfM) = ufl.split(U_)
+
+    funcs = dict()
+    # Defining history functions
+    fM_old = fem.Function(V_fM)
+    fM_old.x.array[:] = 0.0
+    funcs["fM_old"] = fM_old
+    T_old = fem.Function(V_T)
+    T_old.x.array[:] = 1113.15
+    funcs["T_old"] = T_old
+    u_old = fem.Function(V_u)
+    u_old.x.array[:] = 0.0
+    funcs["u_old"] = u_old
+
+    # Defining result functions
+    u_out = fem.Function(V_u)
+    u_out.name = "Displacement"
+    T_out = fem.Function(V_T)
+    T_out.name = "Temperature"
+    fM_out = fem.Function(V_fM)
+    fM_out.name = "Martensite"
+
+    # Defining boundary values
+    T_bc = fem.Function(V_T)
+    T_bc.x.array[:] = 293.15
+    u_bc = fem.Function(V_u)
+    u_bc.x.array[:] = 0.0
+    uT_bc = fem.Function(V_uy)
+    uT_bc.x.array[:] = 0.0
+    def b1_BC(x):
+        return np.logical_and(np.isclose(x[0], 0.0, atol=1e-8),np.isclose(x[1], 0.0, atol=1e-8))
+    b1_dofs = fem.locate_dofs_geometrical((V.sub(0), V_u), b1_BC)
+    b1_bc = fem.dirichletbc(u_bc, b1_dofs, V.sub(0))
+
+    def b2_BC(x):
+        return np.logical_and(np.isclose(x[0], 0.12, atol=1e-8), np.isclose(x[1], 0.0, atol=1e-8))
+    b2_dofs = fem.locate_dofs_geometrical((V.sub(0), V_u), b2_BC)
+    b2_bc = fem.dirichletbc(u_bc, b2_dofs, V.sub(0))
+
+    def t1_BC(x):
+        return np.logical_and(np.isclose(x[0], 0.04, atol=1e-8),np.isclose(x[1], 0.012, atol=1e-8))
+    t1_dofs = fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), t1_BC)
+    t1_bc = fem.dirichletbc(uT_bc, t1_dofs, V.sub(0).sub(1))
+
+    def t2_BC(x):
+        return np.logical_and(np.isclose(x[0], 0.08, atol=1e-8), np.isclose(x[1], 0.012, atol=1e-8))
+    t2_dofs = fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), t2_BC)
+    t2_bc = fem.dirichletbc(uT_bc, t2_dofs, V.sub(0).sub(1))
+
+    bcs = [b1_bc, b2_bc, t1_bc, t2_bc]
+
+    u_res = ufl.inner(sigma(u, minput), eps(du)) * ufl.dx # Small strain formulation
+    #fM_res = MartensiteForm(domain, minput, V_fM, funcs)
+    #Mart_exp = ufl.conditional(ufl.gt(Ms, T_out), 1 - ufl.exp(-beta * (Ms - T_out)), 0.0)
+
+    Res = u_res
+    Jac = ufl.derivative(Res, U, dU)
+
+    # --- Nonlinear Solver Setup ---
+    # Assuming problem and solver classes are imported correctly
+    problem = fem.petsc.NonlinearProblem(Res, U, bcs=bcs, J=Jac)
+    print("Starting the solve")
+    solver = NewtonSolver(domain.comm, problem)
+
+    # Solver options (copied from original, standard practice)
+    solver.convergence_criterion = "incremental"
+    solver.report = True
+    solver.max_it = 30
+    ksp = solver.krylov_solver
+
+    opts = PETSc.Options()
+    option_prefix = ksp.getOptionsPrefix()
+    opts[f"{option_prefix}ksp_type"] = "gmres"
+    opts[f"{option_prefix}ksp_rtol"] = 1e-12
+    opts[f"{option_prefix}ksp_atol"] = 1e-12
+    opts[f"{option_prefix}pc_type"] = "hypre"
+    opts[f"{option_prefix}pc_hypre_type"] = "boomeramg"
+    ksp.setFromOptions()
+
+    # --- Initial Solution & Time Stepping ---
+    # Initial guess is the history function values
+    U.sub(0).interpolate(u_old)
+    U.sub(1).interpolate(T_old)
+    U.sub(2).interpolate(fM_old)
+    U.x.scatter_forward()
+
+    num_its, converged = solver.solve(U)
+    U.sub(2).interpolate(fM_old)
+    assert converged
+    U.x.scatter_forward()
+
+
+def FCSx4PB_Force_Gmi(parent):
+    # --- Data Input and Mesh Setup ---
+    print('Using FeniCSx solver for Mechanical FEM calculation')
+    minput = parent.minput
+
+    # Create mesh
+    # Using hardcoded mesh creation for reproducibility, as original readDatastreamMesh is external
+    domain = mesh.create_rectangle(MPI.COMM_WORLD, [np.array([0, 0]), np.array([0.12, 0.012])], [120, 20],
+                                   cell_type=mesh.CellType.quadrilateral)
+
+    # --- Time Step Constants ---
+    dtime = fem.Constant(domain, minput["quenchtime"] / minput["quench_steps"])
+    # tend = fem.Constant(domain, float(minput["quenchtime"])) # Not strictly needed
+
+    # --- Function Space Definition ---
+    # Define sub-elements
+    Vue = element("P", domain.basix_cell(), 2, shape=(2,))  # displacement finite element
+    VTe = element("Lagrange", domain.basix_cell(), 1)  # temperature finite element
+    VfMe = element("Lagrange", domain.basix_cell(), 1)  # martensite finite element
+    V = fem.functionspace(domain, basix.ufl.mixed_element([Vue, VTe, VfMe]))
+
+    # Define sub-spaces for history and boundary conditions
+    # V_u is the collapsed space for the displacement component
+    V_u, map_u = V.sub(0).collapse()
+    V_T, map_T = V.sub(1).collapse()
+    V_fM, map_fM = V.sub(2).collapse()
+    # V_uy is the collapsed space for the y-component of displacement
+    V_uy, map_uy = V.sub(0).sub(1).collapse()
+
+    # --- Trial/Test/Current Functions (U) ---
+    U = fem.Function(V)
+    dU = ufl.TrialFunction(V)
+    U_ = ufl.TestFunction(V)
+
+    # Split current solution and test function for the forms
+    # u, T, fM are the current solution components
+    (u, T, fM) = ufl.split(U)
+    # du, dT, dfM are the test function components
+    (du, dT, dfM) = ufl.split(U_)
+
+    # Create a dict to pass functions to external form functions
+    funcs = {
+        "u": u, "du": du,
+        "T": T, "dT": dT,
+        "fM": fM, "dfM": dfM,
+        "dtime": dtime
+    }
+
+    # --- History Functions (U_old) ---
+    # Initialize history functions on their respective collapsed spaces
+    u_old = fem.Function(V_u)
+    T_old = fem.Function(V_T)
+    fM_old = fem.Function(V_fM)
+
+    # Set initial conditions
+    u_old.x.array[:] = 0.0
+    T_old.x.array[:] = 1113.15  # Initial Temperature
+    fM_old.x.array[:] = 0.0  # Initial Martensite fraction
+
+    funcs["u_old"] = u_old
+    funcs["T_old"] = T_old
+    funcs["fM_old"] = fM_old
+
+    # --- Boundary Condition Definitions ---
+
+    # BC Helper functions
+    def b1_BC(x):
+        # Corner (0, 0)
+        return np.logical_and(np.isclose(x[0], 0.0), np.isclose(x[1], 0.0))
+
+    def b2_BC(x):
+        # Corner (0.12, 0)
+        return np.logical_and(np.isclose(x[0], 0.12), np.isclose(x[1], 0.0))
+
+    def top_BC_region(x):
+        # Top boundary region for applied force/constrain
+        return np.logical_and(np.isclose(x[1], 0.012), x[0] > 0.039 and x[0] < 0.081)
+
+    # 1. Fixed u on u_x (Component 0) and u_y (Component 1) at (0,0) and (0.12, 0)
+    # The original code was using a function `u_bc` with size (V_u.dofmap.index_map.size * V_u.dofmap.index_map_bs)
+    # Better to use a scalar zero or a constant vector
+    zero_u_scalar = fem.Constant(domain, 0.0)
+    zero_vec = fem.Constant(domain, (0.0, 0.0))
+
+    # BC on the full displacement sub-space (V_u) for (0,0) and (0.12, 0)
+    # Note: Use V.sub(0) for the mixed space DOFs
+    dofs_b1 = fem.locate_dofs_geometrical((V.sub(0), V_u), b1_BC)
+    b1_bc = fem.dirichletbc(zero_vec, dofs_b1, V.sub(0))
+
+    dofs_b2 = fem.locate_dofs_geometrical((V.sub(0), V_u), b2_BC)
+    b2_bc = fem.dirichletbc(zero_vec, dofs_b2, V.sub(0))
+
+    # 2. Applied displacement (load) on u_y (Component 1) at the top center
+    # uT_bc will be the function holding the applied displacement value, which changes over time
+    uT_bc_func = fem.Function(V_uy)
+    uT_bc_func.x.array[:] = 0.0
+
+    # Locate DOFs on the u_y component sub-space
+    dofs_t_uy = fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), top_BC_region)
+    t_bc_uy = fem.dirichletbc(uT_bc_func, dofs_t_uy, V.sub(0).sub(1))
+
+    bcs = [b1_bc, b2_bc, t_bc_uy]
+
+    # --- Variational Forms and Problem Setup ---
+    # s_old and s_expr are assumed to be related to the T form (e.g., source terms/latent heat)
+    fM_res, fM_exp = MartensiteForm(domain, minput, V_fM, funcs)
+    T_res, s_old, s_expr = TemperatureForm(domain, minput, V_T, funcs)
+    u_res = DisplacementForm(domain, minput, V_u, funcs)
+
+    # Total Residual and Jacobian
+    Res = u_res + T_res + fM_res
+    Jac = ufl.derivative(Res, U, dU)
+
+    # --- Nonlinear Solver Setup ---
+    # Assuming problem and solver classes are imported correctly
+    problem = fem.petsc.NonlinearProblem(Res, U, bcs=bcs, J=Jac)
+    print("Starting the solve")
+    solver = NewtonSolver(domain.comm, problem)
+
+    # Solver options (copied from original, standard practice)
+    solver.convergence_criterion = "incremental"
+    solver.report = True
+    solver.max_it = 30
+    ksp = solver.krylov_solver
+
+    opts = PETSc.Options()
+    option_prefix = ksp.getOptionsPrefix()
+    opts[f"{option_prefix}ksp_type"] = "gmres"
+    opts[f"{option_prefix}ksp_rtol"] = 1e-12
+    opts[f"{option_prefix}ksp_atol"] = 1e-12
+    opts[f"{option_prefix}pc_type"] = "hypre"
+    opts[f"{option_prefix}pc_hypre_type"] = "boomeramg"
+    ksp.setFromOptions()
+
+    # --- Initial Solution & Time Stepping ---
+    # Initial guess is the history function values
+    U.sub(0).collapse().copy_from(u_old)
+    U.sub(1).collapse().copy_from(T_old)
+    U.sub(2).collapse().copy_from(fM_old)
+    U.x.scatter_forward()  # Scatter the initial guess to all processes
+
+    current_t = 0.0
+
+    # Use files for continuous output during the loop (more robust than PyVista for a time series)
+    # with plot.VtkFile(domain.comm, "solution.pvd", "w") as vtk:
+
+    # The first solve is just to establish the initial state (or solve for t=0 if forms require it)
+    num_its, converged = solver.solve(U)
+    assert converged
+    U.x.scatter_forward()
+
+    # Update history functions after the initial solve
+    T_old.x.array[:] = U.sub(1).collapse().x.array  # Correct way to update history from mixed space
+    # The first output/initial state save logic remains similar
+    # (Removed PyVista logic here for simplicity, focusing on FEM improvement)
+
+    # --- Main Time Loop ---
+    for loop_nr in range(2):  # Original code only ran for 2 steps, but typically this would be minput["quench_steps"]
+        print(f"Loop nr {loop_nr + 1}")
+        current_t += dtime.value
+
+        # Update the essential BC function for the next step (Applying load increment)
+        # Using a simple value update, as in the original code
+        uT_bc_func.x.array[:] += 0.0001
+
+        # Solve the nonlinear problem
+        num_its, converged = solver.solve(U)
+        assert converged
+        U.x.scatter_forward()
+
+        # --- Update History Variables (The most critical part) ---
+        # 1. Update internal state (s_old) from external form (s_expr)
+        s_old.interpolate(s_expr)
+
+        # 2. Update fM_old from fM_exp (external phase transformation update)
+        # Note: Must update fM_old *before* u_old and T_old if fM_exp depends on T_old
+        fM_old.interpolate(fM_exp)
+
+        # 3. Update history functions from current solution (U) components
+        # A common dolfinx pattern to update a component function from a mixed function
+        u_old.x.array[:] = U.sub(0).collapse().x.array
+        T_old.x.array[:] = U.sub(1).collapse().x.array
+
+        # --- Extract and Save Output ---
+        u_out = U.sub(0).collapse()
+        T_out = U.sub(1).collapse()
+        fM_out = U.sub(2).collapse()
+
+        # Re-evaluate fM_out using the expression for a final, consistent output value
+        fM_out.interpolate(fM_exp)
+
+        # Extracting the Y-component of displacement (u_y) specifically
+        # You need to extract the component *before* collapsing if you want only that component's function space
+        uy_out = U.sub(0).sub(1).collapse()
+        uy_out.name = "Displacement in y"
+
+        # Save results to datastream/file (Placeholder for external logic)
+        # resultdict = {"T": T_out.x.array, "Martensite": fM_out.x.array, ...}
+        # adjustdatastream(resultdict, "nodes", current_t)
+
+    # Final output assignment for PyVista/post-processing (if needed)
+    # grid.point_data["uy"] = uy_out.x.array.real
+
+    return u_out, T_out, fM_out
 def FCSx4PB_Quench(parent):
     print('Using FeniCSx solver for FEM quenching calculation')
     ginput = parent.ginput

@@ -152,7 +152,10 @@ def read_results_all(filename, points_xyz):
     except meshio._exceptions.ReadError:
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is "
                        + str(pd_list[0].keys()))
-
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
 def read_results_axis(filename, dataname, time=0):
     jsonfile = filename.replace(".xdmf", ".json")
     ginput = read_result_input(jsonfile)
@@ -169,7 +172,15 @@ def read_results_axis(filename, dataname, time=0):
             data = data[:, 0]
     elif ginput["Geometry"]["Type"] == "4PointBend":
         node_x = read_results(filename, 'nodes')[:, 0]
-        indx = np.where(node_x == 0)
+        nodes = read_results(filename, 'nodes')
+        indx = np.where(np.isclose(node_x, find_nearest(node_x, 0.06)))
+        print(nodes[indx][:,1])
+        sort = np.argsort(nodes[indx][:,1])
+        print("old")
+        print(indx)
+        indx = np.take(np.array(indx), sort)
+        print(indx)
+        print("end")
         data = read_results(filename, dataname, time)[indx]
         node_y = read_results(filename, 'nodes')[:, 1][indx]
         # Sorting data in order from x=min(x) to x=max(x)

@@ -1,9 +1,11 @@
 
 import numpy as np
 import meshio
-from HelpFile import read_input, createinputcache, createresultinput, read_geninput
+from HelpFile import read_input, createinputcache, createresultinput, read_geninput, read_modinput
+import json
 import os
 import pathlib
+from pathlib import Path
 import vtk
 from dolfinx import io, fem
 from mpi4py import MPI
@@ -37,12 +39,23 @@ class Datastream:
     def savetofile(self):
         pass
 
+def createdatastreaminput():
+    ginput = read_geninput()
+    f = open("Datastream.json", "w")
+    totinput = dict()
+    totinput.update(ginput)
+    for file in ginput["Inputs"]:
+        minput = read_modinput("Inputs/" + ginput["InputDirectory"] + "/" + file + ".json")
+        totinput.update(minput)
+    json.dump(totinput, f, indent=2)
+    f.close()
+
 def createdatastream(domain):
     datastream_name = "Datastream"
     xdmf_path = os.path.join(os.getcwd(), f"{datastream_name}.xdmf")
     h5_path = os.path.join(os.getcwd(), f"{datastream_name}.h5")
-
-    for path in [xdmf_path, h5_path]:
+    json_path = os.path.join(os.getcwd(), f"{datastream_name}.json")
+    for path in [xdmf_path, h5_path, json_path]:
         try:
             os.remove(path)
             print(f"Removed existing file: {path}")
@@ -53,6 +66,15 @@ def createdatastream(domain):
         ginput = read_geninput()
     except Exception as e:
         raise KeyError(f"Error reading general input: {e}")
+
+    f = open(json_path, "w")
+    totinput = dict()
+    totinput.update(ginput)
+    for file in ginput["Inputs"]:
+        minput = read_modinput("Inputs/" + ginput["InputDirectory"] + "/" + file + ".json")
+        totinput.update(minput)
+    json.dump(totinput, f, indent=2)
+    f.close()
 
     with meshio.xdmf.TimeSeriesWriter(xdmf_path) as writer:
         cell_types = list(domain.cells_dict.keys())
@@ -67,6 +89,7 @@ def createdatastream(domain):
     for element in ginput["Material"]["Composition"].keys():
         tmpelvalues = np.full(len(domain.points), ginput["Material"]["Composition"][element])
         adjustdatastream({"Composition_" + element: tmpelvalues}, "nodes")
+
     print("Created datastream file")
 
 def adjustdatastream(data, datapos="nodes", t_data=0.0):
@@ -150,7 +173,6 @@ def readdatastream(dataname, time=0, all_t=0):
         raise KeyError("Datastream "+str(dataname)+" doesn't exist in datastream file. Data that exist is "
                        + str(pd_list[0].keys()))
     return
-
 
 def savedatastream(filename):
     if filename is None or filename == "":
@@ -246,14 +268,12 @@ def createdatastreamcache(filename=None):
         print("Cache FileNotFound")
         print("No datastream caches, running empty simulation")
 
-
 def removedatastreamcache():
     try:
         os.remove(os.getcwd() + "/Cachefiles/Datastream_Cache.h5")
         os.remove(os.getcwd() + "/Cachefiles/Datastream_Cache.xdmf")
     except:
         print("No datastream caches")
-
 
 def readdatastreamcache(dataname, time=0):
     try:

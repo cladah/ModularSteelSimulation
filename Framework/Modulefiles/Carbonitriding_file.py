@@ -56,6 +56,9 @@ class Diffusionmodule(CalcModule):
 
             # Adding geometry to composition?
             composition = TCDiffusionSolver(self.ginput, self.minput, activityenv, composition)
+            print(type(composition))
+            print("Testing!!!!")
+
             self.updateprogress(0.9)
 
         elif self.program == "FCSx":
@@ -74,6 +77,7 @@ class Diffusionmodule(CalcModule):
             # Adding geometry to composition?
             composition = FCSxDiffSolver(self.ginput, self.minput, mobC, composition)
             self.updateprogress(0.9)
+
             for element in composition.keys():
                 adjustdatastream({"Composition_" + element: composition[element]}, "nodes")
         else:
@@ -82,6 +86,11 @@ class Diffusionmodule(CalcModule):
         """
             Interpolating the compositional values to nodal points 
         """
+        import pandas as pd
+        df = pd.DataFrame()
+        df["x"] = composition[0]
+        df["C"] = composition[1]["C"]
+        df.to_csv("CompositionData.csv")
         print("Interpolating result to nodal points")
         if self.ginput["Geometry"]["Type"] == "4PointBend":
             fourpointbend_interp(self, composition)
