@@ -83,8 +83,115 @@ def gmsh1D():
     print(gmsh.model.mesh.get_elements())
     gmsh.finalize()
 
+def four_point_bend(parent):
+    ginput = read_geninput()
+    gdim = ginput["Geometry"]["dim"]
+    if gdim == 2:
+        fourPointBend_2D(parent)
+    elif gdim == 3:
+        fourPointBend_3D(parent)
+    else:
+        raise KeyError("")
 
-def fourPointBend(parent):
+def fourPointBend_3D(parent):
+    ginput = read_geninput()
+    width = ginput["Geometry"]["width"]
+    height = ginput["Geometry"]["height"]
+    thick = ginput["Geometry"]["thickness"]
+    width_n = int(ginput["Geometry"]["nodesWidth"])
+    thick_n = int(ginput["Geometry"]["nodesThickness"])
+    height_n = int(ginput["Geometry"]["nodesHeight"])
+
+    tmpgeo = [ginput['Geometry']['meshscaling'] ** i for i in range(ginput['Geometry']['nodes'] - 1)]
+    tmpgeo = np.array([np.sum(tmpgeo[0:i]) for i in range(ginput['Geometry']['nodes'] - 1)])
+    heightnodes = height * tmpgeo / np.max(tmpgeo)
+    lc = heightnodes[-1] - heightnodes[-2]
+
+    gmsh.initialize()
+    gmsh.logger.start()
+    gmsh.model.add("Mesh_3D")
+    gdim = 3
+
+    # --- 2D Base Geometry (Same as your 2D code) ---
+    p1 = gmsh.model.geo.addPoint(0 , 0, 0)
+    p2 = gmsh.model.geo.addPoint(width / 3, 0, 0)
+    p3 = gmsh.model.geo.addPoint(width / 2, 0, 0)
+    p4 = gmsh.model.geo.addPoint(width / 2, height, 0)
+    p5 = gmsh.model.geo.addPoint(width / 3, height, 0)
+    p6 = gmsh.model.geo.addPoint(0 , height, 0)
+    p7 = gmsh.model.geo.addPoint(-0.01, 0, 0)
+    p8 = gmsh.model.geo.addPoint(-0.01, height, 0)
+
+    l1 = gmsh.model.geo.addLine(p1, p2)
+    l2 = gmsh.model.geo.addLine(p2, p5)
+    l3 = gmsh.model.geo.addLine(p5, p6)
+    l4 = gmsh.model.geo.addLine(p6, p1)
+    l5 = gmsh.model.geo.addLine(p2, p3)
+    l6 = gmsh.model.geo.addLine(p3, p4)
+    l7 = gmsh.model.geo.addLine(p4, p5)
+    l8 = gmsh.model.geo.addLine(p7, p1)
+    l9 = gmsh.model.geo.addLine(p6, p8)
+    l10 = gmsh.model.geo.addLine(p8, p7)
+
+    s1 = gmsh.model.geo.addPlaneSurface([gmsh.model.geo.addCurveLoop([l1, l2, l3, l4])])
+    s2 = gmsh.model.geo.addPlaneSurface([gmsh.model.geo.addCurveLoop([l5, l6, l7, -l2])])
+    s3 = gmsh.model.geo.addPlaneSurface([gmsh.model.geo.addCurveLoop([l8, -l4, l9, l10])])
+
+    # --- Transfinite Constraints for the 2D Face ---
+    for l in [l8, l9]:
+        gmsh.model.geo.mesh.setTransfiniteCurve(l, int(4))
+    for l in [l1, l3]:
+        gmsh.model.geo.mesh.setTransfiniteCurve(l, int(width_n))
+    for l in [l5, l7]:
+        gmsh.model.geo.mesh.setTransfiniteCurve(l, int(width_n / 2))
+    for l in [l2, l4, l6, l10]:
+        gmsh.model.geo.mesh.setTransfiniteCurve(l, height_n, 'Bump', 0.1)
+
+    gmsh.model.geo.mesh.setTransfiniteSurface(s1)
+    gmsh.model.geo.mesh.setTransfiniteSurface(s2)
+    gmsh.model.geo.mesh.setTransfiniteSurface(s3)
+    gmsh.model.geo.mesh.setRecombine(2, s1)
+    gmsh.model.geo.mesh.setRecombine(2, s2)
+    gmsh.model.geo.mesh.setRecombine(2, s3)
+
+    ext1 = gmsh.model.geo.extrude([(2, s1), (2, s2), (2, s3)], 0, 0, thick/2, numElements=[thick_n - 1], recombine=True)
+    gmsh.model.geo.synchronize()
+    # Extract the volume IDs from the extrusion results
+    volumes = [item[1] for item in ext1 if item[0] == 3]
+    gmsh.model.addPhysicalGroup(3, volumes, 4, "Grid")
+
+    parent.updateprogress(0.5)
+    gmsh.model.geo.synchronize()
+    gmsh.model.mesh.generate(gdim)
+    #gmsh.model.mesh.setOrder(2)
+    #gmsh.fltk.run()
+    gmsh.write("Resultfiles/Mesh.msh")
+    gmsh.write("Resultfiles/Mesh.vtk")
+    print(*gmsh.logger.get(), sep="\n")
+    parent.updateprogress(0.8)
+
+    mesh = meshio.read("Resultfiles/Mesh.msh")
+    #meshio.write("Resultfiles/Mesh.nas", mesh)
+    domain, cell_tags, facet_tags = gmshio.model_to_mesh(
+        gmsh.model, MPI.COMM_WORLD, 0, gdim=gdim
+    )
+    domain.name = "Grid"
+    with XDMFFile(domain.comm, "Resultfiles/Mesh.xdmf", "w") as file:
+        file.write_mesh(domain)
+
+    createdatastream(mesh)
+    #gmsh.fltk.run()
+    gmsh.finalize()
+
+
+    with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+        points, cells = reader.read_points_cells()
+
+    # Plot with PyVista
+    #plotter = pv.Plotter()
+    #plotter.add_mesh(grid, show_edges=True)
+    #plotter.show(
+def fourPointBend_2D(parent):
     ginput = read_geninput()
     width = ginput["Geometry"]["width"]
     height = ginput["Geometry"]["height"]
@@ -268,7 +375,7 @@ def gmshsolver(parent):
     if ginput["Geometry"]["Type"] == "2Daxisym":
         cylinder(parent)
     elif ginput["Geometry"]["Type"] == "4PointBend":
-        fourPointBend(parent)
+        four_point_bend(parent)
     else:
         raise KeyError("Geometry not implemented. ")
 

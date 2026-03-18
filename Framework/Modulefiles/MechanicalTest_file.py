@@ -7,7 +7,6 @@ class MechTestModule(CalcModule):
         super().__init__("MechTest", infile, modulenr)
 
     def run(self):
-        print(self.minput)
         outstr = ["\n---------------------------------------------------------------------\n",
                   "Mechanical testing module: " + self.inputfile + "\n",
                   "Material type: " + self.minput["Materialtype"],
@@ -43,10 +42,8 @@ class MechTestModule(CalcModule):
             print('\nMechanical test module')
 
             if self.program == 'FCSx':
+                #FCSx_test(self)
                 FCSx4PB_Force(self)
-                from Framework.Modulefiles.Solvers.FCSxPlasticity import FCSxPlast
-                #FCSxPlast(self)
-                # rundocker(self)
             elif self.program == 'Comsol':
                 print('Comsol not implemented in Mechanical Test Module')
                 runComsol(self)

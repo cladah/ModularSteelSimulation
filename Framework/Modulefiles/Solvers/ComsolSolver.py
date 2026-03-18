@@ -795,7 +795,7 @@ def addComsoldatadatastream():
                     continue
     indxcomsol = indxcomsol.astype(int)
     t = [*range(0, 30, 1), *range(60, 600, 60)]
-    adjustdatastream("Austenite", data[:, 2][indxcomsol], "nodes")
+    adjustdatastream("Austenite", data[:, 2][indxcomsol], datapos="nodes")
 
 
 def resultconverter():
@@ -821,21 +821,21 @@ def resultconverter():
                     continue
     indxcomsol = indxcomsol.astype(int)
 
-    adjustdatastream("Austenite", data[:, 2][indxcomsol], "nodes")
-    adjustdatastream("Ferrite", data[:, 3][indxcomsol], "nodes")
-    adjustdatastream("Pearlite", data[:, 4][indxcomsol], "nodes")
-    adjustdatastream("Bainite", data[:, 5][indxcomsol], "nodes")
-    adjustdatastream("Martensite", data[:, 6][indxcomsol], "nodes")
+    adjustdatastream("Austenite", data[:, 2][indxcomsol], datapos="nodes")
+    adjustdatastream("Ferrite", data[:, 3][indxcomsol], datapos="nodes")
+    adjustdatastream("Pearlite", data[:, 4][indxcomsol], datapos="nodes")
+    adjustdatastream("Bainite", data[:, 5][indxcomsol], datapos="nodes")
+    adjustdatastream("Martensite", data[:, 6][indxcomsol], datapos="nodes")
 
     data = np.loadtxt(savedirec + "/Stress.txt")
-    adjustdatastream("vonMises", data[:, 2][indxcomsol], "nodes")
+    adjustdatastream("vonMises", data[:, 2][indxcomsol], datapos="nodes")
 
     data = np.loadtxt(savedirec + "/Strain.txt")
-    adjustdatastream("ep1", data[:, 2][indxcomsol], "nodes")
-    adjustdatastream("ep2", data[:, 3][indxcomsol], "nodes")
-    adjustdatastream("ep3", data[:, 4][indxcomsol], "nodes")
-    adjustdatastream("evol", data[:, 5][indxcomsol], "nodes")
-    adjustdatastream("edeve", data[:, 6][indxcomsol], "nodes")
+    adjustdatastream("ep1", data[:, 2][indxcomsol], datapos="nodes")
+    adjustdatastream("ep2", data[:, 3][indxcomsol], datapos="nodes")
+    adjustdatastream("ep3", data[:, 4][indxcomsol], datapos="nodes")
+    adjustdatastream("evol", data[:, 5][indxcomsol], datapos="nodes")
+    adjustdatastream("edeve", data[:, 6][indxcomsol], datapos="nodes")
 
 def runComsol(parent):
     """

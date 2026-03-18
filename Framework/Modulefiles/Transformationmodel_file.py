@@ -246,7 +246,131 @@ def TTTinterpolatetonodes():
         print(phase + " added to Modeldata file")
     print("Modeldata interpolated to nodes")
 
+
+import numpy as np
+from scipy import interpolate
+from pathlib import Path
+
+
 def TTTpolyfit():
+    """
+    Fits TTT diagram parameters (JMAK/KM) and interpolates them across the mesh.
+    """
+    data = read_geninput()
+    comp_elements = list(data['Material']['Composition'].keys())
+
+    # 1. Fetch Composition for all nodes (Vectorized)
+    full_composition = {el: readdatastream(f"Composition_{el}") for el in comp_elements}
+
+    # 2. Get unique compositions from database
+    raw_compositions = getTTTcompositions()
+    # Use a set of tuples to find unique compositions while preserving element maps
+    unique_compositions = []
+    seen = set()
+    for c in raw_compositions:
+        c_tuple = tuple(c.items())
+        if c_tuple not in seen:
+            unique_compositions.append(c)
+            seen.add(c_tuple)
+
+    print(f"Number of compositions for interpolation: {len(unique_compositions)}")
+
+    # 3. Process each phase
+    phases = ["Ferrite", "Bainite", "Pearlite", "Martensite"]
+    for phase in phases:
+        Z1_list, Z2_list, X_list = [], [], []
+
+        for comp in unique_compositions:
+            ttt_data = getTTTdata(comp, "Modeldata")
+
+            # Extract coordinates for interpolation grid
+            X_list.append([comp[el] for el in comp_elements])
+
+            if phase != "Martensite":
+                # JMAK Logic (Ferrite, Bainite, Pearlite)
+                T, tau, n = ttt_data[phase][0:3]
+
+                # Robust NaN handling
+                taumax = 1e8
+                n = np.nan_to_num(n, nan=3.0)
+                tau = np.nan_to_num(tau, nan=taumax)
+                tau = np.clip(tau, None, taumax)
+
+                indices = np.where(tau < taumax)[0]
+
+                if len(indices) == 0:
+                    # Default flat profile if no valid TTT data
+                    z1 = np.append(np.zeros(5), taumax)
+                    z2 = np.append(np.zeros(5), 3.0)
+                else:
+                    # Polyfit log(tau) and n
+                    # We pad to 6 coefficients (5th degree polynomial)
+                    z1 = np.polyfit(T[indices], np.log(tau[indices]), 5)
+                    z2 = np.polyfit(T[indices], n[indices], 0)
+
+                    # Ensure consistent 6-length coefficient arrays
+                    z1 = np.pad(z1, (6 - len(z1), 0), 'constant')
+                    z2 = np.pad(z2, (6 - len(z2), 0), 'constant')
+            else:
+                # KM Logic (Martensite)
+                ms, beta = ttt_data[phase][0:2]
+                z1 = np.nan_to_num([ms], nan=273.15)
+                z2 = np.nan_to_num([beta], nan=0.01)
+
+            Z1_list.append(z1)
+            Z2_list.append(z2)
+
+        # Convert to arrays for interpolation
+        X_points = np.array(X_list)
+        Z1_points = np.array(Z1_list)
+        Z2_points = np.array(Z2_list)
+
+        # 4. Multi-dimensional Interpolation setup
+        # Create axis coordinates for interpn
+        inter_axes = []
+        for i in range(len(comp_elements)):
+            axis = sorted(list(set(X_points[:, i])))
+            inter_axes.append(axis)
+
+        # Reshape Z data to match the meshgrid of inter_axes
+        grid_shape = [len(ax) for ax in inter_axes]
+
+        # Prepare the grid of mesh nodes for interpolation
+        # Stack nodes: shape (N_nodes, N_elements)
+        target_grid = np.stack([full_composition[el] for el in comp_elements], axis=-1)
+
+        print(f"Interpolating {phase} parameters...")
+
+        # Perform interpolation for each polynomial coefficient
+        res1_cols, res2_cols = [], []
+        num_coeffs = Z1_points.shape[1]
+
+        for i in range(num_coeffs):
+            # Reshape values into the multi-dim composition grid
+            v1 = Z1_points[:, i].reshape(grid_shape)
+            v2 = Z2_points[:, i].reshape(grid_shape)
+
+            r1 = interpolate.interpn(inter_axes, v1, target_grid, method="linear", bounds_error=False, fill_value=None)
+            r2 = interpolate.interpn(inter_axes, v2, target_grid, method="linear", bounds_error=False, fill_value=None)
+
+            res1_cols.append(r1)
+            res2_cols.append(r2)
+
+        # Stack results (N_nodes, N_coeffs)
+        final_res1 = np.stack(res1_cols, axis=-1)
+        final_res2 = np.stack(res2_cols, axis=-1)
+
+        # 5. Save to Datastream
+        prefix = "JMAK" if phase != "Martensite" else "KM"
+        names = ["tau", "n"] if phase != "Martensite" else ["Ms", "b"]
+
+        adjustdatastream({f"{prefix}_{names[0]}_{phase}": final_res1}, datapos="nodes")
+        adjustdatastream({f"{prefix}_{names[1]}_{phase}": final_res2}, datapos="nodes")
+
+    print("Success: Transformation models interpolated to all nodes.")
+
+
+def TTTpolyfit_old():
     from scipy import interpolate
     data = read_geninput()
 

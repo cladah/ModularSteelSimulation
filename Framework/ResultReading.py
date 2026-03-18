@@ -15,7 +15,16 @@ def getnames_results(filename):
             t, point_data, cell_data = reader.read_data(1)
             datanames = datanames + list(point_data.keys())
         return datanames
-
+def get_times_results(filename, dataname):
+    with meshio.xdmf.TimeSeriesReader(filename) as reader:
+        points, cells = reader.read_points_cells()
+        numsteps = reader.num_steps
+        t, point_data, cell_data = reader.read_data(0)
+        datanames = list(point_data.keys())
+        if numsteps > 1:
+            t, point_data, cell_data = reader.read_data(1)
+            datanames = datanames + list(point_data.keys())
+        return datanames
 def read_results(filename, dataname, time=0):
     """
     Reading xdmf file and returning data for all points at a specific time step.
@@ -171,16 +180,18 @@ def read_results_axis(filename, dataname, time=0):
         if dataname == "nodes":
             data = data[:, 0]
     elif ginput["Geometry"]["Type"] == "4PointBend":
-        node_x = read_results(filename, 'nodes')[:, 0]
         nodes = read_results(filename, 'nodes')
-        indx = np.where(np.isclose(node_x, find_nearest(node_x, 0.06)))
-        print(nodes[indx][:,1])
+        if ginput["Geometry"]["dim"] == 3:
+            #indx = np.where(np.isclose(nodes[:, 0], find_nearest(nodes[:, 0], 0.06)))
+            indx = np.where(
+                np.isclose(nodes[:, 0], 0.06) &
+                np.isclose(nodes[:, 2], 0.0)
+            )[0]
+        else:
+            print("Not implimented see geometry")
+            raise KeyError()
         sort = np.argsort(nodes[indx][:,1])
-        print("old")
-        print(indx)
         indx = np.take(np.array(indx), sort)
-        print(indx)
-        print("end")
         data = read_results(filename, dataname, time)[indx]
         node_y = read_results(filename, 'nodes')[:, 1][indx]
         # Sorting data in order from x=min(x) to x=max(x)

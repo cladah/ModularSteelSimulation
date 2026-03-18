@@ -1,5 +1,11 @@
 from Framework.ResultReading import read_results_axis, getnames_results, read_results, read_results_all
 import numpy as np
+import dolfinx
+from dolfinx.io import XDMFFile
+from mpi4py import MPI
+import pyvista as pv
+import meshio
+
 def DatastreamPlotting(dataname, t=0):
     import matplotlib.pyplot as plt
     filename = "Datastream.xdmf"
@@ -90,7 +96,137 @@ def xmdftesting():
         for i in range(len(t_list)):
             writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
 
-def testread(filename, dataname, t=0.0):
+
+def interactive_datastream_plotter(filename="Datastream.xdmf"):
+    """
+    Uses meshio TimeSeriesReader to navigate through time steps
+    and plot specific functions via PyVista.
+    """
+    print(f"\n--- Opening {filename} with TimeSeriesReader ---")
+
+    with meshio.xdmf.TimeSeriesReader(filename) as reader:
+        # 1. Get basic mesh info
+        points, cells = reader.read_points_cells()
+        num_steps = reader.num_steps
+
+        # Read the first step just to see what data fields exist
+        _, point_data, _ = reader.read_data(0)
+        available_fields = list(point_data.keys())
+
+        if not available_fields:
+            print(">>> No data fields found in the file.")
+            return
+
+        # 2. User Menu for Step and Field
+        print(f"\nFile contains {num_steps} time steps.")
+        print("Available Fields:", ", ".join(available_fields))
+
+        try:
+            step_idx = int(input(f"Select Time Step (0 to {num_steps - 1}): "))
+            print("\nSelect Field:")
+            for i, f in enumerate(available_fields): print(f" [{i}] {f}")
+            field_idx = int(input("Choice: "))
+            selected_field = available_fields[field_idx]
+        except (ValueError, IndexError):
+            print("Invalid selection. Exiting.")
+            return
+
+        # 3. Read the specific data
+        t, point_data, cell_data = reader.read_data(step_idx)
+        data_array = point_data[selected_field]
+        print(f">>> Loading {selected_field} at t = {t:.4f}s")
+
+    # 4. Construct PyVista Grid
+    # Identify cell type (Triangle=5, Quad=9)
+    for block in cells:
+        if block.type == "hexahedron":
+            cell_conn = block.data
+            vtk_type = 12  # VTK code for Hexahedron (8-node brick)
+            break
+        elif block.type == "tetra":
+            cell_conn = block.data
+            vtk_type = 10  # VTK code for Tetra
+            break
+
+    # Format points for 3D engine
+    if points.shape[1] == 2:
+        points = np.hstack([points, np.zeros((points.shape[0], 1))])
+
+    # Build the connectivity array: [n_pts, p1, p2, p3, ...]
+    cells_pv = np.hstack([np.full((len(cell_conn), 1), cell_conn.shape[1]), cell_conn])
+    grid = pv.UnstructuredGrid(cells_pv, np.full(len(cell_conn), vtk_type), points)
+
+    # 5. Handle Vector Magnitude (if needed)
+    if data_array.ndim > 1:
+        # Calculate magnitude for coloring
+        mag = np.linalg.norm(data_array, axis=1)
+        grid.point_data[selected_field] = mag
+        # Store actual vectors for potential warping/glyphs
+        grid.point_data[f"{selected_field}_vec"] = np.hstack([data_array, np.zeros((data_array.shape[0], 1))]) if \
+        data_array.shape[1] == 2 else data_array
+    else:
+        grid.point_data[selected_field] = data_array
+
+    # 6. Plotting
+    p = pv.Plotter()
+    p.add_text(f"Field: {selected_field} | Time: {t:.4f}s", font_size=6)
+
+    # Auto-color logic
+    cmap = "turbo" if "Stress" in selected_field else "inferno" if "Temp" in selected_field else "viridis"
+
+    p.add_mesh(grid, scalars=selected_field, cmap=cmap, show_edges=True)
+    #p.add_scalar_bar()
+    p.view_xy()
+    p.show_grid(font_size=10)
+
+    print(">>> Launching PyVista window...")
+    p.show()
+
+
+
+def testread(filename):
+    t = 0.0
+    # 1. Get the list of available data names
+    available_names = getnames_results(filename)
+
+    if not available_names:
+        print("No data names found in the file.")
+        return
+
+    # 2. Display the menu
+    print("\n--- Available Data Names ---")
+    for i, name in enumerate(available_names, 1):
+        print(f"{i}. {name}")
+    print("----------------------------")
+
+    # 3. Get user input
+    choice = input("\nEnter the name (or number) you want to print: ").strip()
+
+    # 4. Handle numerical selection or direct name entry
+    if choice.isdigit():
+        idx = int(choice) - 1
+        if 0 <= idx < len(available_names):
+            dataname = available_names[idx]
+        else:
+            print("Invalid selection.")
+            return
+    else:
+        dataname = choice
+
+    # 5. Read and print the results
+    if dataname in available_names:
+        print(f"\nResults for '{dataname}' at t={t}:")
+        data = read_results_axis(filename, dataname, t)
+        nodes = read_results_axis(filename, "nodes")
+        import matplotlib.pyplot as plt
+        print(nodes)
+        print(data)
+        plt.plot(nodes, data)
+        plt.show()
+        print(data)
+    else:
+        print(f"Error: '{dataname}' not found in results.")
+    return
     import h5py
     import pyvista as pv
     xdmf = pv.read(filename)

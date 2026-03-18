@@ -50,80 +50,131 @@ def createdatastreaminput():
     json.dump(totinput, f, indent=2)
     f.close()
 
-def createdatastream(domain):
-    datastream_name = "Datastream"
-    xdmf_path = os.path.join(os.getcwd(), f"{datastream_name}.xdmf")
-    h5_path = os.path.join(os.getcwd(), f"{datastream_name}.h5")
-    json_path = os.path.join(os.getcwd(), f"{datastream_name}.json")
-    for path in [xdmf_path, h5_path, json_path]:
-        try:
-            os.remove(path)
-            print(f"Removed existing file: {path}")
-        except FileNotFoundError:
-            pass  # File alreaady doesn't exist
 
+def createdatastream(domain, name="Datastream"):
+    """
+    Initializes XDMF, H5, and JSON files for a simulation domain.
+    """
+    # 1. Setup paths using pathlib
+    base_path = Path.cwd()
+    files = {ext: base_path / f"{name}.{ext}" for ext in ["xdmf", "h5", "json"]}
+
+    # 2. Cleanup existing files
+    for path in files.values():
+        if path.exists():
+            path.unlink()
+            print(f"Removed existing file: {path.name}")
+
+    # 3. Process Input Data
     try:
         ginput = read_geninput()
     except Exception as e:
-        raise KeyError(f"Error reading general input: {e}")
+        raise RuntimeError(f"Failed to read general input: {e}")
 
-    f = open(json_path, "w")
-    totinput = dict()
-    totinput.update(ginput)
-    for file in ginput["Inputs"]:
-        minput = read_modinput("Inputs/" + ginput["InputDirectory"] + "/" + file + ".json")
-        totinput.update(minput)
-    json.dump(totinput, f, indent=2)
-    f.close()
+    # Merge inputs efficiently
+    total_input = ginput.copy()
+    input_dir = Path("Inputs") / ginput.get("InputDirectory", "")
 
-    with meshio.xdmf.TimeSeriesWriter(xdmf_path) as writer:
+    for file_name in ginput.get("Inputs", []):
+        mod_path = input_dir / f"{file_name}.json"
+        try:
+            mod_input = read_modinput(str(mod_path))
+            total_input.update(mod_input)
+        except Exception as e:
+            print(f"Warning: Could not read module input {mod_path}: {e}")
+
+    # Save merged JSON
+    with open(files["json"], "w") as f:
+        json.dump(total_input, f, indent=2)
+
+    # 4. Initialize XDMF Mesh
+    with meshio.xdmf.TimeSeriesWriter(files["xdmf"]) as writer:
         cell_types = list(domain.cells_dict.keys())
         if not cell_types:
             raise ValueError("Domain contains no cells.")
-        first_cell_type = cell_types[0]
-        print(f"Celltype of mesh is set to {first_cell_type}")
-        cells = {first_cell_type: domain.get_cells_type(first_cell_type)}
-        writer.write_points_cells(domain.points[:, :2], cells=cells)
+
+        # Flexibility: Use all coordinates (3D) or slice for 2D
+        # Most solvers expect 3D points even for 2D meshes (z=0)
+        points = domain.points
+
+        # Handle mixed meshes or just take the primary type
+        main_cell_type = cell_types[0]
+        cells = {main_cell_type: domain.get_cells_type(main_cell_type)}
+
+        writer.write_points_cells(points, cells=cells)
+
+        # Initialize the time series at t=0
         writer.write_data(0.0, point_data={}, cell_data={})
 
-    for element in ginput["Material"]["Composition"].keys():
-        tmpelvalues = np.full(len(domain.points), ginput["Material"]["Composition"][element])
-        adjustdatastream({"Composition_" + element: tmpelvalues}, "nodes")
+    # 5. Initialize Composition Data
+    composition = ginput.get("Material", {}).get("Composition", {})
+    for element, value in composition.items():
+        # Create an array of constant values across the points
+        initial_values = np.full(len(domain.points), value)
+        adjustdatastream({f"Composition_{element}": initial_values}, datapos="nodes")
 
-    print("Created datastream file")
+    print(f"Successfully created datastream: {name}")
 
-def adjustdatastream(data, datapos="nodes", t_data=0.0):
-    dataname = list(data.keys())[0]
+def adjustdatastream(data, filename="Datastream.xdmf", datapos="nodes", t_data=0.0):
+    """
+    Updates or appends data to an XDMF time series.
 
+    Args:
+        data (dict): Dictionary of numpy arrays to store.
+        filename (str): Path to the .xdmf file.
+        datapos (str): "nodes" for point_data, "cells" for cell_data.
+        t_data (float): The timestamp to target.
+    """
     if not isinstance(data, dict):
-        raise KeyError("datatype for datastream storage should be a dict")
-    with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+        raise TypeError(f"Data must be a dict, got {type(data).__name__}")
+
+    file_path = Path(filename)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Could not find {filename}. Create the mesh first.")
+
+    # 1. Read existing state
+    all_steps = []
+    with meshio.xdmf.TimeSeriesReader(filename) as reader:
         points, cells = reader.read_points_cells()
         n_steps = reader.num_steps
-        point_data_list = []
-        cell_data_list = []
-        t_list = []
-        print(f"File has {n_steps} timesteps:")
+
         for k in range(n_steps):
-            t, point_data, cell_data = reader.read_data(k)
-            point_data_list.append(point_data)
-            cell_data_list.append(cell_data)
-            t_list.append(t)
-            print(f"  Step {k}: time={t}, point_data={list(point_data.keys())}")
-    new = 0
-    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-        # write the mesh structure once
+            t, p_data, c_data = reader.read_data(k)
+            all_steps.append({"t": t, "point_data": p_data, "cell_data": c_data})
+
+    # 2. Update or Append logic
+    found_time = False
+    for step in all_steps:
+        if np.isclose(step["t"], t_data):
+            # Update existing timestep
+            target_key = "point_data" if datapos == "nodes" else "cell_data"
+            step[target_key].update(data)
+            found_time = True
+            break
+
+    if not found_time:
+        # Create a new timestep entry
+        new_step = {
+            "t": t_data,
+            "point_data": data if datapos == "nodes" else {},
+            "cell_data": data if datapos == "cells" else {}
+        }
+        all_steps.append(new_step)
+        # Ensure steps stay sorted by time
+        all_steps.sort(key=lambda x: x["t"])
+
+    # 3. Write everything back
+    with meshio.xdmf.TimeSeriesWriter(filename) as writer:
         writer.write_points_cells(points, cells)
-        # Re-write old timesteps
-        for k in range(n_steps):
-            if t_data == t_list[k]:
-                new = 1
-                for dataname in data.keys():
-                    point_data_list[k][dataname] = data[dataname]
-            writer.write_data(t_list[k], point_data=point_data_list[k], cell_data=cell_data_list[k])
-        if new == 0:
-            writer.write_data(t_data, point_data=data)
-    return
+        for step in all_steps:
+            writer.write_data(
+                step["t"],
+                point_data=step["point_data"],
+                cell_data=step["cell_data"]
+            )
+
+    action = "Updated" if found_time else "Appended new"
+    print(f"{action} timestep {t_data} in {filename}")
 def getnamesdatastream()-> list[str]:
     data_names = []
     xdmf_path = os.path.join(os.getcwd(), "Datastream.xdmf")
@@ -200,7 +251,7 @@ def savedatastream(filename):
                 point_data_list.append(point_data)
                 cell_data_list.append(cell_data)
                 t_list.append(t)
-                print(f"  Step {k}: time={t}, point_data={list(point_data.keys())}")
+                #print(f"  Step {k}: time={t}, point_data={list(point_data.keys())}")
         org_dir = os.getcwd()
         os.chdir("Resultfiles")
         with meshio.xdmf.TimeSeriesWriter(filename) as writer:

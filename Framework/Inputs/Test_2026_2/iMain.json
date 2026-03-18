@@ -1,0 +1,43 @@
+{
+  "Modules": ["Meshing", "TransformMod", "MechTest"],
+  "Inputs": ["iMain", "iFEM", "i4PB"],
+  "Rerun": [true, false, false, false, false, true],
+  "Geometry": {
+    "Type": "4PointBend",
+    "dim": 3,
+    "height": 0.012,
+    "width": 0.12,
+    "thickness": 0.008,
+    "nodesWidth": 20,
+    "nodesHeight": 10,
+    "nodesThickness": 3,
+    "radius": 0.008,
+    "innerradius": 0.0,
+    "nodes": 50,
+    "meshscaling": 0.9
+  },
+  "Material": {
+    "Name": "Grade 159",
+    "Dependentmat": "Fe",
+    "Composition": {
+      "C": 0.2,
+      "N": 0.01,
+      "Cr": 1.9,
+      "Mn": 0.9,
+      "Mo": 0.5,
+      "Si": 0.3
+    }
+  },
+  "Programs": {
+    "Meshing": "Gmsh",
+    "Coupling": "Stagg",
+    "Diffusion": "TC",
+    "TTTdiagram": "TC",
+    "TransformMod": "Python",
+    "Quenching": "FCSx",
+    "Thermal": "FCSx",
+    "FEM": "FCSx",
+    "MechTest": "FCSx",
+    "All": ["Gmsh","TC","Python","FCSx","Comsol"]
+  }
+}

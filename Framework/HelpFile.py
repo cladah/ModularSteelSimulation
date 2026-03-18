@@ -4,6 +4,16 @@ import json
 import h5py
 from sqlitedict import SqliteDict
 import numpy as np
+import tkinter as tk
+from tkinter import filedialog
+
+def get_file_path(title="Select File", filetypes=(("XDMF files", "*.xdmf"), ("All files", "*.*"))):
+    """Helper to handle file dialogs without cluttering the main logic."""
+    root = tk.Tk()
+    root.withdraw()  # Hide the main tkinter window
+    path = filedialog.askopenfilename(title=title, filetypes=filetypes)
+    root.destroy()
+    return path
 
 def read_old_input(filename):
     f = open(filename,'r')

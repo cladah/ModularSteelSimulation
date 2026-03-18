@@ -36,7 +36,7 @@ class Diffusionmodule(CalcModule):
             #elements.remove("C")
             for element in elements:
                 elementvalues = readdatastreamcache("Composition_" + element)
-                adjustdatastream({"Composition_" + element: elementvalues}, "nodes")
+                adjustdatastream({"Composition_" + element: elementvalues}, datapos="nodes")
             print("Carburization module done\n")
             self.updateprogress(1.0)
             return
@@ -79,7 +79,7 @@ class Diffusionmodule(CalcModule):
             self.updateprogress(0.9)
 
             for element in composition.keys():
-                adjustdatastream({"Composition_" + element: composition[element]}, "nodes")
+                adjustdatastream({"Composition_" + element: composition[element]}, datapos="nodes")
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
 
@@ -114,7 +114,7 @@ def fourpointbend_interp(parent, composition):
         calc_value = np.array(composition[1][element])
         nodevalues = interp(height-surf_dist, calc_xyz, calc_value) * 100
         nodevalues = np.where(nodevalues < 0, 0, nodevalues)
-        adjustdatastream({"Composition_" + element: nodevalues}, "nodes")
+        adjustdatastream({"Composition_" + element: nodevalues}, datapos="nodes")
 
 def cylinder_interp(parent, composition):
     xyz = readdatastream('nodes')
@@ -124,4 +124,4 @@ def cylinder_interp(parent, composition):
         calc_value = np.array(composition[1][element])
         nodevalues = interp(r, calc_xyz, calc_value) * 100
         nodevalues = np.where(nodevalues < 0, 0, nodevalues)
-        adjustdatastream({"Composition_" + element: nodevalues}, "nodes")
+        adjustdatastream({"Composition_" + element: nodevalues}, datapos="nodes")
