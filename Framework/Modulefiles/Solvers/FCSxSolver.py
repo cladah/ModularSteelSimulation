@@ -113,6 +113,37 @@ def vM(s):
     sb = s - (1. / 3.) * ufl.tr(s) * ufl.Identity(ufl.shape(s)[0])
     return ufl.sqrt(3. / 2. * ufl.inner(sb, sb) + epsilon)
 
+
+def lode_func(sigma):
+    """
+    Computes the Lode angle (theta) from a stress tensor using UFL.
+    Returns a value where cos(3*theta) is bounded between -1 and 1.
+    """
+    # 1. Identity tensor and Deviatoric stress
+    d = ufl.shape(sigma)[0]
+    I = ufl.Identity(d)
+    s = sigma - (1 / d) * ufl.tr(sigma) * I
+
+    # 2. Invariants
+    J2 = 0.5 * ufl.inner(s, s)
+    # J3 = det(s)
+    J3 = ufl.det(s)
+
+    # 3. Prevent division by zero at hydrostatic states
+    eps = 1e-12
+
+    # 4. Calculate cos(3*theta)
+    cos3theta = (3 * ufl.sqrt(3) / 2) * (J3 / (J2 ** 1.5 + eps))
+
+    # 5. Clamp the value to [-1, 1] to avoid NaNs in acos due to precision
+    cos3theta = ufl.conditional(ufl.gt(cos3theta, 1.0), 1.0, cos3theta)
+    cos3theta = ufl.conditional(ufl.lt(cos3theta, -1.0), -1.0, cos3theta)
+    #L = -cos(3 * theta)
+    # Return theta
+    return cos3theta#(1 / 3) * ufl.acos(cos3theta)
+def triax(sig):
+    return sig_h(sig)/vM(sig)
+
 def sigma_von_mises(u, minput):
     """Calculates the von Mises stress expression using UFL."""
     epsilon = 1e-6
@@ -120,8 +151,8 @@ def sigma_von_mises(u, minput):
     sb = s - (1. / 3.) * ufl.tr(s) * ufl.Identity(len(u))
     return ufl.sqrt(3. / 2. * ufl.inner(sb, sb) + epsilon)
 
-def sig_h(u, minput):
-    return (1. / 3.) * ufl.tr(sigma(u, minput))
+def sig_h(sigma):
+    return (1. / 3.) * ufl.tr(sigma)
 
 def MartensiteForm(domain, minput, V_fM, funcs):
     fM, fM_old, dfM = funcs["fM"], funcs["fM_old"], funcs["dfM"]
@@ -136,7 +167,7 @@ def MartensiteForm(domain, minput, V_fM, funcs):
 
     # Koistinen-Marburger Expression for current state
     fM_target = ufl.conditional(ufl.gt(Ms, T),
-                                fMeq * (1.0 - ufl.exp(-beta * (Ms - T + 1e-8 * vM(sigma(u, minput))))),
+                                fMeq * (1.0 - ufl.exp(-beta * (Ms - T + 1e-7 * triax(sigma(u, minput))*vM(sigma(u, minput))))),
                                 0.0)
 
     fM_expr = fem.Expression(fM_target, V_fM.element.interpolation_points())
@@ -406,6 +437,21 @@ def FCSx4PB_Force(parent):
     vm_stress = fem.Function(V_P1)
     vm_stress.interpolate(vm_expr)
 
+    lode_expr_ufl = lode_func(sigma(U.sub(0),minput))
+    lode_expr = fem.Expression(lode_expr_ufl, V_P1.element.interpolation_points())
+    lode = fem.Function(V_P1)
+    lode.interpolate(lode_expr)
+
+    trax_expr_ufl = triax(sigma(U.sub(0), minput))
+    trax_expr = fem.Expression(trax_expr_ufl, V_P1.element.interpolation_points())
+    trax = fem.Function(V_P1)
+    trax.interpolate(trax_expr)
+
+    sh_expr_ufl = sig_h(sigma(U.sub(0), minput))
+    sh_expr = fem.Expression(sh_expr_ufl, V_P1.element.interpolation_points())
+    sh = fem.Function(V_P1)
+    sh.interpolate(sh_expr)
+
     s_expr_ufl = sigma(U.sub(0), minput)
     sv_expr_ufl = tensor_to_voigt(s_expr_ufl, dim=gdim)
     stress_expr = fem.Expression(sv_expr_ufl, V_P1_voigt.element.interpolation_points())
@@ -420,7 +466,10 @@ def FCSx4PB_Force(parent):
         "vonMises": vm_stress.x.array[fenics_to_xdmf_map],
         "Martensite": fM_final.x.array[fenics_to_xdmf_map],
         "Austenite": 1.0 - fM_final.x.array[fenics_to_xdmf_map],
-        "Stress": stress.x.array.real.reshape(-1, voigt_dim)[fenics_to_xdmf_map]
+        "Stress": stress.x.array.real.reshape(-1, voigt_dim)[fenics_to_xdmf_map],
+        "Stress_hydrostatic": sh.x.array[fenics_to_xdmf_map],
+        "Triaxiality": trax.x.array[fenics_to_xdmf_map],
+        "Lode": lode.x.array[fenics_to_xdmf_map]
     }
 
     adjustdatastream(res_dict, datapos="nodes", t_data=0.0)
