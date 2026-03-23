@@ -2,7 +2,7 @@ from Framework.HelpFile import checkruncondition, adjustinputcache, read_geninpu
 import pathlib
 from typing import Any
 
-class CalcModule:
+class CalcModule_old:
     def __init__(self, module_name: str, input_file: str, module_nr: int = 0, run_condition: bool = True):
         # Using underscores for attribute naming (PEP 8 standard)
         self.ginput = read_geninput()

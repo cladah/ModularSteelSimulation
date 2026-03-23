@@ -168,7 +168,7 @@ def find_nearest(array, value):
 def read_results_axis(filename, dataname, time=0):
     jsonfile = filename.replace(".xdmf", ".json")
     ginput = read_result_input(jsonfile)
-    if ginput["Geometry"]["Type"] == "2D":
+    if ginput["Geometry"]["Type"] == "Cylinder":
         node_y = read_results(filename, 'nodes')[:, 1]
         indx = np.where(node_y == 0)
         data = read_results(filename, dataname, time)[indx]

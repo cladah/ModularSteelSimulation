@@ -1,6 +1,6 @@
 from .ModuleStructure_file_new import CalcModule
 from .Solvers.ThermocalcSolver import getTTTcompositions
-from Framework.HelpFile import getTTTdata, addTTTdata
+from Framework.HelpFile import getTTTdb, addTTTdb, checkTTTdb
 from .Solvers.ThermocalcSolver import calculatePearlite, calculateBainite, calculateFerrite, calculateMartensite
 import numpy as np
 
@@ -16,8 +16,13 @@ class TTTdiagrammodule(CalcModule):
                   "Grainsize is " + str(self.minput["GrainSize"]) + " \u03BCm",
                   "Upper temperature set to: " + str(1000) + " \N{DEGREE SIGN}C",
                   "Lower temperature set to: " + str(0) + " \N{DEGREE SIGN}C",
-                  "Number of steps: " + str(40),
-                  "\n---------------------------------------------------------------------\n\n"]
+                  "Number of steps: " + str(40)]
+
+        for ph in self.minput["Phases"]:
+            growth_mode = self.minput["GrowthMode"]
+            outstr.append(f"{ph} modeled with {growth_mode[ph]}")
+
+        outstr.append("\n---------------------------------------------------------------------\n")
 
         for line in outstr:
             self.writeoutput(line)
@@ -35,14 +40,14 @@ class TTTdiagrammodule(CalcModule):
             i = 1
             print("Number of TTT calculations are " + str(compnr))
             for tmpcomp in TTTcompositions:
-                runTTTcalc(tmpcomp)
+                runTTTcalc(tmpcomp, self.minput)
                 self.updateprogress(i / compnr)
                 i = i + 1
             print("TTT diagram module done\n")
         else:
             raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
 
-def runTTTcalc(composition):
+def runTTTcalc(composition, minput):
     # Take away values that are 0 EXCEPT N AND C!
     tmpcomp = composition.copy()
     keys = tmpcomp.keys()
@@ -51,35 +56,21 @@ def runTTTcalc(composition):
             continue
         if tmpcomp[key] == 0.0:
             del composition[key]
-    #
-    if bool(getTTTdata(composition, "TTTdata")):
-        print("TTTdata exists in database for " + str(composition))
-        return
-    print("Running TTT calculation for " + str(composition))
+
+    model_input = {k: minput[k] for k in ["GrainSize"]}
+
     # If N is changed check
     tmpcomp = composition.copy()
     tmpcomp["N"] = 0.
-    if bool(getTTTdata(tmpcomp, "TTTdata")):
-        TTTdata = getTTTdata(tmpcomp, "TTTdata")
-        start, half, finish = calculateMartensite(composition)
-        start = [[start, start], [0.1, 1E12]]
-        half = [[half, half], [0.1, 1E12]]
-        finish = [[finish, finish], [0.1, 1E12]]
-        phase = dict()
-        phase["start"] = start
-        phase["half"] = half
-        phase["finish"] = finish
-        #print(TTTdata)
-        #print(phase)
-        TTTdata["Martensite"] = phase
-
-        addTTTdata(composition, TTTdata, "TTTdata")
-        return
 
     Tsteps = np.linspace(0, 1000, 41) + 273.15
-    phases = ["Ferrite", "Bainite", "Pearlite", "Martensite"]
-    TTTdata = dict()
+    phases = list(minput["Phases"])
+
+    print("Running TTT calculation for " + str(composition))
     for ph in phases:
+        growth_mode = minput["GrowthMode"][ph]
+        if checkTTTdb(composition, model_input, f"{ph}_{growth_mode}"):
+            continue
         if ph == "Ferrite":
             start, half, finish = calculateFerrite(Tsteps, composition)
             start = [Tsteps, start]
@@ -102,9 +93,10 @@ def runTTTcalc(composition):
             finish = [[finish, finish], [0.1, 1E12]]
         else:
             raise KeyError("Phase error in TTT module, check input phases")
-        phase = dict()
-        phase["start"] = start
-        phase["half"] = half
-        phase["finish"] = finish
-        TTTdata[ph] = phase
-    addTTTdata(composition, TTTdata, "TTTdata")
+        data = dict()
+        data["start"] = start
+        data["half"] = half
+        data["finish"] = finish
+
+        addTTTdb(data, composition, model_input, f"{ph}_{growth_mode}")
+    print("\n")

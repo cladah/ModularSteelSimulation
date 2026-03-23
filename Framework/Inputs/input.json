@@ -1,1 +1,8 @@
-{"RerunAll": true, "InputDirectory": "Test_2026_2", "Datastream": {"Savedirect": "Test7.xdmf", "Cachedirect": ""}}
+{
+    "RerunAll": false,
+    "InputDirectory": "159_IMAT_LPC",
+    "Datastream": {
+        "Savedirect": "159_IMAT.xdmf",
+        "Cachedirect": "Resultfiles/159_IMAT.xdmf"
+    }
+}

@@ -310,38 +310,36 @@ def cylinder(parent):
 
     gmsh.clear()
     gmsh.model.add("Grid")
-    gdim = 2
+    gdim = ginput['Geometry']["dim"]
+    prog = ginput["Geometry"]["meshscaling"]
+    n_nodes = ginput["Geometry"]["nodes"]
     gmsh.option.setNumber("Geometry.Tolerance", 1.E-6)
 
     # Adding three points
-    gmsh.model.occ.addPoint(0, 0, 0, 1)
-    gmsh.model.occ.addPoint(r * np.cos(np.pi / 24), r * np.sin(np.pi / 24), 0, lc, 2)
-    gmsh.model.occ.addPoint(r, 0, 0, lc, 3)
+    p1 = gmsh.model.geo.addPoint(0, 0, 0)
+    p2 = gmsh.model.geo.addPoint(r, 0, 0)
+    p3 = gmsh.model.geo.addPoint(0, r, 0)
 
-    # Adding lines and a curveloop between points
-    gmsh.model.occ.addLine(1, 2, 1)
-    gmsh.model.occ.addLine(3, 1, 2)
-    gmsh.model.occ.addCircleArc(2, 1, 3, 3)
-    gmsh.model.occ.addCurveLoop([1, 3, 2], 4)
+    l1 = gmsh.model.geo.addLine(p1, p2)
+    l2 = gmsh.model.geo.addCircleArc(p2, p1, p3)
+    l3 = gmsh.model.geo.addLine(p3, p1)
 
-    # Adding surface between lines
-    gmsh.model.occ.addPlaneSurface([4], 1)
-    gmsh.model.occ.synchronize()
-    parent.updateprogress(0.5)
+    cl = gmsh.model.geo.addCurveLoop([l1, l2, l3])
+    s1 = gmsh.model.geo.addPlaneSurface([cl])
 
-    # Physical group for surface
-    gmsh.model.addPhysicalGroup(gdim, [1], 4, 'Sphere')
+    # Transfinite constraints (density away from p1)
+    gmsh.model.geo.mesh.setTransfiniteCurve(l1, n_nodes, "Power", prog)
+    gmsh.model.geo.mesh.setTransfiniteCurve(l3, n_nodes, "Power", 1 / prog)
+    gmsh.model.geo.mesh.setTransfiniteCurve(l2, n_nodes)
+    gmsh.model.geo.mesh.setTransfiniteSurface(s1)
 
-    # Geometric scaling of mesh
-    gmsh.model.mesh.set_transfinite_curve(1, ginput['Geometry']['nodes'], 'Progression',
-                                          ginput['Geometry']['meshscaling'])
-    gmsh.model.mesh.set_transfinite_curve(2, ginput['Geometry']['nodes'], 'Progression',
-                                          -ginput['Geometry']['meshscaling'])
+    gmsh.model.geo.mesh.setRecombine(gdim, s1)
 
-
+    gmsh.model.geo.synchronize()
     gmsh.model.mesh.generate(gdim)
 
-    gmsh.model.mesh.setOrder(2)
+    gmsh.model.addPhysicalGroup(gdim, [s1], tag=1, name="Grid_Surface")
+    gmsh.model.mesh.generate(gdim)
 
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
@@ -349,30 +347,45 @@ def cylinder(parent):
     # print(gmsh.model.mesh.setOrder())
     print(*gmsh.logger.get(), sep="\n")
 
-    gmsh.finalize()
     parent.updateprogress(0.8)
     mesh = meshio.read("Resultfiles/Mesh.msh")
-    meshio.write("Resultfiles/Mesh.nas", mesh)
+    # meshio.write("Resultfiles/Mesh.nas", mesh)
 
-    len(mesh.get_cells_type("triangle6"))
-    with meshio.xdmf.TimeSeriesWriter("Datastream.xdmf") as writer:
-        writer.write_points_cells(points=mesh.points[:, :2], cells={"triangle6": mesh.get_cells_type("triangle6")})
-        writer.write_data(0, cell_data={})
-    # Writing nas file with meshio (Needed for Comsol FEM solver)
+    domain, cell_tags, facet_tags = gmshio.model_to_mesh(
+        gmsh.model,
+        comm=MPI.COMM_WORLD,
+        rank=0,
+        gdim=gdim
+    )
 
-    mesh, cell_markers, facet_markers = gmshio.read_from_msh("Resultfiles/Mesh.msh", MPI.COMM_WORLD, gdim=2)
-    mesh.name = "Grid"
+    domain.name = "Grid"
+    with XDMFFile(domain.comm, "Resultfiles/Mesh.xdmf", "w") as file:
+        file.write_mesh(domain)
+
     createdatastream(mesh)
+    # gmsh.fltk.run()
 
+    with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
+        points, cells = reader.read_points_cells()
+    gmsh.finalize()
     parent.updateprogress(1.0)
+    import pyvista as pv
+    from dolfinx import plot
 
+    topology, cell_types, geometry = plot.vtk_mesh(domain, 2)
+    grid = pv.UnstructuredGrid(topology, cell_types, geometry)
+    plotter = pv.Plotter()
+    plotter.add_mesh(grid, show_edges=True)
+    plotter.view_xy()
+    plotter.show()
+    return
 
 
 def gmshsolver(parent):
     print('Meshing with Gmsh')
     ginput = read_geninput()
     geometries = ["2Daxisym", "4PointBend"]
-    if ginput["Geometry"]["Type"] == "2Daxisym":
+    if ginput["Geometry"]["Type"] == "Cylinder":
         cylinder(parent)
     elif ginput["Geometry"]["Type"] == "4PointBend":
         four_point_bend(parent)

@@ -20,6 +20,7 @@ from dolfinx.io import XDMFFile
 from dolfinx import fem, mesh, plot, default_scalar_type
 from basix.ufl import element, mixed_element
 from petsc4py import PETSc
+from scipy.spatial import cKDTree
 
 def tensor_to_voigt(tensor, dim=2):
     if dim == 2:
@@ -71,7 +72,63 @@ def load_datastream_to_fenicsx(filename="Datastream.xdmf"):
         print(f"Error loading mesh to FEniCSx: {e}")
         return None
 
-def load_field_to_function(domain, filename, field_name):
+
+import meshio
+import dolfinx
+import numpy as np
+
+
+def load_field_to_function(domain, filename, field_name, step_idx=0):
+    """
+    Loads a specific data field from an XDMF using meshio.TimeSeriesReader
+    and injects it into a FEniCSx Function.
+    """
+    # 1. Create the FunctionSpace and Function
+    # Most XDMF node data is stored as Lagrange Degree 1 (linear)
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
+    u = dolfinx.fem.Function(V)
+    u.name = field_name
+
+
+    # 2. Use TimeSeriesReader to get the raw NumPy data
+    try:
+        with meshio.xdmf.TimeSeriesReader(filename) as reader:
+            points, cells = reader.read_points_cells()
+            # Read metadata for the requested step
+            t, point_data, cell_data = reader.read_data(step_idx)
+            if field_name not in point_data:
+                raise KeyError(f"Field '{field_name}' not found in {filename}. "
+                               f"Available: {list(point_data.keys())}")
+
+            raw_data = point_data[field_name]
+            raw_data = raw_data.flatten()
+            xdmf_coords = points[:, :domain.geometry.dim]
+    except Exception as e:
+        print(f">>> Error reading {filename} with meshio: {e}")
+        return u  # Returns zero-initialized function as fallback
+
+    dof_coords = V.tabulate_dof_coordinates()[:, :domain.geometry.dim]
+    tree = cKDTree(xdmf_coords)
+    _, xdmf_indices = tree.query(dof_coords)
+
+    # 3. Inject data into the FEniCSx Function
+    # NOTE: This assumes the mesh in 'domain' has the same node ordering as 'filename'
+    # .real handles potential complex-type builds of PETSc
+    if u.x.array.shape == raw_data.shape:
+        u.x.array[:] = raw_data[xdmf_indices].real
+    else:
+        # If there is a mismatch (e.g. ghost cells or MPI), we only fill the local nodes
+        # This part is crucial for stability in parallel/larger meshes
+        local_size = V.dofmap.index_map.size_local
+        u.x.array[:local_size] = raw_data[xdmf_indices[:local_size]].real
+
+    # Update ghost values across MPI processes
+    u.x.scatter_forward()
+
+    print(f">>> Successfully loaded '{field_name}' from step {step_idx} (t={t:.2e}s)")
+    return u
+
+def load_field_to_function_old(domain, filename, field_name):
     """
     Loads a specific data field from the XDMF into a FEniCSx Function.
     """
@@ -107,6 +164,12 @@ def sigma(u, minput):
     mu = E / (2 * (1 + nu))
     lmbda = E * nu / ((1 + nu) * (1 - 2 * nu))
     return lmbda * ufl.div(u) * ufl.Identity(len(u)) + 2 * mu * eps(u)
+
+def sigma_elastic(elastic_eps, minput):
+    E, nu = 210e9, 0.3
+    mu = E / (2 * (1 + nu))
+    lmbda = E * nu / ((1 + nu) * (1 - 2 * nu))
+    return lmbda * ufl.tr(elastic_eps) * ufl.Identity(len(elastic_eps)) + 2.0 * mu * elastic_eps
 
 def vM(s):
     epsilon = 1e-6
@@ -159,15 +222,13 @@ def MartensiteForm(domain, minput, V_fM, funcs):
     T, u, dtime = funcs["T"], funcs["u"], funcs["dtime"]
 
     # Load parameters from the datastream we created/interpolated earlier
-    #Ms = load_field_to_function(domain, "Datastream.xdmf", "KM_Ms_Martensite")
-    #beta = load_field_to_function(domain, "Datastream.xdmf", "KM_b_Martensite")
-    Ms = 350
-    beta = 0.01
+    Ms = load_field_to_function(domain, "Datastream.xdmf", "KM_Ms_Martensite")
+    beta = load_field_to_function(domain, "Datastream.xdmf", "KM_b_Martensite")
     fMeq = 1.0
 
-    # Koistinen-Marburger Expression for current state
+    # Koistinen-Marburger Expression for current state  + 1e-7*vM(sigma(u, minput))
     fM_target = ufl.conditional(ufl.gt(Ms, T),
-                                fMeq * (1.0 - ufl.exp(-beta * (Ms - T + 1e-7 * triax(sigma(u, minput))*vM(sigma(u, minput))))),
+                                fMeq * (1.0 - ufl.exp(-beta * (Ms - T))),
                                 0.0)
 
     fM_expr = fem.Expression(fM_target, V_fM.element.interpolation_points())
@@ -228,8 +289,49 @@ def DisplacementForm(domain, minput, V_u, funcs):
     dfM = funcs["dfM"]
     u = funcs["u"]
     du = funcs["du"]
+    T = funcs["T"]
+    T_old = funcs["T_old"]
+    dT = funcs["dT"]
 
     disp_res = ufl.inner(sigma(u, minput), eps(du)) * ufl.dx
+    return disp_res
+
+
+def DisplacementForm_temp(domain, minput, V_u, funcs):
+    # 1. Extract necessary functions
+    u = funcs["u"]  # Current displacement
+    du = funcs["du"]  # Test function
+    T = funcs["T"]  # Current temperature
+    fM = funcs["fM"]
+
+    # 2. Define Thermal Parameters
+    # alpha is the thermal expansion coefficient (e.g., 1.2e-5 for steel)
+    # T_ref is the stress-free reference temperature
+    alpha = minput.get("alpha", 1.2e-5)
+    T_ref = 293.15
+    dim = domain.topology.dim
+
+    # 3. Define Strains
+    def eps(v):
+        return ufl.sym(ufl.grad(v))
+
+    # Thermal strain: alpha * deltaT * Identity
+    # ufl.Identity(dim) creates a 2x2 or 3x3 identity matrix
+    eps_th = alpha * (T - T_ref) * ufl.Identity(dim)
+    eps_fM = 0.01 * fM * ufl.Identity(dim)
+    # 4. Define Stress (Constitutive Equation)
+    # Use (Total Strain - Thermal Strain) to get Elastic Strain
+    def sigma_thermal(v, temp, fM):
+        elastic_strain = eps(v) - eps_th + eps_fM
+        # Use your existing sigma logic, but pass the elastic_strain
+        # If your sigma() helper is already defined, you may need to
+        # modify it to accept the strain tensor directly.
+        return sigma_elastic(elastic_strain, minput)
+
+    # 5. Residual Formulation
+    # Inner product of stress and the variation of strain
+    disp_res = ufl.inner(sigma_thermal(u, T, fM), eps(du)) * ufl.dx
+
     return disp_res
 
 def LargeDispForm(domain, minput, V_u, funcs):
@@ -272,19 +374,17 @@ def TemperatureForm(domain, minput, V_T, funcs):
     rho = 7800
     Tsurf = 293.15
 
-    # Entropyy
     s = Cv / Tref * T
     s_expr = fem.Expression(s, V_T.element.interpolation_points())
     s_old = fem.Function(V_T)
     s_old.x.array[:] = (T0 * Cv) / Tref
     # Write a script that gets top and bottom values in y
-    surface_facets = mesh.locate_entities_boundary(domain, 1,
-                                                   lambda x: np.logical_or(np.isclose(x[1], 0.0), np.isclose(x[1], 0.012)))
+    f_map = lambda x: np.isclose(np.sqrt(x[0]**2+x[1]**2), 0.008)
+    surface_facets = mesh.locate_entities_boundary(domain, 1, f_map)
     facet_tag = mesh.meshtags(domain, 1, surface_facets, np.full(len(surface_facets), 1, dtype=np.int32))
     surf_ds = ufl.Measure('ds', domain=domain, subdomain_data=facet_tag)
-    therm_res = (
-                        rho * Tref * (s - s_old) / dtime * dT - ufl.dot(-k * ufl.grad(T), ufl.grad(dT))
-                ) * ufl.dx - 20000.0 * ufl.inner((Tsurf-T), dT) * surf_ds(1)
+    therm_res = (rho * Tref * (s - s_old) / dtime * dT + ufl.dot(k * ufl.grad(T), ufl.grad(dT))) * ufl.dx \
+                + 20000.0 * (T - Tsurf) * dT * surf_ds(1)
 
     return therm_res, s_old, s_expr
 
@@ -301,7 +401,7 @@ def plotMesh(domain):
     plotter.show(title="Imported Mesh Preview")
 
 def FCSx4PB_Force(parent):
-    print('>>> Using FEniCSx solver: 4-Point Bend (Displacement/Force Control)')
+    print('Using FEniCSx solver: 4-Point Bend (Displacement/Force Control)')
     minput = parent.minput
 
     # 1. Load Mesh
@@ -353,7 +453,7 @@ def FCSx4PB_Force(parent):
     u_old = fem.Function(V_u)
     T_old = fem.Function(V_T)
     T_old.x.array[:] = 1113.15
-    T_old.x.array[:] = 293.15
+    T_old.x.array[:] = 273.15 + 95
     fM_old = fem.Function(V_fM)
 
     funcs = {"u": u, "du": du, "u_old": u_old, "T": T, "dT": dT,
@@ -473,231 +573,9 @@ def FCSx4PB_Force(parent):
     }
 
     adjustdatastream(res_dict, datapos="nodes", t_data=0.0)
-    plot_4PB_results(U, minput)
-def FCSx4PB_Force_old(parent):
-    print('Using FeniCSx solver for Mechanical FEM calculation. Force controlled.')
-    ginput = parent.ginput
-    minput = parent.minput
-    nodes = readdatastream("nodes")
-
-    domain = readDatastreamMesh()
-    domain = mesh.create_rectangle(MPI.COMM_WORLD, [np.array([0,0]), np.array([0.12, 0.012])], [60, 20], cell_type=mesh.CellType.quadrilateral)
-    with io.XDMFFile(MPI.COMM_WORLD, "Resultfiles/Mesh.xdmf", "r") as file:
-        domain = file.read_mesh(name="Grid")
-    print(np.max(domain.geometry.x[:,1]))
-    xdmfpos = readdatastream('nodes')
-
-    matrix1_expanded = xdmfpos[:, np.newaxis, :]
-    differences = matrix1_expanded - domain.geometry.x[:, :2]
-    distances = np.linalg.norm(differences, axis=2)
-    best_match_indices = np.argmin(distances, axis=1)
-
-    dtime = fem.Constant(domain, minput["quenchtime"]/minput["quench_steps"])
-    tend = fem.Constant(domain, float(minput["quenchtime"]))
-
-    Vue = element("P", domain.basix_cell(), 2, shape=(2,))  # displacement finite element
-    VTe = element("Lagrange", domain.basix_cell(), 1)  # temperature finite element
-    VfMe = element("Lagrange", domain.basix_cell(), 1)  # martensite finite element
-    V = fem.functionspace(domain, basix.ufl.mixed_element([Vue, VTe, VfMe]))
-    V_u, _ = V.sub(0).collapse()
-    V_ux, _ = V.sub(0).sub(0).collapse()  # used for Dirichlet BC
-    V_uy, _ = V.sub(0).sub(1).collapse()  # used for Dirichlet BC
-    V_T, _ = V.sub(1).collapse()  # used for Dirichlet BC
-    V_fM, _ = V.sub(2).collapse()
-
-    V_post = fem.functionspace(domain, element("P", domain.basix_cell(), 1, shape=(2,)))
-
-    # Defining reference values
-    Tref = fem.Function(V_T)
-    Tref.x.array[:] = 293.15
-
-    # Defining current functions
-    funcs = dict()
-
-    U = fem.Function(V)
-    dU = ufl.TrialFunction(V)
-    (u, T, fM) = ufl.split(U)
-    U_ = ufl.TestFunction(V)
-    (du, dT, dfM) = ufl.split(U_)
-
-    # Displacement function
-    funcs["u"] = u
-    funcs["du"] = du
-    # Temperature
-    funcs["T"] = T
-    funcs["dT"] = dT
-    # Martensite function
-    funcs["fM"] = fM
-    funcs["dfM"] = dfM
-    # Adding timestep to function dict
-    funcs["dtime"] = dtime
-
-
-    # Defining history functions
-    fM_old = fem.Function(V_fM)
-    fM_old.x.array[:] = 0.0
-    funcs["fM_old"] = fM_old
-    T_old = fem.Function(V_T)
-    T_old.x.array[:] = 1113.15
-    funcs["T_old"] = T_old
-    u_old = fem.Function(V_u)
-    u_old.x.array[:] = 0.0
-    funcs["u_old"] = u_old
-
-    # Defining result functions
-    u_out = fem.Function(V_u)
-    u_out.name = "Displacement"
-    T_out = fem.Function(V_T)
-    T_out.name = "Temperature"
-    fM_out = fem.Function(V_fM)
-    fM_out.name = "Martensite"
-
-    # Defining boundary values
-    T_bc = fem.Function(V_T)
-    T_bc.x.array[:] = 293.15
-    u_bc = fem.Function(V_u)
-    u_bc.x.array[:] = 0.0
-    uT_bc = fem.Function(V_uy)
-    uT_bc.x.array[:] = 0.0
-
-    Tref = fem.Function(V_T)
-    Tref.x.array[:] = 293.15
-
-    # Defining bounderies
-    fdim = domain.topology.dim - 1
-
-
-    def b1_BC(x):
-        return np.logical_and(np.isclose(x[0], 0.0, atol=1e-8),np.isclose(x[1], 0.0, atol=1e-8))
-    b1_dofs = fem.locate_dofs_geometrical((V.sub(0), V_u), b1_BC)
-    b1_bc = fem.dirichletbc(u_bc, b1_dofs, V.sub(0))
-
-    def b2_BC(x):
-        return np.logical_and(np.isclose(x[0], 0.12, atol=1e-8), np.isclose(x[1], 0.0, atol=1e-8))
-    b2_dofs = fem.locate_dofs_geometrical((V.sub(0), V_u), b2_BC)
-    b2_bc = fem.dirichletbc(u_bc, b2_dofs, V.sub(0))
-
-    def t1_BC(x):
-        return np.logical_and(np.isclose(x[0], 0.04, atol=1e-8),np.isclose(x[1], 0.012, atol=1e-8))
-    t1_dofs = fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), t1_BC)
-    t1_bc = fem.dirichletbc(uT_bc, t1_dofs, V.sub(0).sub(1))
-
-    def t2_BC(x):
-        return np.logical_and(np.isclose(x[0], 0.08, atol=1e-8), np.isclose(x[1], 0.012, atol=1e-8))
-    t2_dofs = fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), t2_BC)
-    t2_bc = fem.dirichletbc(uT_bc, t2_dofs, V.sub(0).sub(1))
-
-    bcs = [b1_bc, b2_bc, t1_bc, t2_bc]
-    fM_res, fM_exp = MartensiteForm(domain, minput, V_fM, funcs)
-    T_res, s_old, s_expr = TemperatureForm(domain, minput, V_T, funcs)
-    u_res = DisplacementForm(domain, minput, V_u, funcs)
-    #Mart_exp = ufl.conditional(ufl.gt(Ms, T_out), 1 - ufl.exp(-beta * (Ms - T_out)), 0.0)
-
-    Res = u_res+T_res+fM_res
-    Res = u_res
-    Jac = ufl.derivative(Res, U, dU)
-
-    problem = fem.petsc.NonlinearProblem(Res, U, bcs=bcs, J=Jac)
-
-    print("Starting the solve")
-    solver = NewtonSolver(domain.comm, problem)
-    solver.convergence_criterion = "incremental"
-    solver.report = True
-    solver.max_it = 30
-    ksp = solver.krylov_solver
-
-    opts = PETSc.Options()
-
-    option_prefix = ksp.getOptionsPrefix()
-    opts[f"{option_prefix}ksp_type"] = "gmres"
-    opts[f"{option_prefix}ksp_rtol"] = 1e-12
-    opts[f"{option_prefix}ksp_atol"] = 1e-12
-    opts[f"{option_prefix}pc_type"] = "hypre"
-    opts[f"{option_prefix}pc_hypre_type"] = "boomeramg"
-    opts[f"{option_prefix}pc_hypre_boomeramg_max_iter"] = 5
-    opts[f"{option_prefix}pc_hypre_boomeramg_cycle_type"] = "v"
-    ksp.setFromOptions()
-
-    U.sub(0).interpolate(u_old)
-    U.sub(1).interpolate(T_old)
-    U.sub(2).interpolate(fM_old)
-    U.x.scatter_forward()
-
-    num_its, converged = solver.solve(U)
-    U.sub(2).interpolate(fM_old)
-    assert converged
-    U.x.scatter_forward()
-    T_old.interpolate(fem.Expression(T, V_T.element.interpolation_points()))
-
-    topology, cell_types, geometry = dolfinx.plot.vtk_mesh(V_T)
-    grid = pv.UnstructuredGrid(topology, cell_types, geometry)
-    grid.point_data["T"] = T_old.x.array.real  # attach solution
-
-    U.sub(0).interpolate(u_old)
-    U.sub(1).interpolate(T_old)
-    U.sub(2).interpolate(fM_old)
-    U.x.scatter_forward()
-
-    current_t = 0.0
-
-    topology, cell_types, geometry = dolfinx.plot.vtk_mesh(V_uy)
-    grid = pv.UnstructuredGrid(topology, cell_types, geometry)
-    resultdict = dict()
-    resultdict["T"] = T_old.x.array
-    resultdict["Martensite"] = fM_old.x.array
-    resultdict["Austenite"] = np.ones(len(fM_old.x.array)) - fM_old.x.array
-    resultdict["Ferrite"] = np.zeros(len(fM_old.x.array))
-    resultdict["Bainite"] = np.zeros(len(fM_old.x.array))
-    resultdict["Pearlite"] = np.zeros(len(fM_old.x.array))
-    u_nodes = fem.Function(V_post)
-
-
-    for loop_nr in range(2):
-        print("Loop nr " + str(loop_nr + 1))
-        current_t += dtime
-        num_its, converged = solver.solve(U)
-        assert converged
-        U.x.scatter_forward()
-        T_old.interpolate(fem.Expression(T, V_T.element.interpolation_points()))
-        uT_bc.x.array[:] = uT_bc.x.array[:] + 0.0001
-        # Updating history variables
-        s_old.interpolate(s_expr)
-        # fM_old.interpolate(fM_expr)
-        u_old.interpolate(fem.Expression(u, V_u.element.interpolation_points()))
-        # fM_old.interpolate(fem.Expression(fM, V_fM.element.interpolation_points()))
-        fM_old.interpolate(fM_exp)
-        T_old.interpolate(fem.Expression(T, V_T.element.interpolation_points()))
-
-        # Adding solutions to results
-        u_out = U.sub(0).collapse()
-        u_out.name = "Displacement"
-        uy_out = U.sub(0).sub(1).collapse()
-        uy_out.name = "Displacement in y"
-        T_out = U.sub(1).collapse()
-        T_out.name = "Temperature"
-        fM_out = U.sub(2).collapse()
-        fM_out.name = "Martensite"
-        fM_out.interpolate(fM_exp)
-        u_nodes.interpolate(u_out)
-    grid.point_data["uy"] = uy_out.x.array.real  # attach solution
-
-    resultdict["Displacement"] = u_nodes.x.array[best_match_indices]
-    adjustdatastream(resultdict, datapos="nodes", t_data=0.0)
-    print("FeniCSx testing")
-    print(np.max(u_nodes.x.array))
-    print(np.shape(fM_out.x.array))
-    print(np.shape(u_nodes.x.array))
-    print(np.shape(u_out.x.array))
-
-    plotter = pv.Plotter()
-    plotter.view_xy()
-    plotter.add_mesh(grid, scalars="uy", cmap="viridis")
-    plotter.show(title="FEniCSx solution with PyVista")
-
-    #adjustdatastream(data, "nodes", current_t)
-
+    #plot_4PB_results(U, minput)
 def FCSx4PB_Quench(parent):
-    print('>>> Using FEniCSx solver for FEM quenching calculation')
+    print('Using FEniCSx solver for FEM quenching calculation')
     ginput = parent.ginput
     minput = parent.minput
 
@@ -808,6 +686,186 @@ def FCSx4PB_Quench(parent):
     # 9. Plotting Result
     plot_quenching_results(U)
 
+def Cylinder_2D_Quench(parent):
+    print('Using FEniCSx solver: 2D Cylinder (Quenching)')
+    minput = parent.minput
+    T0 =  1113.15
+
+    # 1. Load Mesh
+    domain = load_datastream_to_fenicsx("Datastream.xdmf")
+    gdim = domain.geometry.dim
+    #plotMesh(domain)
+
+    # 2. Map meshio nodes to FEniCSx nodes for result extraction
+    xdmf_nodes = readdatastream("nodes")  # (N, 2) or (N, 3)
+    xdmf_nodes_2d = xdmf_nodes[:, :gdim]
+    fenics_nodes = domain.geometry.x[:, :gdim]
+    from scipy.spatial import cKDTree
+    tree = cKDTree(fenics_nodes)
+    distance, fenics_to_xdmf_map = tree.query(xdmf_nodes_2d)
+
+    #_, fenics_to_xdmf_map = tree.query(xdmf_nodes[:, :gdim])
+
+    # 3. Setup Spaces
+    P2 = basix.ufl.element("Lagrange", domain.basix_cell(), 2, shape=(domain.geometry.dim,))
+    P1 = basix.ufl.element("Lagrange", domain.basix_cell(), 1)
+
+    voigt_dim = 3 if gdim == 2 else 6
+    V_P1 = fem.functionspace(domain, ("Lagrange", 1, (1,)))
+    V_P1_voigt = fem.functionspace(domain, ("Lagrange", 1, (voigt_dim,)))
+    V_P1_vct = fem.functionspace(domain, ("Lagrange", 1, (domain.geometry.dim,)))
+    V_P2 = fem.functionspace(domain, ("Lagrange", 2, (1,)))
+    V_P2_vct = fem.functionspace(domain, ("Lagrange", 2, (domain.geometry.dim,)))
+
+    # 2. Combine into a Mixed Element
+    V_el = basix.ufl.mixed_element([P2, P1, P1])
+
+    # 3. Create the FunctionSpace using the lowercase factory function
+    V = fem.functionspace(domain, V_el)
+
+    # Functions for solving
+    U = fem.Function(V)
+    u, T, fM = ufl.split(U)
+    V_test = ufl.TestFunction(V)
+    du, dT, dfM = ufl.split(V_test)
+    dU = ufl.TrialFunction(V)
+
+    # Subspaces for BCs and interpolation
+    V_u, _ = V.sub(0).collapse()
+    V_ux, _ = V.sub(0).sub(0).collapse()
+    V_uy, _ = V.sub(0).sub(1).collapse()
+    V_T, _ = V.sub(1).collapse()
+    V_fM, _ = V.sub(2).collapse()
+
+    # 4. History and Constants
+    dtime = fem.Constant(domain, default_scalar_type(minput["quenchtime"] / minput["quench_steps"]))
+    u_old = fem.Function(V_u)
+    T_old = fem.Function(V_T)
+    T_old.x.array[:] = T0
+    fM_old = fem.Function(V_fM)
+
+    funcs = {"u": u, "du": du, "u_old": u_old, "T": T, "dT": dT,
+             "T_old": T_old, "fM": fM, "dfM": dfM, "fM_old": fM_old, "dtime": dtime}
+
+    # 5. Boundary Conditions (Cylinder)
+
+    def sym_x_BC(x): return np.isclose(x[0], 0.0)
+
+    def Surface_T_BC(x): return np.isclose(np.sqrt(x[0]**2 + x[1]**2), 0.00)
+
+    def sym_y_BC(x): return np.isclose(x[1], 0.00)
+
+    # Dirichlet setup
+    uT_val = fem.Function(V_uy)
+    uT_val.x.array[:] = T0
+    ux_sym_val = fem.Function(V_ux)
+    ux_sym_val.x.array[:] = 0.0
+    uy_sym_val = fem.Function(V_uy)
+    uy_sym_val.x.array[:] = 0.0
+    u_zero_func = fem.Function(V_u)
+    u_zero_func.x.array[:] = 0.0
+
+    bcs = [
+        #fem.dirichletbc(uT_val, fem.locate_dofs_geometrical((V.sub(1), V_T), Surface_T_BC), V.sub(1)),
+        fem.dirichletbc(ux_sym_val, fem.locate_dofs_geometrical((V.sub(0).sub(0), V_ux), sym_x_BC), V.sub(0).sub(0)),
+        fem.dirichletbc(uy_sym_val, fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), sym_y_BC), V.sub(0).sub(1))
+    ]
+
+    # 6. Variational Forms
+    fM_res, fM_exp = MartensiteForm(domain, minput, V_fM, funcs)
+    T_res, s_old, s_expr = TemperatureForm(domain, minput, V_T, funcs)
+    T_dummy = (T - T_old) * dT * ufl.dx
+    fM_dummy = (fM - fM_old) * dfM * ufl.dx
+    u_res = DisplacementForm(domain, minput, V_u, funcs)
+
+    Res = u_res + T_res + fM_res
+    Jac = ufl.derivative(Res, U, dU)
+
+    # 7. Solver Setup
+    problem = NonlinearProblem(Res, U, bcs=bcs, J=Jac)
+    solver = NewtonSolver(domain.comm, problem)
+    solver.convergence_criterion = "incremental"
+    solver.max_it = 20
+    solver.report = True
+
+    # Configure PETSc for direct solve (more stable for these point BCs)
+    ksp = solver.krylov_solver
+    opts = PETSc.Options()
+    prefix = ksp.getOptionsPrefix()
+    opts[f"{prefix}ksp_monitor"] = None
+    opts[f"{prefix}ksp_type"] = "preonly"
+    opts[f"{prefix}pc_type"] = "lu"
+    opts[f"{prefix}pc_factor_mat_solver_type"] = "mumps"
+    ksp.setFromOptions()
+
+    # 8. Time Loop
+    print(">>> Starting Solve...")
+    for step in range(minput["quench_steps"]):
+        print(f"Step nr {step + 1}")
+        #uT_val.x.array[:] = 273.15 + 20
+
+        num_its, converged = solver.solve(U)
+        U.x.scatter_forward()
+
+        # Update History
+        T_old.interpolate(U.sub(1))
+        u_old.interpolate(U.sub(0))
+        s_old.interpolate(s_expr)
+        #fM_old.interpolate(fem.Expression(fM_exp, V_fM.element.interpolation_points()))
+    # 9. Extract Results for Datastream
+    # Collapse to extract arrays
+    u_final = U.sub(0).collapse()
+    T_final = U.sub(1).collapse()
+    fM_final = U.sub(2).collapse()
+
+    vm_expr_ufl = sigma_von_mises(U.sub(0), minput)
+    vm_expr = fem.Expression(vm_expr_ufl, V_P1.element.interpolation_points())
+    vm_stress = fem.Function(V_P1)
+    vm_stress.interpolate(vm_expr)
+
+    lode_expr_ufl = lode_func(sigma(U.sub(0),minput))
+    lode_expr = fem.Expression(lode_expr_ufl, V_P1.element.interpolation_points())
+    lode = fem.Function(V_P1)
+    lode.interpolate(lode_expr)
+
+    trax_expr_ufl = triax(sigma(U.sub(0), minput))
+    trax_expr = fem.Expression(trax_expr_ufl, V_P1.element.interpolation_points())
+    trax = fem.Function(V_P1)
+    trax.interpolate(trax_expr)
+
+    sh_expr_ufl = sig_h(sigma(U.sub(0), minput))
+    sh_expr = fem.Expression(sh_expr_ufl, V_P1.element.interpolation_points())
+    sh = fem.Function(V_P1)
+    sh.interpolate(sh_expr)
+
+    s_expr_ufl = sigma(U.sub(0), minput)
+    sv_expr_ufl = tensor_to_voigt(s_expr_ufl, dim=gdim)
+    stress_expr = fem.Expression(sv_expr_ufl, V_P1_voigt.element.interpolation_points())
+    stress = fem.Function(V_P1_voigt)
+    stress.interpolate(stress_expr)
+
+    # Use the map to export in the correct meshio order
+
+
+
+
+    res_dict = {
+        "Displacement": u_final.x.array.reshape(-1, gdim)[fenics_to_xdmf_map],
+        "Temperature": T_final.x.array[fenics_to_xdmf_map],
+        "vonMises": vm_stress.x.array[fenics_to_xdmf_map],
+        "Martensite": fM_final.x.array[fenics_to_xdmf_map],
+        "Austenite": 1.0 - fM_final.x.array[fenics_to_xdmf_map],
+        "Stress": stress.x.array.real.reshape(-1, voigt_dim)[fenics_to_xdmf_map],
+        "Stress_hydrostatic": sh.x.array[fenics_to_xdmf_map],
+        "Triaxiality": trax.x.array[fenics_to_xdmf_map],
+        "Lode": lode.x.array[fenics_to_xdmf_map]
+    }
+
+    adjustdatastream(res_dict, datapos="nodes", t_data=0.0)
+
+
+
+
 def plot_4PB_results(U,minput):
     """Helper to visualize the Temperature and Martensite fields."""
     import pyvista as pv
@@ -854,13 +912,7 @@ def plot_4PB_results(U,minput):
     grid.point_data["Temperature"] = T_final.x.array.real
     grid.point_data["Martensite"] = fM_final.x.array.real
     grid.point_data["vonMises"] = vm_stress.x.array
-    print(vm_stress.x.array.real)
-    print(np.max(vm_stress.x.array.real))
-    print(np.min(vm_stress.x.array.real))
     warped_grid = grid.warp_by_vector("Displacement", factor=1)
-
-
-
 
     # 6. Set up Plotter
     p = pv.Plotter(shape=(1, 2), window_size=[1200, 400])
@@ -926,3 +978,147 @@ def plot_quenching_results(U):
     p.add_mesh(grid, scalars="Martensite", cmap="viridis", show_edges=True)
 
     p.show()
+
+
+def Cylinder_2D_Quench_G(parent):
+    print('Using FEniCSx solver: 2D Cylinder (Quenching + Plasticity)')
+    minput = parent.minput
+    T0 = 1113.15
+    Tamb = 293.15
+
+    # --- 1. Load Mesh & Setup Spaces (Previous setup) ---
+    # [Assuming domain, V, and subspaces are defined as in your snippet]
+
+    # --- 2. Advanced Material Properties from CSV ---
+    # CSV Columns: Temperature, Martensite, E, YieldStress, HardeningMod
+    try:
+        df = pd.read_csv("material_data.csv")
+        pts = df[['Temperature', 'Martensite']].values
+        interp_E = LinearNDInterpolator(pts, df['YoungsModulus'].values)
+        interp_Sy = LinearNDInterpolator(pts, df['YieldStress'].values)
+        interp_H = LinearNDInterpolator(pts, df['HardeningMod'].values)
+    except:
+        print("CSV error: Using dummy linear functions for properties")
+        interp_E = lambda T, fM: 210e9 * (1 - 0.0005 * (T - 293))
+        interp_Sy = lambda T, fM: (300e6 + 500e6 * fM) * (1 - 0.001 * (T - 293))
+        interp_H = lambda T, fM: 2e9 * (1 + fM)
+
+    # --- 3. Plasticity State Variables ---
+    # We store accumulated plastic strain at the integration points (DG0 is common for simplicity)
+    P0 = fem.functionspace(domain, ("DG", 0))
+    alpha_p = fem.Function(P0)  # Accumulated plastic strain (history)
+    alpha_p_old = fem.Function(P0)
+
+    # --- 4. Physical Constants ---
+    alpha_thermal = fem.Constant(domain, 1.2e-5)
+    beta_trans = fem.Constant(domain, 0.012)  # Volumetric expansion
+    nu = fem.Constant(domain, 0.3)
+    k_cond = fem.Constant(domain, 25.0)
+    rho_cp = fem.Constant(domain, 4.0e6)
+    h_conv = fem.Constant(domain, 5000.0)
+    Ms = 573.15
+    k_km = 0.011
+
+    # --- 5. Stress and Hardening Logic ---
+    # Define current material properties based on solution fields
+    # We project/interpolate these for the current iteration
+    E_f = fem.Function(P0)
+    Sy_f = fem.Function(P0)
+    H_f = fem.Function(P0)
+
+    def sigma_plastic(u, T, fM, alpha_p_prev):
+        """
+        Calculates the stress using a return mapping approximation within the UFL form.
+        Note: For complex plasticity, a custom Newton loop is usually preferred,
+        but we can approximate the tangent via conditional logic here.
+        """
+        # Elastic trial
+        I = ufl.Identity(gdim)
+        eps = ufl.sym(ufl.grad(u))
+        eps_th = alpha_thermal * (T - T0) * I
+        eps_tr = (beta_trans / 3.0) * fM * I
+        eps_el = eps - eps_th - eps_tr
+
+        # Lame parameters
+        mu = E_f / (2 * (1 + nu))
+        lmbda = (E_f * nu) / ((1 + nu) * (1 - 2 * nu))
+
+        # Trial stress (deviatoric)
+        sig_trial = lmbda * ufl.tr(eps_el) * I + 2 * mu * eps_el
+        s_trial = sig_trial - (1 / 3) * ufl.tr(sig_trial) * I
+        sig_von_mises = ufl.sqrt(1.5 * ufl.inner(s_trial, s_trial))
+
+        # Yield condition
+        yield_surface = sig_von_mises - (Sy_f + H_f * alpha_p_prev)
+
+        # Plastic multiplier approximation (Linear Hardening)
+        d_gamma = ufl.conditional(ufl.gt(yield_surface, 0), yield_surface / (3 * mu + H_f), 0.0)
+
+        # Return mapping stress
+        direction = s_trial / (sig_von_mises + 1e-9)
+        sig_final = sig_trial - ufl.conditional(ufl.gt(yield_surface, 0), 2 * mu * (1.5 * d_gamma) * direction, 0.0)
+
+        return sig_final, d_gamma
+
+    # --- 6. Variational Form ---
+    sig, d_gamma_expr = sigma_plastic(u, T, fM, alpha_p_old)
+
+    # Mechanics
+    F_mech = ufl.inner(sig, ufl.grad(du)) * ufl.dx
+
+    # Thermal
+    F_therm = rho_cp * (T - T_old) / dtime * dT * ufl.dx + \
+              k_cond * ufl.dot(ufl.grad(T), ufl.grad(dT)) * ufl.dx + \
+              h_conv * (T - Tamb) * dT * ufl.ds
+
+    # Phase Transformation
+    fM_target = ufl.conditional(ufl.lt(T, Ms), 1.0 - ufl.exp(-k_km * (Ms - T)), 0.0)
+    F_phase = (fM - ufl.max_value(fM_old, fM_target)) * dfM * ufl.dx
+
+    F = F_mech + F_therm + F_phase
+
+    # --- 7. Solver Setup ---
+    problem = fem.petsc.NonlinearProblem(F, U, bcs)
+    solver = nls.petsc.NewtonSolver(MPI.COMM_WORLD, problem)
+
+    # --- 8. Time Loop ---
+    t = 0.0
+    t_end = minput["quenchtime"]
+
+    xdmf = XDMFFile(domain.comm, "quench_plasticity.xdmf", "w")
+    xdmf.write_mesh(domain)
+
+    while t < t_end:
+        t += float(dtime)
+
+        # Update Material Properties Functions for this step
+        # Based on the results of the previous step (T_old, fM_old)
+        E_f.x.array[:] = interp_E(T_old.x.array, fM_old.x.array)
+        Sy_f.x.array[:] = interp_Sy(T_old.x.array, fM_old.x.array)
+        H_f.x.array[:] = interp_H(T_old.x.array, fM_old.x.array)
+
+        # Solve nonlinear step
+        n, converged = solver.solve(U)
+
+        # Update plastic strain (History update)
+        # We project the calculated d_gamma increment back to the DG0 space
+        d_gamma_local = fem.Expression(d_gamma_expr, P0.element.interpolation_points())
+        alpha_p.interpolate(d_gamma_local)
+        alpha_p.x.array[:] += alpha_p_old.x.array[:]
+
+        # Save old states
+        u_old.x.array[:] = U.sub(0).collapse().x.array
+        T_old.x.array[:] = U.sub(1).collapse().x.array
+        fM_old.x.array[:] = U.sub(2).collapse().x.array
+        alpha_p_old.x.array[:] = alpha_p.x.array
+
+        # Export (T, fM, Plastic Strain)
+        xdmf.write_function(U.sub(1), t)
+        xdmf.write_function(U.sub(2), t)
+        alpha_p.name = "Plastic_Strain"
+        xdmf.write_function(alpha_p, t)
+
+        print(f"Step T={t:.2f}s | Max Plastic Strain: {np.max(alpha_p.x.array):.5e}")
+
+    xdmf.close()
+    return U

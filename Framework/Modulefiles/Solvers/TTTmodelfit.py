@@ -1,15 +1,13 @@
-from Framework.HelpFile import getTTTdata
+from Framework.HelpFile import getTTTdb
 import numpy as np
-def JMAKfit(composition, phase):
-    TTTdata = getTTTdata(composition,"TTTdata")
-    if TTTdata == None:
-        raise KeyError("Can't find " + str(composition) + " in database")
+
+def JMAKfit(rawdata, minput):
     try:
-        start = TTTdata[phase]["start"]
-        half = TTTdata[phase]["half"]
-        finish = TTTdata[phase]["finish"]
+        start = rawdata["start"]
+        half = rawdata["half"]
+        finish = rawdata["finish"]
     except:
-        print("TTTdata for " + str(composition) + " doesn't exist for " + phase + " transformation")
+        print("TTTdata for doesn't exist")
         return None, None, None
     tau = np.array([])
     n = np.array([])
@@ -28,21 +26,6 @@ def JMAKfit(composition, phase):
 
 
             tmptau = start[1][i] / ((-np.log(0.98)) ** (1 / tmpn))
-
-
-            # add if to take 98% or 50% lines as references.
-
-            #if np.isnan(finish[1][k]):
-            #    tmpn = np.log(np.log(0.98) / np.log(0.50)) / np.log(start[1][i] / half[1][j])
-            #    tmpn = 10.0
-            #
-            #    tmptau = start[1][i] / ((-np.log(0.98)) ** (1 / tmpn))
-            #else:
-            #    tmpn = np.log(np.log(0.98) / np.log(0.02)) / np.log(start[1][i] / finish[1][k])
-            #    tmpn = 10.0
-            #
-            #    tmptau = start[1][i] / ((-np.log(0.98)) ** (1 / tmpn))
-
             n = np.append(n, tmpn)
             tau = np.append(tau, tmptau)
             Tlist = np.append(Tlist, x)
@@ -50,13 +33,10 @@ def JMAKfit(composition, phase):
 
     return Tlist, tau, n
 
-def KMfit(composition, phase): # Koistinen marburger fitting process
-    import numpy as np
-    TTTdata = getTTTdata(composition, "TTTdata")
-
-    start = TTTdata[phase]["start"][0][0]
-    half = TTTdata[phase]["half"][0][0]
-    finish = TTTdata[phase]["finish"][0][0]
+def KMfit(raw_data, minput): # Koistinen marburger fitting process
+    start = raw_data["start"][0][0]
+    half = raw_data["half"][0][0]
+    finish = raw_data["finish"][0][0]
     # 0.02 = 1- exp(-beta * (Ms - start))
     # 0.98 = 1- exp(-beta * (Ms - finish))
     if np.isnan(start):

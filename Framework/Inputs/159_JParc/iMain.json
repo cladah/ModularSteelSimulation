@@ -1,7 +1,8 @@
 {
+  "Optimization": "iOpt",
   "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","MechTest"],
-  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iDiff_Rehard","iFEM","i4PB"],
-  "Rerun": [false, false, false, false, false, true],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iTTT","iTTT","i4PB"],
+  "Rerun": [false, false, false, true, true, true],
   "Geometry": {
     "Type": "4PointBend",
     "dim": 3,
@@ -9,8 +10,8 @@
     "width": 0.12,
     "thickness": 0.008,
     "nodesWidth": 20,
-    "nodesHeight": 30,
-    "nodesThickness": 3,
+    "nodesHeight": 60,
+    "nodesThickness": 2,
     "radius": 0.008,
     "innerradius": 0.0,
     "nodes": 50,

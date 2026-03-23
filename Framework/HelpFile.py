@@ -6,6 +6,10 @@ from sqlitedict import SqliteDict
 import numpy as np
 import tkinter as tk
 from tkinter import filedialog
+import matplotlib.pyplot as plt
+
+def make_hashable_dict(d):
+    return frozenset(sorted(d.items()))
 
 def get_file_path(title="Select File", filetypes=(("XDMF files", "*.xdmf"), ("All files", "*.*"))):
     """Helper to handle file dialogs without cluttering the main logic."""
@@ -145,44 +149,97 @@ def readresultfile(filename, dataname):
         return data
     except:
         raise KeyError("Result \""+str(dataname)+"\" doesn't exist in result file")
-def addTTTdata(compdata, data, type):
-    if type not in ["TTTdata", "Modeldata"]:
-        raise KeyError("Type can't be added to TTT database")
-    from sqlitedict import SqliteDict
-    TTTdata = SqliteDict("MaterialDatabase/database.db", tablename="TTTdata", outer_stack=False)
-    for oldkey in TTTdata.keys():
-        if compdata == TTTdata[oldkey]["Composition"]:
-            # if type in TTTdata[oldkey].keys():
-            #     print(type + " for that composition is already stored in database")
-            #     return
-
-            tmpdict = TTTdata[oldkey]
-            tmpdict[type] = data
-            TTTdata[oldkey] = tmpdict
-            TTTdata.commit()
-            TTTdata.close()
-            print(type + " added to database for " + str(compdata))
-            return
-    print("Composition not in TTT database")
-    TTTdata[str(len(TTTdata) + 1)] = {type:data,"Composition":compdata}
-    TTTdata.commit()
-    TTTdata.close()
-    print(type + " is now stored in TTT database for " + str(compdata))
-def getTTTdata(compdata, type):
-    # Making sure the composition has the correct round value
-    for key in compdata:
+def addTTTdb(data, comp_data, model_input, data_name):
+    for key in comp_data:
         if key == "C" or key == "N":
-            compdata[key] = round(0.05 * round(compdata[key]/0.05), 2)
-        elif compdata[key] != round(compdata[key], 1):
-            compdata[key] = round(compdata[key], 1)
-    TTTdata = SqliteDict("MaterialDatabase/database.db", tablename="TTTdata", outer_stack=False)
-    for key in TTTdata.keys():
-        if compdata == TTTdata[key]["Composition"]:
-            if type in TTTdata[key].keys():
-                return TTTdata[key][type]
+            comp_data[key] = float(round(0.05 * round(comp_data[key]/0.05), 2))
+        elif comp_data[key] != round(comp_data[key], 1):
+            comp_data[key] = float(round(comp_data[key], 1))
+    dbkey = str((sorted(comp_data.items()), sorted(model_input.items())))
+
+    with SqliteDict("MaterialDatabase/database.db", autocommit=False) as db:
+        entry = db.get(dbkey, {})
+
+        if data_name in entry:
+            print(f"Data for '{data_name}' already exists. Skipping.")
+            return
+
+        entry[data_name] = data
+        db[dbkey] = entry
+
+        db.commit()
+        print(f"Added {data_name} to database for {comp_data}")
+
+def getTTTdb(comp_data, model_input, data_name):
+    for key in comp_data:
+        if key == "C" or key == "N":
+            comp_data[key] = float(round(0.05 * round(comp_data[key]/0.05), 2))
+        elif comp_data[key] != round(comp_data[key], 1):
+            comp_data[key] = (round(comp_data[key], 1))
+
+    dbkey = str((sorted(comp_data.items()), sorted(model_input.items())))
+    with SqliteDict("MaterialDatabase/database.db", flag='r') as db:
+        # Check if the key exists AND if the specific type is inside it
+        if dbkey in db:
+            entry = db[dbkey]
+            if data_name in entry:
+                print(f"{data_name} exists for composition {comp_data}")
+                return entry[data_name]
+
+    print(f"{model_input}")
+    raise KeyError(f"Database doesn't have information regaring {data_name} for composition {comp_data}")
+
+
+
+    db = SqliteDict("MaterialDatabase/database.db", outer_stack=False)
+    if dbkey in db:
+        print("Data in database, checking type")
+        if type in db[dbkey].keys():
+            return db[dbkey][data_name]
+
+    else:
+        pass
+    print(f"{model_input}")
+    raise KeyError(f"Database doesn't have information regaring {data_name} for composition {comp_data}")
+
+def checkTTTdb(comp_data, model_input, data_name):
+    for key in comp_data:
+        if key == "C" or key == "N":
+            comp_data[key] = float(round(0.05 * round(comp_data[key]/0.05), 2))
+        elif comp_data[key] != round(comp_data[key], 1):
+            comp_data[key] = float(round(comp_data[key], 1))
+
+    dbkey = str((sorted(comp_data.items()), sorted(model_input.items())))
+    with SqliteDict("MaterialDatabase/database.db", flag='r') as db:
+        # Check if the key exists AND if the specific type is inside it
+        if dbkey in db:
+            entry = db[dbkey]
+            if data_name in entry:
+                print(f"{data_name} exists for composition {comp_data}")
+                return True
             else:
-                raise KeyError(type + ' not in database for composition ' + str(compdata))
-    print("Composition not in database")
+                return False
+    return False
+def checkDatabase():
+    with SqliteDict("MaterialDatabase/database.db", flag='r') as db:
+        # Check if the key exists AND if the specific type is inside it
+        x = list()
+        y = list()
+        for dbkey in db:
+            print(" ")
+
+            safe_dict = {"np": np}
+
+            data = eval(dbkey, {"__builtins__": {}}, safe_dict)
+
+            first_float = data[0][0][1]
+
+            x.append(first_float)
+            y.append(db[dbkey]["Martensite_"]["start"][0][0])
+
+        plt.plot(x,y,'o')
+        plt.show()
+
 def analyseTTTdatabase():
 
     TTTdata = SqliteDict("MaterialDatabase/database.db", tablename="TTTdata", outer_stack=False)

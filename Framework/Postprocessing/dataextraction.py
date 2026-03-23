@@ -5,6 +5,7 @@ from dolfinx.io import XDMFFile
 from mpi4py import MPI
 import pyvista as pv
 import meshio
+import matplotlib.pyplot as plt
 
 def DatastreamPlotting(dataname, t=0):
     import matplotlib.pyplot as plt
@@ -96,6 +97,17 @@ def xmdftesting():
         for i in range(len(t_list)):
             writer.write_data(t=t_list[i], point_data=pd_list[i], cell_data=cd_list[i])
 
+def plotting_over_axis(filename="Datastream.xdmf"):
+    available_fields = getnames_results(filename)
+    for i, f in enumerate(available_fields): print(f" [{i}] {f}")
+    field_idx = int(input("Choice: "))
+    selected_field = available_fields[field_idx]
+    data = read_results_axis(filename, selected_field)
+    x = read_results_axis(filename, "nodes")
+
+    plt.plot(x,data)
+    plt.show()
+
 
 def interactive_datastream_plotter(filename="Datastream.xdmf"):
     """
@@ -137,16 +149,27 @@ def interactive_datastream_plotter(filename="Datastream.xdmf"):
         print(f">>> Loading {selected_field} at t = {t:.4f}s")
 
     # 4. Construct PyVista Grid
-    # Identify cell type (Triangle=5, Quad=9)
+    cell_map = {
+        "triangle": 5,  # Linear Triangle (3-node)
+        "triangle6": 22,  # Quadratic Triangle (6-node)
+        "quad": 9,  # Linear Quad (4-node)
+        "quad8": 23,  # Quadratic Quad (8-node)
+        "tetra": 10,  # Linear Tetra (4-node)
+        "tetra10": 24,  # Quadratic Tetra (10-node)
+        "hexahedron": 12,  # Linear Hex (8-node)
+        "hexahedron20": 25  # Quadratic Hex (20-node)
+    }
+    cell_conn = None
+    vtk_type = None
+
     for block in cells:
-        if block.type == "hexahedron":
+        if block.type in cell_map:
             cell_conn = block.data
-            vtk_type = 12  # VTK code for Hexahedron (8-node brick)
+            vtk_type = cell_map[block.type]
             break
-        elif block.type == "tetra":
-            cell_conn = block.data
-            vtk_type = 10  # VTK code for Tetra
-            break
+    if cell_conn is None:
+        print(f"Unsupported cell type in mesh: {[b.type for b in cells]}")
+        return
 
     # Format points for 3D engine
     if points.shape[1] == 2:

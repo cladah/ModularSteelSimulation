@@ -1,7 +1,6 @@
 from Framework.Datastream_file import read_input
 from Framework.HelpFile import checkruncondition, adjustinputcache, read_modinput
 
-
 class CalcModule:
     def __init__(self, modulename, runcondition=True, programs=None, inputfile=None):
         self.data = read_input()

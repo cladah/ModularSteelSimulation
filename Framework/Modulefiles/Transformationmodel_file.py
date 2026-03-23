@@ -1,5 +1,5 @@
 from .ModuleStructure_file_new import CalcModule
-from Framework.HelpFile import saveresult, checkruncondition, getTTTdata, addTTTdata, read_input, read_geninput
+from Framework.HelpFile import saveresult, checkruncondition, getTTTdb, addTTTdb, read_input, read_geninput, checkTTTdb
 from Framework.Datastream_file import readdatastream, adjustdatastream, readdatastreamcache
 from .Solvers.ThermocalcSolver import getTTTcompositions
 from .Solvers.TTTmodelfit import JMAKfit, KMfit
@@ -13,13 +13,13 @@ class Transformationmodelmodule(CalcModule):
 
     def run(self):
         models  = {"JMAK":"1-exp(-\u03C4t^n)","KM":"1-exp(-\u03B2(Ms-T))"}
-        outstr = ["\n---------------------------------------------------------------------\n",
-                  "Transformation model function module: " + self.inputfile + "\n",
-                  "Ferrite: " + models[self.minput["Ferrite"]["model"]],
-                  "Pearlite: " + models[self.minput["Pearlite"]["model"]],
-                  "Bainite: " + models[self.minput["Bainite"]["model"]],
-                  "Martensite: " + models[self.minput["Martensite"]["model"]],
-                  "\n---------------------------------------------------------------------\n\n"]
+        outstr = ["\n---------------------------------------------------------------------\n"
+                  "Transformation model function module: " + self.inputfile + "\n"]
+        for ph in self.minput["Phases"]:
+            tmpmod = models[self.minput["Model"][ph]]
+            outstr.append(f"{ph} modeled with {tmpmod}")
+        outstr.append("\n---------------------------------------------------------------------\n\n")
+
 
         for line in outstr:
             self.writeoutput(line)
@@ -32,7 +32,7 @@ class Transformationmodelmodule(CalcModule):
                           "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
             for pre in precalcinp:
                 values = readdatastreamcache(pre)
-                adjustdatastream({pre: values}, "nodes")
+                adjustdatastream({pre: values}, datapos="nodes")
             print("Phase transformation model module done\n")
             return
 
@@ -48,26 +48,38 @@ def runTTTmodelmodule(parent):
     compnr = len(TTTcompositions)
     i = 1
     for tmpcomp in TTTcompositions:
-        TTTfit(tmpcomp)
+        TTTfit(tmpcomp, parent.minput)
         parent.updateprogress(i / compnr)
         i = i + 1
 
     print("Models fitted to data")
-    TTTpolyfit()
+    TTTpolyfit(parent.minput)
 
     # TTTinterpolatetonodes()
 
-def TTTfit(composition):
+def TTTfit(composition, minput):
     phases = ["Ferrite","Pearlite","Bainite","Martensite"]
-    modeldata = dict()
+    phases = list(minput["Phases"])
+
+    model_input = {k: minput[k] for k in ["GrainSize"]}
+
     for phase in phases:
+        growth_type = minput["GrowthMode"][phase]
+        model_type = minput["Model"][phase]
+        if not checkTTTdb(composition, model_input, f"{phase}_{growth_type}"):
+            next
+
+        raw_data = getTTTdb(composition, model_input, f"{phase}_{growth_type}")
+
         if phase in ["Ferrite", "Pearlite", "Bainite"]:
-            T, tau, n = JMAKfit(composition, phase)
-            modeldata[phase] = [T, tau, n]
+            T, tau, n = JMAKfit(raw_data, minput)
+            modeldata = [T, tau, n]
         elif phase == "Martensite":
-            Ms, beta = KMfit(composition, phase)
-            modeldata[phase] = [Ms, beta]
-    addTTTdata(composition, modeldata, "Modeldata")
+            Ms, beta = KMfit(raw_data, minput)
+            modeldata = [Ms, beta]
+        else:
+            raise KeyError("Phase entered into input not implemented in TTTfit")
+        addTTTdb(modeldata, composition, model_input, f"{phase}_{growth_type}_{model_type}")
 
 def TTTinterpolatetonodes():
     from scipy import interpolate
@@ -91,7 +103,7 @@ def TTTinterpolatetonodes():
         print("Number of compositions used for interpolations are " + str(len(compositions)))
         for comp in compositions:
             x = list()
-            TTTdata = getTTTdata(comp, "Modeldata")
+            TTTdata = getTTTdb(comp, model_input, f"{phase}_{growth_type}")
             if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 gridlen = len(data['Material']['Composition']) + 1 # Adding temp to gridlength
                 T = TTTdata[phase][0]
@@ -252,16 +264,14 @@ from scipy import interpolate
 from pathlib import Path
 
 
-def TTTpolyfit():
-    """
-    Fits TTT diagram parameters (JMAK/KM) and interpolates them across the mesh.
-    """
+def TTTpolyfit(minput):
     data = read_geninput()
+    model_input = {k: minput[k] for k in ["GrainSize"]}
+
     comp_elements = list(data['Material']['Composition'].keys())
 
     # 1. Fetch Composition for all nodes (Vectorized)
     full_composition = {el: readdatastream(f"Composition_{el}") for el in comp_elements}
-
     # 2. Get unique compositions from database
     raw_compositions = getTTTcompositions()
     # Use a set of tuples to find unique compositions while preserving element maps
@@ -276,19 +286,21 @@ def TTTpolyfit():
     print(f"Number of compositions for interpolation: {len(unique_compositions)}")
 
     # 3. Process each phase
-    phases = ["Ferrite", "Bainite", "Pearlite", "Martensite"]
+    phases = list(minput["Phases"])
     for phase in phases:
+        growth_type = minput["GrowthMode"][phase]
+        model_type = minput["Model"][phase]
+
         Z1_list, Z2_list, X_list = [], [], []
 
         for comp in unique_compositions:
-            ttt_data = getTTTdata(comp, "Modeldata")
-
+            ttt_data = getTTTdb(comp, model_input, f"{phase}_{growth_type}_{model_type}")
             # Extract coordinates for interpolation grid
             X_list.append([comp[el] for el in comp_elements])
 
             if phase != "Martensite":
                 # JMAK Logic (Ferrite, Bainite, Pearlite)
-                T, tau, n = ttt_data[phase][0:3]
+                T, tau, n = ttt_data[0:3]
 
                 # Robust NaN handling
                 taumax = 1e8
@@ -313,7 +325,7 @@ def TTTpolyfit():
                     z2 = np.pad(z2, (6 - len(z2), 0), 'constant')
             else:
                 # KM Logic (Martensite)
-                ms, beta = ttt_data[phase][0:2]
+                ms, beta = ttt_data[0:2]
                 z1 = np.nan_to_num([ms], nan=273.15)
                 z2 = np.nan_to_num([beta], nan=0.01)
 
@@ -331,12 +343,13 @@ def TTTpolyfit():
         for i in range(len(comp_elements)):
             axis = sorted(list(set(X_points[:, i])))
             inter_axes.append(axis)
+        inter_axes = [sorted(list(set(X_points[:, i]))) for i in range(len(comp_elements))]
 
         # Reshape Z data to match the meshgrid of inter_axes
         grid_shape = [len(ax) for ax in inter_axes]
+        grid_shape = tuple(len(ax) for ax in inter_axes)
 
         # Prepare the grid of mesh nodes for interpolation
-        # Stack nodes: shape (N_nodes, N_elements)
         target_grid = np.stack([full_composition[el] for el in comp_elements], axis=-1)
 
         print(f"Interpolating {phase} parameters...")
@@ -344,14 +357,21 @@ def TTTpolyfit():
         # Perform interpolation for each polynomial coefficient
         res1_cols, res2_cols = [], []
         num_coeffs = Z1_points.shape[1]
-
+        from scipy.interpolate import RBFInterpolator
         for i in range(num_coeffs):
             # Reshape values into the multi-dim composition grid
-            v1 = Z1_points[:, i].reshape(grid_shape)
-            v2 = Z2_points[:, i].reshape(grid_shape)
+            #v1 = Z1_points[:, i].reshape(grid_shape)
+            #v2 = Z2_points[:, i].reshape(grid_shape)
 
-            r1 = interpolate.interpn(inter_axes, v1, target_grid, method="linear", bounds_error=False, fill_value=None)
-            r2 = interpolate.interpn(inter_axes, v2, target_grid, method="linear", bounds_error=False, fill_value=None)
+            #r1 = interpolate.interpn(inter_axes, v1, target_grid, method="linear", bounds_error=False, fill_value=None)
+            #r2 = interpolate.interpn(inter_axes, v2, target_grid, method="linear", bounds_error=False, fill_value=None)
+            # 'linear' or 'thin_plate_spline' are usually safe bets
+            # neighbors=None uses all points (accurate but slower for huge datasets)
+            interp1 = RBFInterpolator(X_points, Z1_points[:, i], kernel='linear')
+            interp2 = RBFInterpolator(X_points, Z2_points[:, i], kernel='linear')
+
+            r1 = interp1(target_grid)
+            r2 = interp2(target_grid)
 
             res1_cols.append(r1)
             res2_cols.append(r2)
@@ -359,6 +379,13 @@ def TTTpolyfit():
         # Stack results (N_nodes, N_coeffs)
         final_res1 = np.stack(res1_cols, axis=-1)
         final_res2 = np.stack(res2_cols, axis=-1)
+
+        #import matplotlib.pyplot as plt
+        #plt.plot(target_grid[:,0], np.array(final_res1),'o')
+        #print(full_composition)
+        #plt.figure()
+        #plt.plot(full_composition["C"],'o')
+        #plt.show()
 
         # 5. Save to Datastream
         prefix = "JMAK" if phase != "Martensite" else "KM"
@@ -400,7 +427,7 @@ def TTTpolyfit_old():
         gridlen = len(data['Material']['Composition'])
         for comp in compositions:
             x = list()
-            TTTdata = getTTTdata(comp, "Modeldata")
+            TTTdata = getTTTdb(comp, "Modeldata")
 
             if phase in ["Ferrite", "Bainite", "Pearlite"]:
                 T = TTTdata[phase][0]

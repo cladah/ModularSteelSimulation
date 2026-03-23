@@ -330,8 +330,8 @@ class TTTTab(ctk.CTkFrame):
         surface = dict()
         for element in data['Material']['Composition'].keys():
             surface[element] = getaxisvalues("Composition/" + element)[-1]
-        TTTcore = getTTTdata(core, "TTTdata")
-        TTTsurf = getTTTdata(surface, "TTTdata")
+        TTTcore = getTTTdb(core, "TTTdata")
+        TTTsurf = getTTTdb(surface, "TTTdata")
 
         fig = Figure(figsize=(20, 8), dpi=50)
         plot1 = fig.add_subplot(121)

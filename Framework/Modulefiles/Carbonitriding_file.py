@@ -16,14 +16,13 @@ class Diffusionmodule(CalcModule):
         Carbtime = sum(self.minput["BoostTime"] + self.minput["DiffTime"]) / 3600
         outstr = ["\n---------------------------------------------------------------------\n",
                   "Diffusion module (General): " + self.inputfile + "\n",
-                  "Grainsize is " + str(self.minput["GrainSize"]) + " \u03BCm",
                   "Carburization temperature set to " + str(self.minput["CNtemp"]) + " \N{DEGREE SIGN}C",
                   "Carburization pressure set to " + str(self.minput["CNPress"]) + " kPa",
                   "Carbon potential at surface set to " + str(self.minput["Cpotential"]),
                   str(self.minput["BoostNr"]) + " boost cycles, with boost times of " + str(self.minput["BoostTime"]),
                   "Diffusion times set to " + str(self.minput["DiffTime"]),
                   "Total carburization time is " + str(round(Carbtime, 1)) + " hours",
-                  "\n---------------------------------------------------------------------\n\n"]
+                  "\n---------------------------------------------------------------------\n"]
 
         for line in outstr:
             self.writeoutput(line)
@@ -56,8 +55,6 @@ class Diffusionmodule(CalcModule):
 
             # Adding geometry to composition?
             composition = TCDiffusionSolver(self.ginput, self.minput, activityenv, composition)
-            print(type(composition))
-            print("Testing!!!!")
 
             self.updateprogress(0.9)
 
@@ -94,7 +91,7 @@ class Diffusionmodule(CalcModule):
         print("Interpolating result to nodal points")
         if self.ginput["Geometry"]["Type"] == "4PointBend":
             fourpointbend_interp(self, composition)
-        elif self.ginput["Geometry"]["Type"] == "2Daxisym":
+        elif self.ginput["Geometry"]["Type"] == "Cylinder":
             cylinder_interp(self, composition)
         else:
             raise KeyError("Type of geometry not supported for compositional "
@@ -103,12 +100,10 @@ class Diffusionmodule(CalcModule):
         self.updateprogress(1.0)
         print("Carburization module done\n")
 def fourpointbend_interp(parent, composition):
-    print("interpolation testing!")
+    print("interpolation for 4PB!")
     xyz = readdatastream('nodes')
     height = parent.ginput["Geometry"]["height"]
     surf_dist = np.minimum(xyz[:,1], height-xyz[:,1])
-    print(np.min(surf_dist))
-    print(np.max(surf_dist))
     calc_xyz = np.array(composition[0])
     for element in composition[1].keys():
         calc_value = np.array(composition[1][element])

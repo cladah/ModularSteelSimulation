@@ -1,8 +1,4 @@
 {
-  "LoadingType": "Force",
-  "Pmax": 15000,
-  "Umax": 0.01,
-  "loadsteps": 2,
   "Materialtype": "Elastic",
   "MixtureModel": "RuleofMix",
   "Austenite": {
@@ -455,16 +451,18 @@
     },
     "model": "JMAK"
   },
-  "quenchtime": 3600,
+  "quenchtime": 1000,
   "quench_steps": 1,
   "quenchmedium": "oil",
+  "quenchtemp": 293.15,
   "PlaneStrain": false,
   "Phases": [
+    "Austenite",
     "Martensite"
   ],
-  "CNtemp": 1113.15,
-  "quenchtemp": 293.15,
-  "elementdim": 3,
+  "CNtemp": 1243.15,
+  "elementdim": 2,
+  "elementtype": "Axisym2D",
   "element_f": 2,
   "heatflux": {
     "htc": [

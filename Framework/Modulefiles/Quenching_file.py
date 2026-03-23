@@ -26,7 +26,7 @@ class Quenchingmodule(CalcModule):
             print(line)
 
         from Framework.Modulefiles.Solvers.ComsolSolver import runComsol
-        from Framework.Modulefiles.Solvers.FCSxSolver import FCSx4PB_Quench
+        from Framework.Modulefiles.Solvers.FCSxSolver import FCSx4PB_Quench, Cylinder_2D_Quench
 
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
@@ -47,7 +47,12 @@ class Quenchingmodule(CalcModule):
         else:
             print('\nQuenching module')
             if self.program == 'FCSx':
-                FCSx4PB_Quench(self)
+                if self.ginput["Geometry"]["Type"] == "4PB":
+                    FCSx4PB_Quench(self)
+                elif self.ginput["Geometry"]["Type"] == "Cylinder":
+                    Cylinder_2D_Quench(self)
+                else:
+                    raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")
             elif self.program == 'Comsol':
                 print('Using Comsol solver for FEM quenching calculation')
                 runComsol(self)

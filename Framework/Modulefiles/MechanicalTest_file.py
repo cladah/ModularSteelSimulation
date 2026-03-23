@@ -13,7 +13,7 @@ class MechTestModule(CalcModule):
                   "Phase mixing model: " + self.minput["MixtureModel"],
                   "Element quad: " + str(2),
                   "Program: " + str(self.program),
-                  "\n---------------------------------------------------------------------\n\n"]
+                  "\n---------------------------------------------------------------------\n"]
 
         for line in outstr:
             self.writeoutput(line)

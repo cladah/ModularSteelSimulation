@@ -129,6 +129,7 @@ def adjustdatastream(data, filename="Datastream.xdmf", datapos="nodes", t_data=0
         raise TypeError(f"Data must be a dict, got {type(data).__name__}")
 
     file_path = Path(filename)
+    print(file_path)
     if not file_path.exists():
         raise FileNotFoundError(f"Could not find {filename}. Create the mesh first.")
 
@@ -348,7 +349,7 @@ def readdatastreamcache(dataname, time=0):
 
 def getaxisvalues(dataname, time=0):
     ginput = read_geninput()
-    if ginput["Geometry"]["Type"]=="2D":
+    if ginput["Geometry"]["Type"]=="Cylinder":
         node_y = readdatastream('nodes')[:, 1]
         indx = np.where(node_y == 0)
         data = readdatastream(dataname, time)[indx]
@@ -359,8 +360,16 @@ def getaxisvalues(dataname, time=0):
         if dataname == "nodes":
             data = data[:, 0]
     elif ginput["Geometry"]["Type"]=="4PointBend":
-        node_x = readdatastream('nodes')[:, 0]
-        indx = np.where(node_x == 0)
+        nodes = readdatastream('nodes')
+        if ginput["Geometry"]["dim"] == 3:
+            mask = (nodes[:, 0] == 0) & (nodes[:, 2] == 0)
+        elif ginput["Geometry"]["dim"] == 2:
+            mask = (nodes[:, 0] == 0)
+        else:
+            print("SOMETHING WENT WRONG")
+            mask = 0
+        indx = np.where(mask)[0]
+
         data = readdatastream(dataname, time)[indx]
         node_y = readdatastream('nodes')[:, 1][indx]
         # Sorting data in order from x=min(x) to x=max(x)

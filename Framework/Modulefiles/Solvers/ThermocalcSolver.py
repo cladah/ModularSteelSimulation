@@ -292,7 +292,7 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
                              .set_simulation_time(current_time))
         if ginput["Geometry"]["Type"] in ["4PointBend"]:
             boost_calculation.with_planar_geometry()
-        elif ginput["Geometry"]["Type"] in ["2Daxisym"]:
+        elif ginput["Geometry"]["Type"] in ["Cylinder"]:
             boost_calculation.with_cylindrical_geometry()
         elif ginput["Geometry"]["Type"] == 2:
             boost_calculation.with_spherical_geometry()

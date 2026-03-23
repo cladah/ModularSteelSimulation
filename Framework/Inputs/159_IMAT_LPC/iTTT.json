@@ -1,0 +1,6 @@
+{
+    "GrainSize": 100.0,
+    "Phases": ["Martensite"],
+    "GrowthMode": {"Martensite":""},
+    "Model": {"Martensite": "KM"}
+}

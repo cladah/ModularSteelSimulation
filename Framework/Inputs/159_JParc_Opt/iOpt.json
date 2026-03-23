@@ -1,0 +1,5 @@
+{
+  "Parameters": {"Cactivity": ["iDiff_1.json", 1.1]},
+  "OptType": "Nelder-Mead",
+  "OptPar": "Martensite"
+}
