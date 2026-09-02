@@ -9,11 +9,10 @@ Vizualising and GUI done with tkinter
 Python 3 modules to run simulation
 
     gmsh - 4.1.1
-    numpy -
     MPh - 1.2.3
-    tc_python - 2023b
-    h5py -
-    Paraview -
+    FeniCSx - 0.11
+    tc_python - 2025b
+    h5py - 
 
 Running FeniCSx through Docker
 
