@@ -44,7 +44,6 @@ Calculation map
                 CCT interpolation(Ti+1(r), dt, psi_ji(r) sigi+1(r)) -> (psi_ji+1(r))
             Solid mech solver (eps_th(r), eps_psi(r), Ti+1(r)) -> (sig(r), eps(r), eps_pl(r))
 
-Planned implemenations
+Planned implementations
 
-    Crystalplasticity (Neper + Damask)
     Fully coupling with mixed elements in FeniCSx
