@@ -44,8 +44,7 @@ class Diffusionmodule(CalcModule):
             self.updateprogress(0.1)
 
             print('Running diffusion module with ThermoCalc')
-            activityenv = TCequalibrium(self.ginput, self.minput, "env")
-            print("Activity of atmosphere calculated")
+
             self.updateprogress(0.2)
 
             composition = dict()
@@ -54,7 +53,7 @@ class Diffusionmodule(CalcModule):
 
 
             # Adding geometry to composition?
-            composition = TCDiffusionSolver(self.ginput, self.minput, activityenv, composition)
+            composition = TCDiffusionSolver(self.ginput, self.minput, composition)
 
             self.updateprogress(0.9)
 
@@ -89,7 +88,7 @@ class Diffusionmodule(CalcModule):
         df["C"] = composition[1]["C"]
         df.to_csv("CompositionData.csv")
         print("Interpolating result to nodal points")
-        if self.ginput["Geometry"]["Type"] == "4PointBend":
+        if self.ginput["Geometry"]["Type"] in ["4PointBend", "3PointBend"]:
             fourpointbend_interp(self, composition)
         elif self.ginput["Geometry"]["Type"] == "Cylinder":
             cylinder_interp(self, composition)

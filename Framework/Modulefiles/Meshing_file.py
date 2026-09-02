@@ -14,7 +14,6 @@ class Meshingmodule(CalcModule):
     def run(self):
         outstr = ["\n---------------------------------------------------------------------\n",
                   "Meshing module: " + self.inputfile + "\n",
-                  "Radius: " + str(self.ginput["Geometry"]["radius"]),
                   "Number of nodes: " + str(self.ginput["Geometry"]["nodes"]),
                   "Mesh scaling factor: " + str(self.ginput["Geometry"]["meshscaling"]),
                   "\n---------------------------------------------------------------------\n"]

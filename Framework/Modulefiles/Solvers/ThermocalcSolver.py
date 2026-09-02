@@ -200,7 +200,7 @@ def TCequalibrium(ginput,minput,type):
             print("Changing nitrogen activity to " + str(activityN))
         return minput["Cpotential"], activityN
 
-def TCDiffusionSolver(ginput, minput, Activity, compgrid):
+def TCDiffusionSolver(ginput, minput, compgrid):
     """
     :param activit: Activity of carbon and nitrogen [aC, aN]
     :param boosts: Nr of boost/rest cycles
@@ -213,12 +213,11 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
     boosts = minput["BoostNr"]
     boost_t = minput["BoostTime"]
     diff_t = minput["DiffTime"]
-
     if float(minput["Cpotential"])>=0.0:
         Cact = TC_Cpot(ginput, minput)
-        Activity = [Cact, Activity[1]]
+        Activity = [Cact, 0.1]
     else:
-        Activity = [minput["Cactivity"], Activity[1]]
+        Activity = [minput["Cactivity"], 0.1]
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.ERROR)
         system = (session
@@ -248,8 +247,6 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
             for element in ginput["Material"]["Composition"].keys():
                 tmppoint.add_composition(element, compgrid[element][i])
             pointgrid.add_point(tmppoint)
-
-
 
         austenite = (Region("Austenite")
                      .with_point_by_point_grid_containing_compositions(pointgrid)
@@ -285,12 +282,11 @@ def TCDiffusionSolver(ginput, minput, Activity, compgrid):
         boost_calculation = (calc
                              .with_reference_state("C", "GRAPHITE_A9")
                              .with_reference_state("N", "GAS")
-                             .with_cylindrical_geometry()
                              .remove_all_regions()
                              .add_region(austenite)
                              .with_right_boundary_condition(BC_Boost)
                              .set_simulation_time(current_time))
-        if ginput["Geometry"]["Type"] in ["4PointBend"]:
+        if ginput["Geometry"]["Type"] in ["4PointBend", "3PointBend"]:
             boost_calculation.with_planar_geometry()
         elif ginput["Geometry"]["Type"] in ["Cylinder"]:
             boost_calculation.with_cylindrical_geometry()

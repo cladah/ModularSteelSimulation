@@ -1,18 +1,18 @@
 {
   "Optimization": "iOpt",
-  "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching"],
-  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iTTT","iTTT","iFEM"],
-  "Rerun": [false, false, false, true, true, true],
+  "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching","MechTest"],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iTTT","iTTT","iFEM","i3PB"],
+  "Rerun": [false, false, false, true, false, false, true],
   "Geometry": {
-    "Type": "Cylinder",
-    "dim": 2,
+    "Type": "3PointBend",
+    "dim": 3,
+    "height": 0.010,
+    "width": 0.08,
     "thickness": 0.008,
-    "nodesWidth": 40,
+    "nodesWidth": 20,
     "nodesHeight": 60,
     "nodesThickness": 2,
-    "radius": 0.008,
-    "innerradius": 0.0,
-    "nodes": 40,
+    "nodes": 60,
     "meshscaling": 0.8
   },
   "Material": {

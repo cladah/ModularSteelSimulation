@@ -1,111 +1,4 @@
 {
-  "Optimization": "iOpt",
-  "Modules": [
-    "Meshing",
-    "Diffusion",
-    "Diffusion",
-    "TTTdiagram",
-    "TransformMod",
-    "Quenching",
-    "MechTest"
-  ],
-  "Inputs": [
-    "iMain",
-    "iDiff_1",
-    "iDiff_Rehard",
-    "iTTT",
-    "iTTT",
-    "iFEM",
-    "i4PB"
-  ],
-  "Rerun": [
-    false,
-    false,
-    false,
-    true,
-    true,
-    true,
-    true
-  ],
-  "Geometry": {
-    "Type": "4PointBend",
-    "dim": 3,
-    "height": 0.012,
-    "width": 0.12,
-    "thickness": 0.008,
-    "nodesWidth": 20,
-    "nodesHeight": 60,
-    "nodesThickness": 2,
-    "nodes": 60,
-    "meshscaling": 0.8
-  },
-  "Material": {
-    "Name": "Grade 159",
-    "Dependentmat": "Fe",
-    "Composition": {
-      "C": 0.2,
-      "N": 0.01,
-      "Cr": 1.9,
-      "Mn": 0.9,
-      "Mo": 0.5,
-      "Si": 0.3
-    }
-  },
-  "Programs": {
-    "Meshing": "Gmsh",
-    "Coupling": "Stagg",
-    "Diffusion": "TC",
-    "TTTdiagram": "TC",
-    "TransformMod": "Python",
-    "Quenching": "FCSx",
-    "Thermal": "FCSx",
-    "FEM": "FCSx",
-    "MechTest": "FCSx",
-    "All": [
-      "Gmsh",
-      "TC",
-      "Python",
-      "FCSx",
-      "Comsol"
-    ]
-  },
-  "RerunAll": false,
-  "InputDirectory": "159_JParc",
-  "Datastream": {
-    "Savedirect": "159_JParc_3.xdmf",
-    "Cachedirect": "Resultfiles/159_JParc.xdmf"
-  },
-  "GrainSize": 20.0,
-  "Austenitizingtemp": 1113.15,
-  "CNtemp": 1113.15,
-  "CNenv": "Acetylene",
-  "DiffType": "C",
-  "CNtime": 21600,
-  "CNPress": 100000.0,
-  "Cpotential": 0.8,
-  "Cactivity": 1.035,
-  "BoostNr": 1,
-  "Temp": [
-    1113.15
-  ],
-  "BoostTime": [
-    1800
-  ],
-  "DiffTime": [
-    0
-  ],
-  "Temp_time": [
-    0
-  ],
-  "Phases": [
-    "Martensite"
-  ],
-  "GrowthMode": {
-    "Martensite": ""
-  },
-  "Model": {
-    "Martensite": "KM"
-  },
   "Materialtype": "Elastic",
   "MixtureModel": "RuleofMix",
   "Austenite": {
@@ -558,11 +451,16 @@
     },
     "model": "JMAK"
   },
-  "quenchtime": 3600,
-  "quench_steps": 1,
+  "quenchtime": 5000,
+  "quench_steps": 10,
   "quenchmedium": "oil",
   "quenchtemp": 293.15,
   "PlaneStrain": false,
+  "Phases": [
+    "Austenite",
+    "Martensite"
+  ],
+  "CNtemp": 1243.15,
   "elementdim": 3,
   "element_f": 2,
   "heatflux": {
@@ -586,9 +484,5 @@
     "KM_beta": "beta",
     "JMAK_F": "",
     "JMAK_P": ""
-  },
-  "LoadingType": "Force",
-  "Pmax": 12000,
-  "Umax": 0.001,
-  "loadsteps": 1
+  }
 }

@@ -1,8 +1,8 @@
 {
   "Optimization": "iOpt",
-  "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","MechTest"],
-  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iTTT","iTTT","i4PB"],
-  "Rerun": [false, false, false, true, true, true],
+  "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching","MechTest"],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iTTT","iTTT","iFEM","i4PB"],
+  "Rerun": [false, false, false, true, true, true, true],
   "Geometry": {
     "Type": "4PointBend",
     "dim": 3,
@@ -12,10 +12,8 @@
     "nodesWidth": 20,
     "nodesHeight": 60,
     "nodesThickness": 2,
-    "radius": 0.008,
-    "innerradius": 0.0,
-    "nodes": 50,
-    "meshscaling": 0.9
+    "nodes": 60,
+    "meshscaling": 0.8
   },
   "Material": {
     "Name": "Grade 159",

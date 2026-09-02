@@ -47,7 +47,7 @@ class Quenchingmodule(CalcModule):
         else:
             print('\nQuenching module')
             if self.program == 'FCSx':
-                if self.ginput["Geometry"]["Type"] == "4PB":
+                if self.ginput["Geometry"]["Type"] in ["4PointBend", "3PointBend"]:
                     FCSx4PB_Quench(self)
                 elif self.ginput["Geometry"]["Type"] == "Cylinder":
                     Cylinder_2D_Quench(self)

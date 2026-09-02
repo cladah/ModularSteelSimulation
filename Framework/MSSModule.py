@@ -132,6 +132,19 @@ def confirm_simulation_config_old():
         print("Approval denied. Aborting.")
         return None
 
+def select_result_file():
+    initial_dir = Path.cwd() / "Resultfiles"
+    if not initial_dir.exists():
+        initial_dir = Path.cwd()
+
+    root = tk.Tk()
+    root.withdraw()  # Hide the annoying little white window
+    selected_file = filedialog.askopenfilename(
+        initialdir=str(initial_dir),
+        title="Select file to plot"
+    )
+    root.destroy()
+    return selected_file
 
 def confirm_simulation_config():
     # 1. Open Directory Selector

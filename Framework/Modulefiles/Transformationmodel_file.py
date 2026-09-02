@@ -30,6 +30,7 @@ class Transformationmodelmodule(CalcModule):
             precalcinp = ["JMAK_tau_Ferrite", "JMAK_tau_Pearlite", "JMAK_tau_Bainite", "JMAK_n_Ferrite",
                           "JMAK_n_Pearlite",
                           "JMAK_n_Bainite", "KM_Ms_Martensite", "KM_b_Martensite"]
+            precalcinp = ["KM_Ms_Martensite", "KM_b_Martensite"]
             for pre in precalcinp:
                 values = readdatastreamcache(pre)
                 adjustdatastream({pre: values}, datapos="nodes")

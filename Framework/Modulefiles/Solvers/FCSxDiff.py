@@ -23,7 +23,6 @@ from ufl import (
 from dolfinx.fem.petsc import NonlinearProblem
 from dolfinx.nls.petsc import NewtonSolver
 from petsc4py import PETSc
-from dolfinx.io import XDMFFile, gmshio
 import adios4dolfinx
 import dolfinx
 from dolfinx.fem import Function, FunctionSpace, Constant, dirichletbc, form, locate_dofs_topological, assemble_scalar, assemble_vector

@@ -5,9 +5,10 @@ import numpy as np
 import meshio
 import os
 from mpi4py import MPI
-from dolfinx.io import gmshio, XDMFFile
+from dolfinx.io import XDMFFile
 import pyvista
 import dolfinx
+from dolfinx.io import gmsh as gmshio
 def plot_mesh(mesh: dolfinx.mesh.Mesh, values = None):
     """
     Given a DOLFINx mesh, create a `pyvista.UnstructuredGrid`,
@@ -172,7 +173,7 @@ def fourPointBend_3D(parent):
 
     mesh = meshio.read("Resultfiles/Mesh.msh")
     #meshio.write("Resultfiles/Mesh.nas", mesh)
-    domain, cell_tags, facet_tags = gmshio.model_to_mesh(
+    domain, cell_tags, facet_tags, *others = gmshio.model_to_mesh(
         gmsh.model, MPI.COMM_WORLD, 0, gdim=gdim
     )
     domain.name = "Grid"
@@ -278,7 +279,7 @@ def fourPointBend_2D(parent):
 
     mesh = meshio.read("Resultfiles/Mesh.msh")
     meshio.write("Resultfiles/Mesh.nas", mesh)
-    domain, cell_tags, facet_tags = gmshio.model_to_mesh(
+    domain, cell_tags, facet_tags, *others = gmshio.model_to_mesh(
         gmsh.model, MPI.COMM_WORLD, 0, gdim=2
     )
     domain.name = "Grid"
@@ -313,6 +314,8 @@ def cylinder(parent):
     gdim = ginput['Geometry']["dim"]
     prog = ginput["Geometry"]["meshscaling"]
     n_nodes = ginput["Geometry"]["nodes"]
+    print("NUMBER OF NODES!")
+    print(n_nodes)
     gmsh.option.setNumber("Geometry.Tolerance", 1.E-6)
 
     # Adding three points
@@ -333,10 +336,9 @@ def cylinder(parent):
     gmsh.model.geo.mesh.setTransfiniteCurve(l2, n_nodes)
     gmsh.model.geo.mesh.setTransfiniteSurface(s1)
 
-    gmsh.model.geo.mesh.setRecombine(gdim, s1)
+    #gmsh.model.geo.mesh.setRecombine(gdim, s1)
 
     gmsh.model.geo.synchronize()
-    gmsh.model.mesh.generate(gdim)
 
     gmsh.model.addPhysicalGroup(gdim, [s1], tag=1, name="Grid_Surface")
     gmsh.model.mesh.generate(gdim)
@@ -344,18 +346,22 @@ def cylinder(parent):
     # ----------------------
     gmsh.write("Resultfiles/Mesh.msh")
     gmsh.write("Resultfiles/Mesh.vtk")
+
     # print(gmsh.model.mesh.setOrder())
     print(*gmsh.logger.get(), sep="\n")
 
     parent.updateprogress(0.8)
     mesh = meshio.read("Resultfiles/Mesh.msh")
-    # meshio.write("Resultfiles/Mesh.nas", mesh)
 
-    domain, cell_tags, facet_tags = gmshio.model_to_mesh(
-        gmsh.model,
-        comm=MPI.COMM_WORLD,
-        rank=0,
-        gdim=gdim
+    #domain, cell_tags, facet_tags = dolfinx.io.gmsh.model_to_mesh(
+    #    gmsh.model,
+    #    comm=MPI.COMM_WORLD,
+    #    rank=0,
+    #    gdim=gdim
+    #    gdim=gdim
+    #)
+    domain, cell_tags, facet_tags, *others = gmshio.model_to_mesh(
+        gmsh.model, comm=MPI.COMM_WORLD, rank=0, gdim=gdim
     )
 
     domain.name = "Grid"
@@ -363,12 +369,13 @@ def cylinder(parent):
         file.write_mesh(domain)
 
     createdatastream(mesh)
-    # gmsh.fltk.run()
 
     with meshio.xdmf.TimeSeriesReader("Datastream.xdmf") as reader:
         points, cells = reader.read_points_cells()
     gmsh.finalize()
     parent.updateprogress(1.0)
+    return
+
     import pyvista as pv
     from dolfinx import plot
 
@@ -388,6 +395,8 @@ def gmshsolver(parent):
     if ginput["Geometry"]["Type"] == "Cylinder":
         cylinder(parent)
     elif ginput["Geometry"]["Type"] == "4PointBend":
+        four_point_bend(parent)
+    elif ginput["Geometry"]["Type"] == "3PointBend":
         four_point_bend(parent)
     else:
         raise KeyError("Geometry not implemented. ")

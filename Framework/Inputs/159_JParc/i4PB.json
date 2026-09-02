@@ -1,8 +1,8 @@
 {
   "LoadingType": "Force",
-  "Pmax": 15000,
-  "Umax": 0.01,
-  "loadsteps": 2,
+  "Pmax": 12000,
+  "Umax": 0.001,
+  "loadsteps": 1,
   "Materialtype": "Elastic",
   "MixtureModel": "RuleofMix",
   "Austenite": {

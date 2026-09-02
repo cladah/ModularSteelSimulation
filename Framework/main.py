@@ -10,7 +10,7 @@ from Result_GUI import Result_MainApp, Compare_MainApp
 from Datastream_file import createdatastreamcache, removedatastreamcache, savedatastream
 from HelpFile import createinputcache, read_geninput, reset_output, get_file_path, checkDatabase
 import customtkinter as ctk
-from Postprocessing.dataextraction import ResultPlotting, export_data, interactive_datastream_plotter, plotting_over_axis
+from Postprocessing.dataextraction import ResultPlotting, export_data, interactive_xdmf_plotter, plotting_over_axis, plotting_over_line
 import MSSModule as MSS
 
 def progressmonitor(tid, module):
@@ -138,6 +138,8 @@ def Test():
     gmsh.finalize()
 
 def main():
+    import dolfinx
+    print(dolfinx.__version__)
     menu = (
         "\n--- Simulation Manager ---\n"
         "1 - Run Simulation\n"
@@ -145,7 +147,7 @@ def main():
         "3 - View Results\n"
         "4 - Export Data\n"
         "5 - Compare Files\n"
-        "6 - Debug/Test Read\n"
+        "6 - Plot xdmf\n"
         "7 - Plot value over axis\n"
         "8 - Check CHALPHAD database\n"
         "9 - Optimization\n"
@@ -165,7 +167,7 @@ def main():
             case 1:
                 done = MSS.run_simulation()
                 if done:
-                    interactive_datastream_plotter()
+                    interactive_xdmf_plotter()
             case 2:
                 GUI()
             case 3:
@@ -173,7 +175,7 @@ def main():
             case 4:
                 filename = get_file_path("Select XDMF to Export")
                 if filename:
-                    export_data(filename, ["Composition/C", "Martensite"], -1)
+                    export_data(filename, ["Composition_C", "Martensite"], -1)
             case 5:
                 file1 = get_file_path("Select First XDMF")
                 file2 = get_file_path("Select Second XDMF")
@@ -181,15 +183,19 @@ def main():
                     ResultPlotting([file1, file2], "Composition/C")
 
             case 6:
-                interactive_datastream_plotter()
+                file = MSS.select_result_file()
+                while True:
+                    interactive_xdmf_plotter(file)
             case 7:
-                plotting_over_axis()
+                file = MSS.select_result_file()
+                while True:
+                    plotting_over_axis(file)
             case 8:
                 checkDatabase()
             case 9:
                 MSS.optimization()
             case 10:
-                Test()
+                plotting_over_line()
             case 0:
                 print("Exiting...")
                 break

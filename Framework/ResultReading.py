@@ -1,6 +1,7 @@
 import meshio
 import numpy as np
 import json
+import pyvista as pv
 def read_result_input(filename):
     f = open(filename,'r')
     data = json.load(f)
@@ -179,12 +180,12 @@ def read_results_axis(filename, dataname, time=0):
         data = np.array(data)[indx]
         if dataname == "nodes":
             data = data[:, 0]
-    elif ginput["Geometry"]["Type"] == "4PointBend":
+    elif ginput["Geometry"]["Type"] in ["4PointBend","3PointBend"]:
         nodes = read_results(filename, 'nodes')
         if ginput["Geometry"]["dim"] == 3:
             #indx = np.where(np.isclose(nodes[:, 0], find_nearest(nodes[:, 0], 0.06)))
             indx = np.where(
-                np.isclose(nodes[:, 0], 0.06) &
+                np.isclose(nodes[:, 0], ginput["Geometry"]["width"]/2) &
                 np.isclose(nodes[:, 2], 0.0)
             )[0]
         else:
@@ -202,6 +203,61 @@ def read_results_axis(filename, dataname, time=0):
     else:
         raise KeyError("Geometry not implemented in read_results_axis")
     return data
+
+
+def read_line_data(filename, dataname, start_point, direction_vector, time_step=0, resolution=100, mirror_x=None):
+    """
+        Extracts values along a line defined by a start point and a vector.
+
+        Parameters:
+          start_point: List or array [x, y, z]
+          direction_vector: List or array [dx, dy, dz] (The length of this vector defines the line length)
+          mirror_x: Optional float. If provided, reflects the mesh at x=mirror_x before sampling.
+        """
+    # 1. Calculate the end point
+    start_point = np.array(start_point, dtype=float)
+    direction_vector = np.array(direction_vector, dtype=float)
+    end_point = start_point + direction_vector*0.12
+
+    # 2. Load the data using meshio
+    with meshio.xdmf.TimeSeriesReader(filename) as reader:
+        points, cells = reader.read_points_cells()
+        t, point_data, _ = reader.read_data(time_step)
+
+        if dataname not in point_data:
+            raise KeyError(f"Field '{dataname}' not found. Available: {list(point_data.keys())}")
+
+        data_array = point_data[dataname]
+
+    # 3. Construct PyVista Grid
+    if points.shape[1] == 2:
+        points = np.hstack([points, np.zeros((points.shape[0], 1))])
+
+    # Simplified linear cell mapping
+    cell_map = {"triangle": 5, "quad": 9, "tetra": 10, "hexahedron": 12,
+                "triangle6": 22, "quad8": 23, "tetra10": 24, "hexahedron20": 25}
+
+    cell_conn = cells[0].data
+    vtk_type = cell_map.get(cells[0].type, 5)
+
+    cells_pv = np.hstack([np.full((len(cell_conn), 1), cell_conn.shape[1]), cell_conn])
+    grid = pv.UnstructuredGrid(cells_pv, np.full(len(cell_conn), vtk_type), points)
+    grid.point_data[dataname] = data_array
+
+    # 4. Optional Mirroring Logic
+    if mirror_x is not None:
+        print("reflecting")
+        grid = grid + grid.reflect(normal=(1, 0, 0), point=(mirror_x, 0, 0))
+
+    # 5. Sample over the line
+    # Note: PyVista handles the interpolation automatically
+    line = grid.sample_over_line(start_point, end_point, resolution=resolution)
+
+    # 6. Extract results
+    distances = line["Distance"]  # Distance from start_point
+    sampled_values = line[dataname]
+
+    return distances, sampled_values
 
 def read_results_mesh(filename):
     import matplotlib as plt

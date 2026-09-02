@@ -1,8 +1,8 @@
 {
     "RerunAll": false,
-    "InputDirectory": "159_IMAT_LPC",
+    "InputDirectory": "159_JParc",
     "Datastream": {
-        "Savedirect": "159_IMAT.xdmf",
-        "Cachedirect": "Resultfiles/159_IMAT.xdmf"
+        "Savedirect": "159_JParc_3.xdmf",
+        "Cachedirect": "Resultfiles/159_JParc.xdmf"
     }
 }

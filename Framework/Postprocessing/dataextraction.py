@@ -1,4 +1,4 @@
-from Framework.ResultReading import read_results_axis, getnames_results, read_results, read_results_all
+from Framework.ResultReading import read_results_axis, getnames_results, read_results, read_results_all, read_line_data
 import numpy as np
 import dolfinx
 from dolfinx.io import XDMFFile
@@ -44,18 +44,18 @@ def export_data(filename, datanames, t=0, n=1):
         datanames = [datanames]
 
     import pandas as pd
-    x = read_results(filename, "nodes")[:, 0]
-    #x = read_results_axis(filename, "nodes")[:, 0]
+    x = read_results_axis(filename, "nodes")
+
     datadict = {"x": x}
     for dataname in datanames:
         print(dataname)
-        y = read_results(filename, dataname, t)
-        #y = read_results_axis(filename, dataname, t)
+        y = read_results_axis(filename, dataname, t)
         if len(np.shape(y)) == 1:
             datadict[dataname] = y
     datapd = pd.DataFrame(datadict).sort_values('x')
 
     num_rows = len(datapd)
+    """
     # Linearly increasing
     roll = 50
     datapd.rolling(roll, 1)
@@ -63,6 +63,9 @@ def export_data(filename, datanames, t=0, n=1):
     indices = np.append([0], indices)
     indices = np.unique(indices)
     datapd = datapd.iloc[indices, :]
+    print(datapd)
+    print(np.shape(datapd))
+    """
     datapd.to_csv("Resultfiles/TmpData.csv", index=False)
     print("\n---------------------------------------------------------------------\n")
 def xmdftesting():
@@ -105,11 +108,28 @@ def plotting_over_axis(filename="Datastream.xdmf"):
     data = read_results_axis(filename, selected_field)
     x = read_results_axis(filename, "nodes")
 
+
     plt.plot(x,data)
+    print(np.shape(data))
+    if np.shape(data)[1] == 6:
+        plt.legend(["x","y","z","xy","yz","xz"])
+    plt.show()
+
+def plotting_over_line(filename="Datastream.xdmf"):
+    available_fields = getnames_results(filename)
+    for i, f in enumerate(available_fields): print(f" [{i}] {f}")
+    field_idx = int(input("Choice: "))
+    selected_field = available_fields[field_idx]
+    for dist in np.linspace(0.0,0.002,10):
+        x, data = read_line_data(filename, selected_field, [0.0, dist, 0.0],[1.0, 0.0, 0.0], mirror_x=0.06)
+        plt.plot(x,data[:, 0]/1e6,label=f"Carbon content {np.round(dist*1000,2)} mm")
+    plt.xlabel("Distance along beam (mm)")
+    plt.ylabel("Stress along beam (MPa)")
+    plt.legend()
     plt.show()
 
 
-def interactive_datastream_plotter(filename="Datastream.xdmf"):
+def interactive_xdmf_plotter(filename="Datastream.xdmf"):
     """
     Uses meshio TimeSeriesReader to navigate through time steps
     and plot specific functions via PyVista.
@@ -146,7 +166,36 @@ def interactive_datastream_plotter(filename="Datastream.xdmf"):
         # 3. Read the specific data
         t, point_data, cell_data = reader.read_data(step_idx)
         data_array = point_data[selected_field]
+        warp_array = point_data["Displacement"]
         print(f">>> Loading {selected_field} at t = {t:.4f}s")
+    selected_axis = 0
+    if selected_field in ["Stress", "Strain_el"]:
+        print("Select axis:"
+              "\n[6] Norm"
+              "\n[0] x"
+              "\n[1] y"
+              "\n[2] z"
+              "\n[3] xz"
+              "\n[4] yz"
+              "\n[5] xy")
+        selected_axis = input("Choice: ")
+        if not selected_axis.isdigit():
+            print("Invalid input. Please enter a number.")
+            selected_axis = int(input("Choice: "))
+        selected_axis = int(selected_axis)
+        if selected_axis in [0, 1, 2, 3, 4, 5]:
+            print(np.shape(data_array))
+            data_array = data_array[:, selected_axis]
+    elif selected_field in ["Displacement"]:
+        print("Select axis:"
+              "\n[6] Norm"
+              "\n[0] x"
+              "\n[1] y"
+              "\n[2] z")
+        selected_axis = int(input("Choice: "))
+        if selected_axis in [0, 1, 2]:
+            print(np.shape(data_array))
+            data_array = data_array[:, selected_axis]
 
     # 4. Construct PyVista Grid
     cell_map = {
@@ -189,21 +238,71 @@ def interactive_datastream_plotter(filename="Datastream.xdmf"):
         data_array.shape[1] == 2 else data_array
     else:
         grid.point_data[selected_field] = data_array
+        grid.point_data["Displacement"] = warp_array
 
     # 6. Plotting
-    p = pv.Plotter()
+    p = pv.Plotter(window_size=[3840, 2160])
     p.add_text(f"Field: {selected_field} | Time: {t:.4f}s", font_size=6)
 
     # Auto-color logic
     cmap = "turbo" if "Stress" in selected_field else "inferno" if "Temp" in selected_field else "viridis"
+    axis_data = read_results_axis(filename, selected_field)
+    if len(np.shape(axis_data)) > 1:
+        if selected_axis != 6:
+            axis_data = axis_data[:, selected_axis]
+        else:
+            axis_data = np.abs(axis_data)
+    vmax = np.max(axis_data)
+    vmin = np.min(axis_data)
 
-    p.add_mesh(grid, scalars=selected_field, cmap=cmap, show_edges=True)
-    #p.add_scalar_bar()
-    p.view_xy()
-    p.show_grid(font_size=10)
+    displacement_key = "Displacement"
+    warp_factor = 2.0
+    print(grid.point_data)
+    if displacement_key in grid.point_data:
+        print("Deforming")
+        # Warping before reflection ensures symmetry is perfectly preserved
+        grid = grid.warp_by_vector(displacement_key, factor=warp_factor)
+    else:
+        print(f">>> Warning: '{displacement_key}' not found in grid point data. Skipping warp.")
+
+    if True:
+        reflected_grid = grid.reflect(normal=(1, 0, 0), point=(0.06, 0, 0))
+        grid = grid + reflected_grid
+        reflected_grid = grid.reflect(normal=(0, 0, 1), point=(0, 0, 0))
+        grid = grid + reflected_grid
+
+
+
+    p.add_mesh(grid, scalars=selected_field, cmap=cmap, show_edges=False)
+
+    try:
+        external_surface = grid.extract_surface()
+        contours = external_surface.triangulate().contour(
+            isosurfaces=15,
+            scalars=selected_field
+        )
+
+        # 4. Add the lines to the plotter
+        #p.add_mesh(contours, color="white", line_width=1, label="Boundary Contours")
+
+    except Exception as e:
+        print(f">>> Contour generation skipped: {e}")
+    p.enable_parallel_projection()
+    p.camera.up = (0, 1, 0)
+
+    # Position the camera in the (-x, +y, -z) quadrant
+    # This makes +x point down-right and +z point up-right
+    p.camera.position = (-3, 1, -4)
+
+    # Point the camera at the center of your data
+    p.camera.focal_point = (0, 0, 0)
+    p.reset_camera()
+    #p.view_xy()
+    #p.show_grid(font_size=10)
 
     print(">>> Launching PyVista window...")
-    p.show()
+    p.save_graphic("Resultfiles/pyvista.pdf")
+    p.show(screenshot="Resultfiles/pyvista.png")
 
 
 

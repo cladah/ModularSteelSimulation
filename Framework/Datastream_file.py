@@ -359,7 +359,7 @@ def getaxisvalues(dataname, time=0):
         data = np.array(data)[indx]
         if dataname == "nodes":
             data = data[:, 0]
-    elif ginput["Geometry"]["Type"]=="4PointBend":
+    elif ginput["Geometry"]["Type"] in ["4PointBend","3PointBend"]:
         nodes = readdatastream('nodes')
         if ginput["Geometry"]["dim"] == 3:
             mask = (nodes[:, 0] == 0) & (nodes[:, 2] == 0)

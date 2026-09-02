@@ -116,49 +116,24 @@ def load_field_to_function(domain, filename, field_name, step_idx=0):
     print(f">>> Successfully loaded '{field_name}' from step {step_idx} (t={t:.2e}s)")
     return u
 
-def load_field_to_function_old(domain, filename, field_name):
-    """
-    Loads a specific data field from the XDMF into a FEniCSx Function.
-    """
-    # Define a scalar FunctionSpace (Lagrange Degree 1 for node data)
-    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
-    u = dolfinx.fem.Function(V)
-    u.name = field_name
-
-    with XDMFFile(domain.comm, filename, "r") as xdmf:
-        try:
-            # Modern versions use read_checkpoint for Function data
-            xdmf.read_checkpoint(u, field_name, 0)
-        except AttributeError:
-            # Fallback for slightly different dev versions
-            # Some versions use a mesh-specific read
-            xdmf.read_mesh(name=field_name)
-
-    return u
-
-# strain and stress
-
 def voigt_strain(symm_tensor):
     return ufl.as_vector([symm_tensor[0, 0], symm_tensor[1, 1], 2.0 * symm_tensor[0, 1]])
-def voigt_to_tensor(v):
-    return ufl.as_tensor([[v[0], v[2] / 2.0], [v[2] / 2.0, v[1]]])
-
 
 def eps(u):
     return ufl.sym(ufl.grad(u))
 
-def sigma(u, minput):
+def sigma(u, T, fM, minput, gdim):
     E, nu = 210e9, 0.3
-    mu = E / (2 * (1 + nu))
-    lmbda = E * nu / ((1 + nu) * (1 - 2 * nu))
-    return lmbda * ufl.div(u) * ufl.Identity(len(u)) + 2 * mu * eps(u)
+    if minput["Materialtype"] == "Elastic":
+        return sigma_elastic()
+    elif minput["Materialtype"] == "LinearPlastic":
+        return sigma_TRIP()
 
 def sigma_elastic(elastic_eps, minput):
     E, nu = 210e9, 0.3
     mu = E / (2 * (1 + nu))
     lmbda = E * nu / ((1 + nu) * (1 - 2 * nu))
     return lmbda * ufl.tr(elastic_eps) * ufl.Identity(len(elastic_eps)) + 2.0 * mu * elastic_eps
-
 
 def sigma_TRIP(u, T, fM, minput, gdim):
     # 1. Kinematics
@@ -234,16 +209,16 @@ def sig_h(sigma):
 
 def MartensiteForm(domain, minput, V_fM, funcs):
     fM, fM_old, dfM = funcs["fM"], funcs["fM_old"], funcs["dfM"]
-    T, u = funcs["T"], funcs["u"]
+    T, u, dtime = funcs["T"], funcs["u"], funcs["dtime"]
 
     # Load parameters from the datastream we created/interpolated earlier
     Ms = load_field_to_function(domain, "Datastream.xdmf", "KM_Ms_Martensite")
     beta = load_field_to_function(domain, "Datastream.xdmf", "KM_b_Martensite")
     fMeq = 1.0
-
+    Ms_expr = Ms + 1e-7 * sigma_von_mises(u,minput)
     # Koistinen-Marburger Expression for current state
-    fM_target = ufl.conditional(ufl.gt(Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)), T),
-                                fMeq * (1.0 - ufl.exp(-beta * (Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)) - T))),
+    fM_target = ufl.conditional(ufl.gt(Ms_expr, T),
+                                fMeq * (1.0 - ufl.exp(-beta * (Ms_expr - T))),
                                 0.0)
 
     fM_expr = fem.Expression(fM_target, V_fM.element.interpolation_points)
