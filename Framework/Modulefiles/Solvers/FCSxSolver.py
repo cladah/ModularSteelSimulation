@@ -242,10 +242,13 @@ def MartensiteForm(domain, minput, V_fM, funcs):
     fMeq = 1.0
 
     # Koistinen-Marburger Expression for current state
-    fM_target = ufl.conditional(ufl.gt(Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)), T),
-                                fMeq * (1.0 - ufl.exp(-beta * (Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)) - T))),
+    #fM_target = ufl.conditional(ufl.gt(Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)), T),
+    #                            fMeq * (1.0 - ufl.exp(-beta * (Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)) - T))),
+    #                            0.0)
+    fM_target = ufl.conditional(ufl.gt(Ms, T),
+                                fMeq * (1.0 - ufl.exp(-beta * (
+                                            Ms - T))),
                                 0.0)
-
     fM_expr = fem.Expression(fM_target, V_fM.element.interpolation_points)
 
     # Residual: Standard L2 Projection of the algebraic KM equation

@@ -1,377 +1,1376 @@
-def FCSxPlast(parent):
+from mpi4py import MPI
+from dolfinx import mesh, fem, io, nls
+import ufl
+import basix
+from Framework.Datastream_file import readdatastream, readDatastreamMesh, adjustdatastream
+from dolfinx.fem.petsc import NonlinearProblem
+from scipy.interpolate import LinearNDInterpolator
+import pyvista as pv
+from dolfinx.io import XDMFFile
+from dolfinx import fem, mesh, plot, default_scalar_type
+from basix.ufl import element, mixed_element
+from petsc4py import PETSc
+from scipy.spatial import cKDTree
+import meshio
+import dolfinx
+import numpy as np
+from ..Solvers.FCSxHelper import load_field_to_function, tensor_to_voigt, voigt_to_tensor, load_datastream_to_fenicsx, \
+    ufl_piecewise_linear
+
+
+def MartensiteForm(domain, minput, V_fM, funcs):
+    fM, fM_old, dfM = funcs["fM"], funcs["fM_old"], funcs["dfM"]
+    T, u = funcs["T"], funcs["u"]
+
+    # Load parameters from the datastream we created/interpolated earlier
+    Ms = load_field_to_function(domain, "Datastream.xdmf", "KM_Ms_Martensite")
+    beta = load_field_to_function(domain, "Datastream.xdmf", "KM_b_Martensite")
+    fMeq = 1.0
+
+    fM_target = ufl.conditional(ufl.gt(Ms, T),
+                                fMeq * (1.0 - ufl.exp(-beta * (Ms - T))),
+                                0.0)
+    fM_expr = fem.Expression(fM_target, V_fM.element.interpolation_points)
+
+    # Residual: Standard L2 Projection of the algebraic KM equation
+    fM_res = (fM - fM_target) * dfM * ufl.dx
+
+    return fM_res, fM_expr
+
+def TemperatureForm(domain, minput, ginput, V_T, funcs):
+    Cv = 550.0 - 8.314
+    T0 = minput.get("CNtemp", 1113.15)
+    Tref = minput.get("Tref", 293.15)
+    T = funcs["T"]
+    dT = funcs["dT"]
+    u = funcs["u"]
+    dtime = funcs["dtime"]
+    k = 30.5
+    rho = 7800
+    Tsurf = 293.15
+
+    s = Cv / Tref * T
+    s_expr = fem.Expression(s, V_T.element.interpolation_points)
+    s_old = fem.Function(V_T)
+    s_old.x.array[:] = (T0 * Cv) / Tref
+    if ginput["Geometry"]["Type"] == "Cylinder":
+        radius = ginput.get("radius", 0.008)
+        f_map = lambda x: np.isclose(np.sqrt(x[0]**2+x[1]**2), radius)
+    elif ginput["Geometry"]["Type"] in ["4PointBend", "3PointBend"]:
+        f_map = lambda x: np.logical_or(np.isclose(x[1], ginput["Geometry"]["height"]),np.isclose(x[1], 0.0))
+    else:
+        raise KeyError("Geometry not implemented in Temperature form")
+
+    surface_facets = mesh.locate_entities_boundary(domain, domain.topology.dim - 1, f_map)
+    facet_tag = mesh.meshtags(domain, domain.topology.dim - 1, surface_facets, np.full(len(surface_facets), 1, dtype=np.int32))
+    surf_ds = ufl.Measure('ds', domain=domain, subdomain_data=facet_tag)
+    therm_res = (rho * Tref * (s - s_old) / dtime * dT + ufl.dot(k * ufl.grad(T), ufl.grad(dT))) * ufl.dx \
+                + 1000.0 * (T - Tsurf) * dT * surf_ds(1)
+
+    return therm_res, s_old, s_expr
+
+def lode_func(sigma):
     """
-    Elasto-plastic 2D small-strain von Mises model using FEniCSx (dolfinx / UFL).
+    Computes the Lode angle (theta) from a stress tensor using UFL.
+    Returns a value where cos(3*theta) is bounded between -1 and 1.
+    """
+    # 1. Identity tensor and Deviatoric stress
+    d = ufl.shape(sigma)[0]
+    I = ufl.Identity(d)
+    s = sigma - (1 / d) * ufl.tr(sigma) * I
 
-    This script provides a working framework for an incremental, small-strain
-    J2 (von Mises) associative plasticity with isotropic hardening.
+    # 2. Invariants
+    J2 = 0.5 * ufl.inner(s, s)
+    # J3 = det(s)
+    J3 = ufl.det(s)
 
-    Notes
-    -----
-    - Requires: dolfinx, ufl, mpi4py, petsc4py, numpy
-    - This is written to be clear and pedagogical. Depending on your installed
-      dolfinx/ufl versions you may need minor API adjustments (quadrature element
-      creation has evolved across dolfinx releases).
-    - The script uses quadrature function spaces to store history variables
-      (plastic strain and equivalent plastic strain) and performs a local
-      return-mapping at each quadrature point per load increment.
+    # 3. Prevent division by zero at hydrostatic states
+    eps = 1e-12
 
-    Run with (example):
-        mpirun -n 4 python fenicsx_elasto_plastic_2D.py
+    # 4. Calculate cos(3*theta)
+    cos3theta = (3 * ufl.sqrt(3) / 2) * (J3 / (J2 ** 1.5 + eps))
 
+    # 5. Clamp the value to [-1, 1] to avoid NaNs in acos due to precision
+    cos3theta = ufl.conditional(ufl.gt(cos3theta, 1.0), 1.0, cos3theta)
+    cos3theta = ufl.conditional(ufl.lt(cos3theta, -1.0), -1.0, cos3theta)
+    #L = -cos(3 * theta)
+    # Return theta
+    return cos3theta#(1 / 3) * ufl.acos(cos3theta)
+
+
+def Cylinder_2D_Quench(parent):
+    """
+    2D cylinder quenching with:
+
+        - FEniCSx nonlinear thermo-mechanical solve
+        - Martensitic transformation
+        - Small-strain J2 plasticity
+        - Isotropic linear hardening
+        - Quadrature-point plastic history variables
+        - Radial-return mapping
+
+    IMPORTANT:
+        The 2D mesh is treated as PLANE STRAIN.
+
+        Therefore the constitutive model is internally 3D:
+            xx, yy, zz, xy, yz, xz
+
+        with:
+            eps_zz = 0
+            eps_yz = 0
+            eps_xz = 0
+
+        Thermal and transformation strains are applied isotropic
+
+    Plastic history variables:
+        eps_p_old : quadrature-point plastic strain tensor
+        ep_eq_old : quadrature-point equivalent plastic strain
     """
 
-    from mpi4py import MPI
-    import numpy as np
-    from petsc4py import PETSc
-    import dolfinx
-    from dolfinx import mesh, fem, io
-    import ufl
+    print(
+        "Using FEniCSx solver: "
+        "2D Cylinder (Quenching + Quadrature J2 Plasticity)"
+    )
 
-    # -------------------- Problem parameters --------------------
-    E = 210e3  # Young's modulus (MPa)
-    nu = 0.3  # Poisson ratio
-    sigma_y0 = 250.0  # initial yield (MPa)
-    H_iso = 1000.0  # isotropic hardening modulus (MPa)
-
-    # geometry / mesh
-    L = 1.0
-    H = 0.2
-    nx, ny = 120, 20
-
-    # loading
-    n_steps = 40
-    u_max = 0.01  # prescribed displacement at top edge
-
-    # small tolerance
-    tol = 1e-8
-
-    # -------------------- Mesh and function spaces --------------------
     comm = MPI.COMM_WORLD
-    msh = mesh.create_rectangle(comm, ((0.0, 0.0), (L, H)), (nx, ny), cell_type=mesh.CellType.triangle)
+    rank = comm.rank
+    size = comm.size
 
-    V = fem.functionspace(msh, ("Lagrange", 1))
+    minput = parent.minput
+    ginput = parent.ginput
 
-    # Quadrature element degree
-    qd = 0
+    T0 = minput.get("CNtemp",1113.15)
 
-    # Create quadrature element for storing history variables
-    # Here we create scalar and symmetric-tensor quadrature elements.
-    cell = msh.ufl_cell()
-    Q_el = ufl.finiteelement("Quadrature", cell, qd, quad_scheme="default")
-    Q0 = ufl.finiteelement(Q_el.family(), cell, qd, dim=3)  # for 2D symmetric strain (eps_xx, eps_yy, eps_xy)
-    Q1 = ufl.finiteelement(Q_el.family(), cell, qd)
+    domain = load_datastream_to_fenicsx("Datastream.xdmf")
+    assert domain.comm.size == size
 
-    # Create FunctionSpaces from UFL elements
-    Q_sym = fem.FunctionSpace(msh, Q0)
-    Q_scal = fem.FunctionSpace(msh, Q1)
+    gdim = domain.geometry.dim
+    # ============================================================
+    # 2. XDMF -> FEniCSx node mapping
+    # ============================================================
 
-    # History variables (quadrature functions)
-    plastic_strain_q = fem.Function(Q_sym)  # plastic strain vector at quadrature points
-    eq_plastic_strain_q = fem.Function(Q_scal)  # equivalent plastic strain (alpha)
+    xdmf_nodes = readdatastream("nodes")
 
-    # Initialize to zero
-    plastic_strain_q.x.array[:] = 0.0
-    eq_plastic_strain_q.x.array[:] = 0.0
+    xdmf_nodes_2d = xdmf_nodes[:, :gdim]
 
-    # Displacement field
-    u = fem.Function(V)
-    du = fem.Function(V)
-    v = fem.TestFunction(V)
+    fenics_nodes = (domain.geometry.x[:, :gdim])
 
-    # Boundary conditions: bottom fixed, top prescribed vertical displacement
+    from scipy.spatial import cKDTree
 
-    def bottom_boundary(x):
+    tree = cKDTree(fenics_nodes)
+
+    distance, fenics_to_xdmf_map = tree.query(
+        xdmf_nodes_2d
+    )
+
+    if np.max(distance) > 1e-8:
+        print(
+            "WARNING: XDMF/FEniCS node mapping "
+            f"maximum distance = {np.max(distance):.3e}"
+        )
+
+    # ============================================================
+    # 3. Function spaces
+    # ============================================================
+
+    P2 = basix.ufl.element(
+        "Lagrange",
+        domain.basix_cell(),
+        2,
+        shape=(gdim,)
+    )
+
+    P1 = basix.ufl.element(
+        "Lagrange",
+        domain.basix_cell(),
+        1
+    )
+
+    V_P1 = fem.functionspace(
+        domain,
+        ("Lagrange", 1, (1,))
+    )
+
+    V_P1_vct = fem.functionspace(
+        domain,
+        ("Lagrange", 1, (gdim,))
+    )
+
+    voigt_dim_2d = 3
+
+    V_P1_voigt = fem.functionspace(
+        domain,
+        ("Lagrange", 1, (voigt_dim_2d,))
+    )
+
+    V_P2_vct = fem.functionspace(
+        domain,
+        ("Lagrange", 2, (gdim,))
+    )
+
+    # ============================================================
+    # 4. Mixed displacement / temperature / martensite space
+    # ============================================================
+
+    V_el = basix.ufl.mixed_element([P2, P1, P1])
+
+    V = fem.functionspace(domain, V_el)
+
+    U = fem.Function(V)
+
+    u, T, fM = ufl.split(U)
+
+    V_test = ufl.TestFunction(V)
+
+    du, dT, dfM = ufl.split(V_test)
+
+    dU = ufl.TrialFunction(V)
+
+    # ============================================================
+    # 5. Collapsed spaces
+    # ============================================================
+
+    V_u, _ = V.sub(0).collapse()
+
+    V_ux, _ = (V.sub(0).sub(0).collapse())
+
+    V_uy, _ = (V.sub(0).sub(1).collapse())
+    V_uz, _ = (V.sub(0).sub(2).collapse())
+
+    V_T, _ = V.sub(1).collapse()
+
+    V_fM, _ = V.sub(2).collapse()
+
+    # ============================================================
+    # 6. Time step
+    # ============================================================
+
+    dtime = fem.Constant(domain,
+        default_scalar_type(minput["quenchtime"] / minput["quench_steps"]))
+
+    # ============================================================
+    # 7. Previous global fields
+    # ============================================================
+
+    u_old = fem.Function(V_u)
+
+    T_old = fem.Function(V_T)
+
+    T_old.x.array[:] = T0
+
+    fM_old = fem.Function(V_fM)
+
+    # ============================================================
+    # 8. Material parameters
+    # ============================================================
+
+    E = minput.get(
+        "E",
+        210.0e9
+    )
+
+    nu = minput.get(
+        "nu",
+        0.30
+    )
+
+    sigma_y0 = minput.get(
+        "yield_stress",
+        minput.get(
+            "sigma_y",
+            1200.0e6
+        )
+    )
+
+    H = minput.get(
+        "hardening_modulus",
+        minput.get(
+            "H",
+            1.0e9
+        )
+    )
+
+    alpha = minput.get(
+        "alpha",
+        1.2e-5
+    )
+
+    beta = minput.get(
+        "beta",
+        0.03
+    )
+
+    # ============================================================
+    # 9. Lame constants
+    # ============================================================
+
+    mu = E / (
+        2.0 * (1.0 + nu)
+    )
+
+    lam = (
+        E * nu
+        / (
+            (1.0 + nu)
+            * (1.0 - 2.0 * nu)
+        )
+    )
+
+    # ============================================================
+    # 10. Quadrature degree
+    # ============================================================
+
+    q_degree = int(
+        minput.get(
+            "plasticity_quadrature_degree",
+            2
+        )
+    )
+
+    # ============================================================
+    # 11. Quadrature elements
+    #
+    # Plastic strain has 6 components:
+    #
+    # [xx, yy, zz, xy, yz, xz]
+    #
+    # Equivalent plastic strain is scalar.
+    # ============================================================
+
+    q_cell = domain.basix_cell()
+
+    Q_scalar_el = basix.ufl.quadrature_element(
+        q_cell,
+        degree=q_degree
+    )
+
+    Q_tensor_el = basix.ufl.quadrature_element(
+        q_cell,
+        degree=q_degree,
+        value_shape=(6,)
+    )
+
+    Q_scalar = fem.functionspace(
+        domain,
+        Q_scalar_el
+    )
+
+    Q_tensor = fem.functionspace(
+        domain,
+        Q_tensor_el
+    )
+
+    # ============================================================
+    # 12. Plastic history variables
+    #
+    # THESE ARE QUADRATURE-POINT VARIABLES.
+    # ============================================================
+
+    eps_p_old = fem.Function(
+        Q_tensor
+    )
+
+    ep_eq_old = fem.Function(
+        Q_scalar
+    )
+
+    eps_p_old.x.array[:] = 0.0
+
+    ep_eq_old.x.array[:] = 0.0
+
+    # ============================================================
+    # 13. Tensor helpers
+    # ============================================================
+
+    def voigt6_to_tensor(v):
+        """
+        [xx, yy, zz, xy, yz, xz]
+        ->
+        3x3 symmetric tensor
+        """
+
+        return ufl.as_tensor([
+            [v[0], v[3], v[5]],
+            [v[3], v[1], v[4]],
+            [v[5], v[4], v[2]]
+        ])
+
+    def tensor_to_voigt6(t):
+        return ufl.as_vector([
+            t[0, 0],
+            t[1, 1],
+            t[2, 2],
+            t[0, 1],
+            t[1, 2],
+            t[0, 2]
+        ])
+
+    def tensor_to_voigt2(t):
+        """
+        In-plane output only:
+            [xx, yy, xy]
+        """
+
+        return ufl.as_vector([
+            t[0, 0],
+            t[1, 1],
+            t[0, 1]
+        ])
+
+    # ============================================================
+    # 14. Identity
+    # ============================================================
+
+    I3 = ufl.Identity(3)
+
+    # ============================================================
+    # 15. Plane-strain total strain
+    #
+    # u is 2D:
+    #
+    # [ux]
+    # [uy]
+    #
+    # Therefore:
+    #
+    # eps_zz = 0
+    # eps_xz = 0
+    # eps_yz = 0
+    # ============================================================
+
+    eps_2d = ufl.sym(
+        ufl.grad(u)
+    )
+
+    eps_total = ufl.as_tensor([
+        [
+            eps_2d[0, 0],
+            eps_2d[0, 1],
+            0.0
+        ],
+        [
+            eps_2d[1, 0],
+            eps_2d[1, 1],
+            0.0
+        ],
+        [
+            0.0,
+            0.0,
+            0.0
+        ]
+    ])
+
+    # ============================================================
+    # 16. Thermal strain
+    # ============================================================
+
+    eps_th = (
+        alpha
+        * (T - T0)
+        * I3
+    )
+
+    # ============================================================
+    # 17. Transformation strain
+    # ============================================================
+
+    eps_tr = (
+        beta / 3.0
+    ) * fM * I3
+
+    # ============================================================
+    # 18. Previous plastic strain tensor
+    # ============================================================
+
+    eps_p_old_tensor = (
+        voigt6_to_tensor(
+            eps_p_old
+        )
+    )
+
+    # ============================================================
+    # 19. Trial elastic strain
+    # ============================================================
+
+    eps_el_trial = (
+        eps_total
+        - eps_th
+        - eps_tr
+        - eps_p_old_tensor
+    )
+
+    # ============================================================
+    # 20. Elastic trial stress
+    # ============================================================
+
+    sigma_trial = (
+        lam
+        * ufl.tr(eps_el_trial)
+        * I3
+        + 2.0
+        * mu
+        * eps_el_trial
+    )
+
+    # ============================================================
+    # 21. Trial deviatoric stress
+    # ============================================================
+
+    s_trial = (
+        sigma_trial
+        - (
+            ufl.tr(sigma_trial)
+            / 3.0
+        ) * I3
+    )
+
+    # ============================================================
+    # 22. Trial von-Mises stress
+    # ============================================================
+
+    q_trial = ufl.sqrt(
+        1.5
+        * ufl.inner(
+            s_trial,
+            s_trial
+        )
+        + 1.0e-20
+    )
+
+    # ============================================================
+    # 23. Isotropic hardening
+    # ============================================================
+
+    sigma_y_old = (sigma_y0 + H * ep_eq_old)
+
+    # ============================================================
+    # 24. Trial yield function
+    # ============================================================
+
+    f_trial = (q_trial - sigma_y_old)
+
+    # ============================================================
+    # 25. Radial return
+    # ============================================================
+
+    dgamma = ufl.conditional(ufl.gt(f_trial, 0.0),
+                             f_trial / (3.0 * mu + H), 0.0)
+
+    # ============================================================
+    # 26. Flow direction
+    # ============================================================
+
+    n_flow = (1.5 * s_trial / q_trial)
+
+    # ============================================================
+    # 27. Updated plastic strain
+    # ============================================================
+
+    eps_p_new_tensor = (eps_p_old_tensor + dgamma * n_flow)
+
+    # ============================================================
+    # 28. Updated equivalent plastic strain
+    # ============================================================
+
+    ep_eq_new = (ep_eq_old + dgamma)
+
+    # ============================================================
+    # 29. Updated elastic strain
+    # ============================================================
+
+    eps_el_new = (eps_total - eps_th
+                  - eps_tr - eps_p_new_tensor)
+
+    # ============================================================
+    # 30. Updated stress
+    # ============================================================
+
+    sigma = (lam * ufl.tr(eps_el_new) * I3
+             + 2.0 * mu * eps_el_new)
+
+    # ============================================================
+    # 31. Plasticity state dictionary
+    # ============================================================
+
+    funcs = {
+        "u": u,
+        "du": du,
+        "u_old": u_old,
+
+        "T": T,
+        "dT": dT,
+        "T_old": T_old,
+
+        "fM": fM,
+        "dfM": dfM,
+        "fM_old": fM_old,
+
+        "dtime": dtime,
+
+        # Plasticity
+        "eps_p_old": eps_p_old,
+        "ep_eq_old": ep_eq_old,
+
+        "eps_p_new": eps_p_new_tensor,
+        "ep_eq_new": ep_eq_new,
+
+        "sigma_trial": sigma_trial,
+        "sigma": sigma,
+
+        "dgamma": dgamma,
+        "yield_function": f_trial
+    }
+
+    # ============================================================
+    # 32. Boundary conditions
+    # ============================================================
+
+    def sym_x_BC(x):
+        return np.isclose(x[0], 0.0)
+
+    def sym_y_BC(x):
         return np.isclose(x[1], 0.0)
 
-    def top_boundary(x):
-        return np.isclose(x[1], H)
+    ux_sym_val = fem.Function(V_ux)
+    ux_sym_val.x.array[:] = 0.0
 
-    bc_bottom = fem.dirichletbc(PETSc.ScalarType(0.0), fem.locate_dofs_geometrical((V), bottom_boundary), V)
+    uy_sym_val = fem.Function(V_uy)
+    uy_sym_val.x.array[:] = 0.0
 
-    # For the top, we will apply incremental Dirichlet BC on y displacement
-    u_top = fem.Function(V)
+    uz_zero = fem.Function(V_uz)
+    uz_zero.x.array[:] = 0.0
 
-    # Helper: symmetric gradient (for plane strain) and Voigt mapping
-    def eps(u_field):
-        return ufl.sym(ufl.grad(u_field))
+    bcs = [
+        fem.dirichletbc(ux_sym_val,
+                        fem.locate_dofs_geometrical((V.sub(0).sub(0), V_ux), sym_x_BC),
+                        V.sub(0).sub(0)),
 
-    # Voigt mapping: eps_xx, eps_yy, 2*eps_xy (engineering shear)
-    def voigt_strain(symm_tensor):
-        return ufl.as_vector([symm_tensor[0, 0], symm_tensor[1, 1], 2.0 * symm_tensor[0, 1]])
+        fem.dirichletbc(uy_sym_val,
+                        fem.locate_dofs_geometrical((V.sub(0).sub(1), V_uy), sym_y_BC),
+                        V.sub(0).sub(1)),
 
-    # Elasticity constants (plane strain)
-    mu = E / (2.0 * (1.0 + nu))
-    lmbda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+        fem.dirichletbc(uz_zero,
+                        fem.locate_dofs_geometrical((V.sub(0).sub(2), V_uz),
+                                                    lambda x: np.full(x.shape[1], True, dtype=bool)),
+                        V.sub(0).sub(2))
+    ]
 
-    # Elastic constitutive matrix in Voigt (3x3 for plane strain)
-    C_mat = np.array([[lmbda + 2.0 * mu, lmbda, 0.0],
-                      [lmbda, lmbda + 2.0 * mu, 0.0],
-                      [0.0, 0.0, mu]])
-    C = ufl.as_matrix(C_mat.tolist())
+    # ============================================================
+    # 33. Thermal and martensitic residuals
+    # ============================================================
 
-    # Helper: from voigt vector to stress tensor
-    def voigt_to_tensor(v):
-        return ufl.as_tensor([[v[0], v[2] / 2.0], [v[2] / 2.0, v[1]]])
+    fM_res, fM_exp = MartensiteForm(domain, minput, V_fM, funcs)
 
-    # Internal energy / stress evaluation using history variables at quadrature
-    # We'll implement local return mapping in Python by extracting quadrature point
-    # arrays using dolfinx's evaluate mechanism. For clarity and portability we
-    # evaluate strain at quadrature points via UFL and then do pointwise updates.
+    T_res, s_old, s_expr = TemperatureForm(domain, minput, ginput, V_T, funcs)
 
-    # Define strain (symbolic)
-    strain_sym = eps(u)
-    strain_voigt = voigt_strain(strain_sym)
+    # ============================================================
+    # 34. Mechanical residual
+    # ============================================================
 
-    # Variational form will use an "effective" stress computed from history data;
-    # but it's difficult to express the return-mapping entirely in UFL. Instead
-    # we'll assemble the external BE and compute internal nodal residual by
-    # projecting stresses onto test functions. A simple (but robust) approach is
-    # to compute the consistent stresses at quadrature points, form the internal
-    # force vector via integration, and use PETSc to solve for increments.
+    u_res = (ufl.inner(sigma, ufl.sym(ufl.grad(du))) * ufl.dx)
 
-    # Precompute quadrature points number and mapping to local arrays
-    # We will use dolfinx's integrate/assemble to evaluate strain at quadrature
-    # points by creating a Form that samples strain into a Quadrature Function.
+    # ============================================================
+    # 35. Global residual
+    # ============================================================
 
-    # Create placeholders for projected stress (quadrature functions)
-    stress_q_el = ufl.TensorElement(Q_el.family(), cell, qd, shape=(2, 2))
-    Q_stress = fem.FunctionSpace(msh, stress_q_el)
-    stress_q = fem.Function(Q_stress)
+    Res = (
+        u_res
+        + T_res
+        + fM_res
+    )
 
-    # Utility: material return-mapping at a single Gauss point (Voigt vectors)
-    def return_map(strain_v, plast_v_old, alpha_old):
-        """
-        strain_v: numpy array shape (3,) total strain (voigt)
-        plast_v_old: numpy array shape (3,) plastic strain (voigt)
-        alpha_old: scalar equivalent plastic strain
+    # ============================================================
+    # 36. Automatic Jacobian
+    # ============================================================
 
-        returns: stress_voigt (3,), plast_v_new (3,), alpha_new (scalar)
-        """
-        # Elastic trial stress
-        eps_e_trial = strain_v - plast_v_old
-        sigma_trial = C_mat.dot(eps_e_trial)
+    Jac = ufl.derivative(Res, U, dU)
 
-        # Deviatoric part (in Voigt form) for 2D plane strain
-        # First compute hydrostatic (mean) stress
-        mean = (sigma_trial[0] + sigma_trial[1]) / 3.0
-        s_trial = sigma_trial.copy()
-        s_trial[0] -= mean
-        s_trial[1] -= mean
-        # s_trial[2] remains
+    # ============================================================
+    # 37. PETSc solver
+    # ============================================================
+    max_newton_iterations = 10
+    petsc_options = {
 
-        # von Mises equivalent (for 2D plane strain expression)
-        seq = np.sqrt(1.5 * (s_trial[0] ** 2 + s_trial[1] ** 2 + 2.0 * s_trial[2] ** 2))
+        "snes_type":
+            "newtonls",
 
-        # yield with isotropic hardening: f = seq - (sigma_y0 + H_iso*alpha_old)
-        f_trial = seq - (sigma_y0 + H_iso * alpha_old)
+        "snes_linesearch_type":
+            "bt",
 
-        if f_trial <= 0:
-            # elastic
-            return sigma_trial, plast_v_old, alpha_old
-        else:
-            # plastic correction: radial return (associative J2)
-            # plastic consistency: delta_gamma = f_trial / (3*mu + H_iso)
-            denom = 3.0 * mu + H_iso
-            dgamma = f_trial / denom
+        "snes_atol":
+            1.0e-7,
 
-            # update deviatoric stress magnitude
-            s_new = s_trial * (1.0 - (3.0 * mu * dgamma) / seq)
+        "snes_rtol":
+            1.0e-7,
 
-            # updated sigma
-            sigma_new = s_new.copy()
-            sigma_new[0] += mean
-            sigma_new[1] += mean
+        "snes_max_it":
+            max_newton_iterations,
 
-            # update plastic strain (voigt): plast_new = plast_old + dgamma * 3/2 * s_trial/seq
-            plast_dev_increment = (1.5 * dgamma) * (s_trial / seq)
-            plast_v_new = plast_v_old + plast_dev_increment
+        "snes_monitor":
+            None,
 
-            alpha_new = alpha_old + np.sqrt(2.0 / 3.0) * 3.0 / 2.0 * dgamma * (
-                        seq / seq)  # simplifies to sqrt(2/3)*3/2*dgamma
-            # simplification: alpha_new = alpha_old + np.sqrt(3.0/2.0) * dgamma
-            alpha_new = alpha_old + np.sqrt(3.0 / 2.0) * dgamma
+        "ksp_type":
+            "preonly",
 
-            return sigma_new, plast_v_new, alpha_new
+        "pc_type":
+            "lu",
 
-    # ----------------------------------------------------------------------------
-    # Assembly helper: compute residual vector R(u) =
-    #
-    #
-    # For simplicity we compute internal force vector by integrating stress: f_int = \int_B B^T sigma dV
-    # where B^T sigma operation is represented in weak form by inner(sigma, eps(v))*dx
-    # So residual = assemble(inner(sigma, eps(v))*dx) - external
-    # Here sigma at quadrature is obtained from local return mapping.
-    # ----------------------------------------------------------------------------
+        "pc_factor_mat_solver_type":
+            "mumps"
+    }
 
-    # Want to be able to evaluate strain at quadrature points for current displacement u
-    strain_q_el = ufl.as_vector([strain_sym[0, 0], strain_sym[1, 1], 2.0 * strain_sym[0, 1]])
-    form_sample = ufl.inner(strain_q_el, ufl.TestFunction(Q_sym)) * ufl.dx
+    problem = NonlinearProblem(
+        Res,
+        U,
+        bcs=bcs,
+        J=Jac,
+        petsc_options=petsc_options,
+        petsc_options_prefix="CylinderJ2_"
+    )
 
-    # Prepare assembler objects
-    a_dummy = fem.form(form_sample)
+    print(
+        ">>> Starting "
+        "quadrature-point J2 plasticity solve..."
+    )
 
-    # Create PETSc vectors for residual and incremental solve
-    u_vec = u.x
+    t = 0.0
+    t_end = float(minput["quenchtime"])
+    dt = t_end / float(minput["quench_steps"])
+    dt_min = float(minput.get("dt_min", dt / 10000.0))
+    dt_max = float(minput.get("dt_max", dt * 1000.0))
 
-    # External traction/force (none here), we will apply displacement BCs
+    max_retries = int(minput.get("max_step_retries", 20))
+    target_iterations = int(minput.get("target_newton_iterations", 8))
+    step = 0
 
-    # Create linear solver (we'll use Newton with assembled tangent approx via numerical differentiation)
-    solver = PETSc.KSP().create(comm)
-    solver.setType('preonly')
-    pc = solver.getPC()
-    pc.setType('lu')
+    # Timestep growth / reduction factors
+    dt_growth = float(minput.get("dt_growth", 1.5))
 
-    # Get dofmap for V
-    V_dofmap = V.dofmap
-    u_petsc = u.x
+    dt_cut = float(minput.get("dt_cut", 0.5))
 
-    # Functions for incremental BC on top edge
-    dofs_top = fem.locate_dofs_geometrical(V, top_boundary)
+    while t < t_end - 1.0e-14:
+        dt = min(dt, t_end - t)
+        dtime.value = dt
 
-    # Create measure for boundary to allow traction if needed
+        U_backup = U.x.array.copy()
 
-    # -------------------- Incremental load loop --------------------
-    # We'll do a simple Picard/Newton-like update: for each increment
-    #  - prescribe top displacement
-    #  - assemble internal residual using current u and history
-    #  - solve linearized problem (here we use a simple linear elastic tangent as approximation)
-    #  - update u
-    #  - update history variables at quadrature points via return mapping using strains at quadrature
+        u_old_backup = u_old.x.array.copy()
+        T_old_backup = T_old.x.array.copy()
+        fM_old_backup = fM_old.x.array.copy()
 
-    # Pre-assemble elastic stiffness matrix (consistent linear elastic tangent)
-    u_trial = ufl.TrialFunction(V)
-    a_elastic = ufl.inner(ufl.mat(C_mat.tolist()) * voigt_strain(ufl.sym(ufl.grad(u_trial))),
-                          voigt_strain(ufl.sym(ufl.grad(v)))) * ufl.dx
-    A_el = fem.petsc.assemble_matrix(fem.form(a_elastic))
-    A_el.assemble()
+        eps_p_old_backup = eps_p_old.x.array.copy()
+        ep_eq_old_backup = ep_eq_old.x.array.copy()
 
-    b = fem.petsc.create_vector(fem.form(ufl.inner(ufl.Constant(mesh.mpi_comm_world(), (0.0, 0.0)), v) * ufl.dx))
+        s_old_backup = s_old.x.array.copy()
 
-    # Setup KSP with the elastic matrix (used as approx tangent)
-    solver.setOperators(A_el)
-    solver.setFromOptions()
+        converged = False
 
-    # Load increments
-    for step in range(1, n_steps + 1):
-        disp_value = u_max * (step / n_steps)
-        # apply BC on top: set vertical displacement to disp_value
-        # build BC values array
-        u_top_vals = np.zeros(V.dim)
-        # create a Function to hold BC; easiest: apply DirichletBC on the y-component only
-        # But dolfinx requires full vector BC; we construct values from current u and set y for top dofs
-        u_arr = u.x.array
-        # get coordinates for dofs to identify y-component dofs
-        # Simpler approach: create boundary condition using a function with prescribed displacement
-        bc_func = fem.Function(V)
-        # set bc_func such that y displacement equals disp_value at top boundary, x = 0 (free)
-        coords = V.tabulate_dof_coordinates().reshape((-1, 2))
-        for i, c in enumerate(coords):
-            # dof ordering for VectorFunctionSpace is [ux_dofs..., uy_dofs...]
-            pass
-        # Instead, create two scalar spaces for convenience
-        Vx = fem.FunctionSpace(msh, ("Lagrange", 1))
-        Vy = fem.FunctionSpace(msh, ("Lagrange", 1))
-        bc_x = fem.dirichletbc(PETSc.ScalarType(0.0), fem.locate_dofs_geometrical(Vx, bottom_boundary), Vx)
-        bc_y_bottom = fem.dirichletbc(PETSc.ScalarType(0.0), fem.locate_dofs_geometrical(Vy, bottom_boundary), Vy)
+        for retry in range(max_retries + 1):
 
-        # Build vector Dirichlet for top: zero x, disp_value y
-        # We'll implement a simple pointwise setter for u on top dofs
-        dofs = fem.locate_dofs_geometrical(V, top_boundary)
-        # set y-component of these dofs
-        u_numpy = u.x.array
-        # V is vector space with interleaved components: (ux, uy)
-        # In dolfinx, dof ordering for VectorFunctionSpace is interleaved per node; so for node i, dof index is 2*i and 2*i+1
-        coords = V.tabulate_dof_coordinates().reshape((-1, 2))
-        for i, c in enumerate(coords):
-            if np.isclose(c[1], H):
-                u_numpy[2 * i + 1] = disp_value
+            # Restore state before each attempt
+            U.x.array[:] = U_backup
+            U.x.scatter_forward()
 
-        # Enforce bottom BC zero
-        for i, c in enumerate(coords):
-            if np.isclose(c[1], 0.0):
-                u_numpy[2 * i] = 0.0
-                u_numpy[2 * i + 1] = 0.0
+            u_old.x.array[:] = u_old_backup
+            T_old.x.array[:] = T_old_backup
+            fM_old.x.array[:] = fM_old_backup
 
-        u.x.array[:] = u_numpy
+            eps_p_old.x.array[:] = eps_p_old_backup
+            ep_eq_old.x.array[:] = ep_eq_old_backup
 
-        # Evaluate strain at quadrature points for current u
-        # NOTE: In modern dolfinx, we can assemble a form that projects strain into a quadrature function
-        # Here we attempt to project into plastic_strain_q to get strain values at quadrature
-        try:
-            # Build form that writes strain_voigt into Q_sym
-            form_strain_to_q = fem.form(ufl.inner(strain_voigt, ufl.TestFunction(Q_sym)) * ufl.dx)
-            # Use assemble_vector to fill
-            vec_strain = fem.petsc.create_vector(form_strain_to_q)
-            fem.petsc.assemble_vector(vec_strain, form_strain_to_q)
-            vec_strain.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
-            # Extract to numpy array
-            strain_q_vals = vec_strain.getArray()
-            # stride is 3 per quadrature point; reshape
-            n_q = int(strain_q_vals.size / 3)
-            strain_q_vals = strain_q_vals.reshape((n_q, 3))
-        except Exception as e:
-            # If projection fails (API differences), fallback to elementwise approximate evaluation
-            # For brevity, we will exit with an informative message
-            if comm.rank == 0:
-                print("Projection of strain to quadrature failed. The dolfinx API changed.\n"
-                      "Please adapt the projection section to your dolfinx version.\n"
-                      f"Caught exception: {e}")
-            break
+            s_old.x.array[:] = s_old_backup
 
-        # Now perform return mapping at all quadrature points owned by this rank
-        # History arrays stored in plastic_strain_q.x and eq_plastic_strain_q.x
-        plast_arr = plastic_strain_q.x.array.copy()
-        alpha_arr = eq_plastic_strain_q.x.array.copy()
-        # reshape plast_arr: it's length n_q*3
-        plast_arr = plast_arr.reshape((-1, 3))
-        alpha_arr = alpha_arr.reshape((-1, 1))
+            # Update actual timestep
+            dtime.value = dt
 
-        # For each quadrature point do return map
-        sigma_q = np.zeros_like(plast_arr)
-        for iq in range(strain_q_vals.shape[0]):
-            strain_v = strain_q_vals[iq, :]
-            plast_old = plast_arr[iq, :]
-            alpha_old = float(alpha_arr[iq, 0])
-            sigma_voigt, plast_new, alpha_new = return_map(strain_v, plast_old, alpha_old)
-            sigma_q[iq, :] = sigma_voigt
-            plast_arr[iq, :] = plast_new
-            alpha_arr[iq, 0] = alpha_new
+            try:
+                problem.solve()
 
-        # write back updated history
-        plastic_strain_q.x.array[:] = plast_arr.ravel()
-        eq_plastic_strain_q.x.array[:] = alpha_arr.ravel()
+                U.x.scatter_forward()
+                newton_iterations = problem.solver.getIterationNumber()
 
-        # Project stress (voigt) back to quadrature tensor function for computing residual
-        # Convert voigt stress to tensor entries
-        # stress_q stores 2x2 tensor per quadrature
-        stress_q_arr = np.zeros((sigma_q.shape[0], 4))
-        for i in range(sigma_q.shape[0]):
-            s = sigma_q[i]
-            stress_q_arr[i, 0] = s[0]
-            stress_q_arr[i, 1] = s[2] / 2.0
-            stress_q_arr[i, 2] = s[2] / 2.0
-            stress_q_arr[i, 3] = s[1]
+                if newton_iterations >= max_newton_iterations:
+                    raise Exception("To many newton iterations")
 
-        # Write stress into stress_q function vector
-        try:
-            stress_q.x.array[:] = stress_q_arr.ravel()
-        except Exception:
-            pass
+                converged = True
+            except Exception as exc:
 
-        # Assemble internal force vector by integrating inner(sigma, eps(v))*dx
-        # Build form using stress_q as a Function in quadrature; weak form: inner(sigma_q, eps(v))*dx
-        sigma_tensor = ufl.as_tensor(((stress_q[0, 0], stress_q[0, 1]), (stress_q[0, 1], stress_q[0, 3])))
-        # Note: above indexing of stress_q in UFL is symbolic; may not directly work across versions.
+                print("")
+                print("!!! Nonlinear solve not converged.")
 
-        # For simplicity, and to keep the script demonstrative, we stop here after updating history.
-        if comm.rank == 0:
-            print(f"Step {step}/{n_steps}: applied displacement {disp_value:.6f}")
+                print(f"Reason: {exc}")
+                print("")
 
-    # End load loop
+                converged = False
 
-    if comm.rank == 0:
+            if converged:
+                print(
+                    ">>> Nonlinear solve converged."
+                )
+
+                break
+            dt *= dt_cut
+
+            print(
+                f">>> Reducing timestep to "
+                f"{dt:.6e}"
+            )
+            if dt < dt_min:
+                raise RuntimeError(
+                    "Adaptive timestep became smaller than "
+                    f"dt_min = {dt_min:.6e}."
+                )
+
+                # Make sure we do not overshoot final time
+            dt = min(
+                dt,
+                t_end - t
+            )
+
+        if not converged:
+            raise RuntimeError(
+                "Adaptive timestep failed to converge."
+            )
+
+        # --------------------------------------------------------
+        # Update global history
+        # --------------------------------------------------------
+
+        u_old.interpolate(U.sub(0))
+        u_old.x.scatter_forward()
+
+        T_old.interpolate(U.sub(1))
+        T_old.x.scatter_forward()
+
+        fM_old.interpolate(U.sub(2))
+        fM_old.x.scatter_forward()
+
+        # ========================================================
+        # Update quadrature plastic history
+        #
+        # eps_p_new_tensor is a UFL expression evaluated at
+        # quadrature points.
+        # ========================================================
+
+        eps_p_new_voigt = (
+            tensor_to_voigt6(
+                eps_p_new_tensor
+            )
+        )
+
+        eps_p_update_expr = fem.Expression(
+            eps_p_new_voigt,
+            Q_tensor.element.interpolation_points
+        )
+
+        eps_p_update = fem.Function(
+            Q_tensor
+        )
+
+        eps_p_update.interpolate(
+            eps_p_update_expr
+        )
+
+        eps_p_old.x.array[:] = (
+            eps_p_update.x.array
+        )
+        eps_p_old.x.scatter_forward()
+
+        # ========================================================
+        # Equivalent plastic strain history
+        # ========================================================
+
+        ep_eq_update_expr = fem.Expression(
+            ep_eq_new,
+            Q_scalar.element.interpolation_points
+        )
+
+        ep_eq_update = fem.Function(
+            Q_scalar
+        )
+
+        ep_eq_update.interpolate(
+            ep_eq_update_expr
+        )
+
+        ep_eq_old.x.array[:] = (
+            ep_eq_update.x.array
+        )
+        ep_eq_old.x.scatter_forward()
+
+        # --------------------------------------------------------
+        # Update thermal history used by your existing
+        # TemperatureForm
+        # --------------------------------------------------------
+
+        s_old.interpolate(s_expr)
+        s_old.x.scatter_forward()
+
+        t += dt
+        step += 1
+
         print(
-            "Finished (demo script).\nNotes: This script demonstrates the structure of an elasto-plastic solver in dolfinx.\n"
-            "It performs quadrature-point return mapping and stores history variables in quadrature spaces.\n"
-            "To obtain a complete working solver you will likely need to adapt the quadrature projection and\n"
-            "assembly lines to match your dolfinx version, and implement a consistent tangent and linear solve.\n")
+            f">>> ACCEPTED: t = {t:.6e}, "
+            f"dt = {dt:.6e}"
+        )
+        dt = min(dt * dt_growth, dt_max)
+        dt = min(dt, t_end - t)
+    # ============================================================
+    # 40. Final solution fields
+    # ============================================================
+
+    u_final = U.sub(0).collapse()
+
+    T_final = U.sub(1).collapse()
+
+    fM_final = U.sub(2).collapse()
+
+    # ============================================================
+    # 41. Reconstruct final constitutive state
+    # ============================================================
+
+    eps_2d_final = ufl.sym(
+        ufl.grad(
+            U.sub(0)
+        )
+    )
+
+    eps_total_final = ufl.as_tensor([
+        [
+            eps_2d_final[0, 0],
+            eps_2d_final[0, 1],
+            0.0
+        ],
+        [
+            eps_2d_final[1, 0],
+            eps_2d_final[1, 1],
+            0.0
+        ],
+        [
+            0.0,
+            0.0,
+            0.0
+        ]
+    ])
+
+    eps_th_final = (
+        alpha
+        * (U.sub(1) - T0)
+        * I3
+    )
+
+    eps_tr_final = (
+        beta / 3.0
+    ) * U.sub(2) * I3
+
+    eps_p_final_tensor = (
+        voigt6_to_tensor(
+            eps_p_old
+        )
+    )
+
+    eps_el_final = (
+        eps_total_final
+        - eps_th_final
+        - eps_tr_final
+        - eps_p_final_tensor
+    )
+
+    sigma_final = (
+        lam
+        * ufl.tr(eps_el_final)
+        * I3
+        + 2.0
+        * mu
+        * eps_el_final
+    )
+
+    # ============================================================
+    # 42. Final von-Mises stress
+    # ============================================================
+
+    s_final = (
+        sigma_final
+        - (
+            ufl.tr(sigma_final)
+            / 3.0
+        ) * I3
+    )
+
+    vm_final = ufl.sqrt(
+        1.5
+        * ufl.inner(
+            s_final,
+            s_final
+        )
+        + 1.0e-20
+    )
+
+    vm_expr = fem.Expression(
+        vm_final,
+        V_P1.element.interpolation_points
+    )
+
+    vm_stress = fem.Function(
+        V_P1
+    )
+
+    vm_stress.interpolate(
+        vm_expr
+    )
+
+    # ============================================================
+    # 43. Hydrostatic stress
+    # ============================================================
+
+    sh_final = (
+        ufl.tr(sigma_final)
+        / 3.0
+    )
+
+    sh_expr = fem.Expression(
+        sh_final,
+        V_P1.element.interpolation_points
+    )
+
+    sh = fem.Function(
+        V_P1
+    )
+
+    sh.interpolate(
+        sh_expr
+    )
+
+    # ============================================================
+    # 44. Stress triaxiality
+    # ============================================================
+
+    trax_final = (
+        sh_final
+        / (
+            vm_final
+            + 1.0e-20
+        )
+    )
+
+    trax_expr = fem.Expression(
+        trax_final,
+        V_P1.element.interpolation_points
+    )
+
+    trax = fem.Function(
+        V_P1
+    )
+
+    trax.interpolate(
+        trax_expr
+    )
+
+    # ============================================================
+    # 45. Lode parameter
+    # ============================================================
+
+    lode_expr_ufl = lode_func(
+        sigma_final
+    )
+
+    lode_expr = fem.Expression(
+        lode_expr_ufl,
+        V_P1.element.interpolation_points
+    )
+
+    lode = fem.Function(
+        V_P1
+    )
+
+    lode.interpolate(
+        lode_expr
+    )
+
+    # ============================================================
+    # 46. In-plane stress output
+    #
+    # [sigma_xx, sigma_yy, sigma_xy]
+    # ============================================================
+
+    stress_2d_ufl = (
+        tensor_to_voigt2(
+            sigma_final
+        )
+    )
+
+    stress_expr = fem.Expression(
+        stress_2d_ufl,
+        V_P1_voigt.element.interpolation_points
+    )
+
+    stress = fem.Function(
+        V_P1_voigt
+    )
+
+    stress.interpolate(
+        stress_expr
+    )
+
+    # ============================================================
+    # 47. Total strain output
+    #
+    # [eps_xx, eps_yy, eps_xy]
+    # ============================================================
+
+    strain_2d_ufl = (
+        tensor_to_voigt2(
+            eps_total_final
+        )
+    )
+
+    strain_expr = fem.Expression(
+        strain_2d_ufl,
+        V_P1_voigt.element.interpolation_points
+    )
+
+    strain_fn = fem.Function(
+        V_P1_voigt
+    )
+
+    strain_fn.interpolate(
+        strain_expr
+    )
+
+    # ============================================================
+    # 48. Elastic strain output
+    # ============================================================
+
+    strain_el_2d_ufl = (
+        tensor_to_voigt2(
+            eps_el_final
+        )
+    )
+
+    strain_el_expr = fem.Expression(
+        strain_el_2d_ufl,
+        V_P1_voigt.element.interpolation_points
+    )
+
+    strain_el_fn = fem.Function(
+        V_P1_voigt
+    )
+
+    strain_el_fn.interpolate(
+        strain_el_expr
+    )
+
+    # ============================================================
+    # 49. Thermal strain output
+    # ============================================================
+
+    strain_th_2d_ufl = (
+        tensor_to_voigt2(
+            eps_th_final
+        )
+    )
+
+    strain_th_expr = fem.Expression(
+        strain_th_2d_ufl,
+        V_P1_voigt.element.interpolation_points
+    )
+
+    strain_th_fn = fem.Function(
+        V_P1_voigt
+    )
+
+    strain_th_fn.interpolate(
+        strain_th_expr
+    )
+
+    # ============================================================
+    # 50. Transformation strain output
+    # ============================================================
+
+    strain_tr_2d_ufl = (
+        tensor_to_voigt2(
+            eps_tr_final
+        )
+    )
+
+    strain_tr_expr = fem.Expression(
+        strain_tr_2d_ufl,
+        V_P1_voigt.element.interpolation_points
+    )
+
+    strain_tr_fn = fem.Function(
+        V_P1_voigt
+    )
+
+    strain_tr_fn.interpolate(
+        strain_tr_expr
+    )
+
+    # ============================================================
+    # 51. Plastic strain output
+    #
+    # Convert the quadrature history back to a nodal P1 field
+    # ONLY for visualization/output.
+    #
+    # The actual constitutive history remains at quadrature
+    # points.
+    # ============================================================
+
+    eps_p_2d_ufl = ufl.as_vector([
+        eps_p_old[0],
+        eps_p_old[1],
+        eps_p_old[3]
+    ])
+
+    eps_p_expr = fem.Expression(
+        eps_p_2d_ufl,
+        V_P1_voigt.element.interpolation_points
+    )
+
+    eps_p_fn = fem.Function(
+        V_P1_voigt
+    )
+
+    eps_p_fn.interpolate(
+        eps_p_expr
+    )
+
+    # ============================================================
+    # 52. Equivalent plastic strain output
+    # ============================================================
+
+    ep_eq_expr = fem.Expression(
+        ep_eq_old,
+        V_P1.element.interpolation_points
+    )
+
+    ep_eq_fn = fem.Function(
+        V_P1
+    )
+
+    ep_eq_fn.interpolate(
+        ep_eq_expr
+    )
+
+    # ============================================================
+    # 53. Final yield function
+    # ============================================================
+
+    sigma_y_final = (
+        sigma_y0
+        + H * ep_eq_old
+    )
+
+    yield_final = (
+        vm_final
+        - sigma_y_final
+    )
+
+    yield_expr = fem.Expression(
+        yield_final,
+        V_P1.element.interpolation_points
+    )
+
+    yield_fn = fem.Function(
+        V_P1
+    )
+
+    yield_fn.interpolate(
+        yield_expr
+    )
+
+    # ============================================================
+    # 54. Results
+    # ============================================================
+
+    res_dict = {
+
+        "Displacement":
+            u_final.x.array
+            .reshape(-1, gdim)
+            [fenics_to_xdmf_map],
+
+        "Temperature":
+            T_final.x.array
+            [fenics_to_xdmf_map],
+
+        "vonMises":
+            vm_stress.x.array
+            [fenics_to_xdmf_map],
+
+        "Martensite":
+            fM_final.x.array
+            [fenics_to_xdmf_map],
+
+        "Austenite":
+            (
+                1.0
+                - fM_final.x.array
+            )
+            [fenics_to_xdmf_map],
+
+        "Stress":
+            stress.x.array.real
+            .reshape(-1, 3)
+            [fenics_to_xdmf_map],
+
+        "Strain":
+            strain_fn.x.array.real
+            .reshape(-1, 3)
+            [fenics_to_xdmf_map],
+
+        "Strain_el":
+            strain_el_fn.x.array.real
+            .reshape(-1, 3)
+            [fenics_to_xdmf_map],
+
+        "Strain_th":
+            strain_th_fn.x.array.real
+            .reshape(-1, 3)
+            [fenics_to_xdmf_map],
+
+        "Strain_trip":
+            strain_tr_fn.x.array.real
+            .reshape(-1, 3)
+            [fenics_to_xdmf_map],
+
+        "PlasticStrain":
+            eps_p_fn.x.array.real
+            .reshape(-1, 3)
+            [fenics_to_xdmf_map],
+
+        "EquivalentPlasticStrain":
+            ep_eq_fn.x.array.real
+            [fenics_to_xdmf_map],
+
+        "YieldFunction":
+            yield_fn.x.array.real
+            [fenics_to_xdmf_map],
+
+        "Stress_hydrostatic":
+            sh.x.array.real
+            [fenics_to_xdmf_map],
+
+        "Triaxiality":
+            trax.x.array.real
+            [fenics_to_xdmf_map],
+
+        "Lode":
+            lode.x.array.real
+            [fenics_to_xdmf_map]
+    }
+
+    # ============================================================
+    # 55. Write results
+    # ============================================================
+
+    adjustdatastream(
+        res_dict,
+        datapos="nodes",
+        t_data=0.0
+    )
+
+    print(
+        ">>> Quadrature-point J2 plasticity "
+        "quench solve finished."
+    )

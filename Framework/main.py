@@ -180,7 +180,7 @@ def main():
                 file1 = get_file_path("Select First XDMF")
                 file2 = get_file_path("Select Second XDMF")
                 if file1 and file2:
-                    ResultPlotting([file1, file2], "Composition/C")
+                    ResultPlotting([file1, file2], 'Martensite')
 
             case 6:
                 file = MSS.select_result_file()
@@ -195,7 +195,13 @@ def main():
             case 9:
                 MSS.optimization()
             case 10:
-                plotting_over_line()
+                from NewGUI import XDMFViewerWindow
+                from PyQt6.QtWidgets import QApplication
+                app = QApplication(sys.argv)
+                viewer = XDMFViewerWindow()
+                viewer.show()
+                sys.exit(app.exec())
+
             case 0:
                 print("Exiting...")
                 break

@@ -6,32 +6,62 @@ import json
 import os
 import pathlib
 from pathlib import Path
-import vtk
 from dolfinx import io, fem
 from mpi4py import MPI
 import h5py
-import ufl
-import adios4dolfinx
+from typing import Any
 
 class Datastream:
-    def __init__(self, filename):
+    """Manage mesh data and time-dependent simulation output."""
+
+    VALID_POSITIONS = {"nodes", "cells"}
+    def __init__(self,
+                 filename: str = "Datastream",
+                 domain: meshio.Mesh | None = None,)->None:
         self.filename = filename
-        self.data = []
+        self.domain = domain
+        self.data: dict[float, dict[str, dict[str, Any]]] = {}
 
-    def getstructure(self):
-        return self.data
+    def get_structure(self) -> dict[str, Any]:
+        """Return metadata describing the datastream."""
+        return {
+            "filename": str(self.filename),
+            "mesh_initialized": self.domain is not None,
+            "timesteps": sorted(self.data.keys()),
+            "data": {
+                time: {
+                    position: list(values.keys())
+                    for position, values in datasets.items()
+                }
+                for time, datasets in self.data.items()
+            },
+        }
 
-    def adddata(self, data, datapos="nodes", t_data=0):
-        try:
-            if type(data) == dict:
-                pass
-            else:
-                raise TypeError
-        except TypeError:
-            raise KeyError("datatype for datastream storage should be a dict")
+    def adddata(self,
+        data: dict[str, Any],
+        datapos: str = "nodes",
+        t_data: float = 0.0,
+    ) -> None:
+
+        if not isinstance(data, dict):
+            raise TypeError("Datastream data must be a dictionary.")
+
+        if datapos not in self.VALID_POSITIONS:
+            raise ValueError(
+                f"Invalid data position {datapos!r}. "
+                f"Expected one of {sorted(self.VALID_POSITIONS)}."
+            )
+        if not np.isfinite(t_data):
+            raise ValueError("Timestep must be a finite number.")
+
+        if self.domain is None:
+            raise RuntimeError("A mesh must be supplied before adding data.")
+
+        if not data:
+            return
 
         with io.XDMFFile(MPI.COMM_WORLD,"Datastream.xdmf") as xdmf:
-            xdmf.write_function(data,t_data)
+            xdmf.write_function(data, t_data)
 
     def getdata(self):
         pass

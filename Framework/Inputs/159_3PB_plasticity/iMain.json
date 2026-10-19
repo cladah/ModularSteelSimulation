@@ -1,0 +1,42 @@
+{
+  "Optimization": "iOpt",
+  "Modules": ["Meshing", "Diffusion", "Diffusion","TTTdiagram","TransformMod","Quenching","MechTest"],
+  "Inputs": ["iMain", "iDiff_1", "iDiff_Rehard","iTTT","iTTT","iFEM","i3PB"],
+  "Rerun": [false, false, false, true, false, false,true],
+  "Geometry": {
+    "Type": "3PointBend",
+    "dim": 3,
+    "height": 0.012,
+    "width": 0.12,
+    "thickness": 0.008,
+    "nodesWidth": 20,
+    "nodesHeight": 160,
+    "nodes": 160,
+    "nodesThickness": 3,
+    "meshscaling": 0.9
+  },
+  "Material": {
+    "Name": "Grade 159",
+    "Dependentmat": "Fe",
+    "Composition": {
+      "C": 0.2,
+      "N": 0.01,
+      "Cr": 1.9,
+      "Mn": 0.9,
+      "Mo": 0.5,
+      "Si": 0.3
+    }
+  },
+  "Programs": {
+    "Meshing": "Gmsh",
+    "Coupling": "Stagg",
+    "Diffusion": "TC",
+    "TTTdiagram": "TC",
+    "TransformMod": "Python",
+    "Quenching": "FCSx",
+    "Thermal": "FCSx",
+    "FEM": "FCSx",
+    "MechTest": "FCSx",
+    "All": ["Gmsh","TC","Python","FCSx","Comsol"]
+  }
+}

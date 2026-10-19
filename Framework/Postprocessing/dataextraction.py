@@ -26,7 +26,7 @@ def ResultPlotting(filenames, dataname, point=[0., 0.], tid=-1):
         print(names)
         tmpdata = read_results_axis(filename, dataname, tid)
         xyz = read_results_axis(filename, "nodes")
-        plt.plot(xyz[:, 0]*1000, tmpdata)
+        plt.plot(xyz[:]*1000, tmpdata)
     plt.legend(filenames)
     plt.title(dataname)
     plt.xlabel(lbls[0])
@@ -111,8 +111,8 @@ def plotting_over_axis(filename="Datastream.xdmf"):
 
     plt.plot(x,data)
     print(np.shape(data))
-    if np.shape(data)[1] == 6:
-        plt.legend(["x","y","z","xy","yz","xz"])
+    #if np.shape(data)[1] == 6:
+    #    plt.legend(["x","y","z","xy","yz","xz"])
     plt.show()
 
 def plotting_over_line(filename="Datastream.xdmf"):
@@ -166,7 +166,7 @@ def interactive_xdmf_plotter(filename="Datastream.xdmf"):
         # 3. Read the specific data
         t, point_data, cell_data = reader.read_data(step_idx)
         data_array = point_data[selected_field]
-        warp_array = point_data["Displacement"]
+        #warp_array = point_data["Displacement"]
         print(f">>> Loading {selected_field} at t = {t:.4f}s")
     selected_axis = 0
     if selected_field in ["Stress", "Strain_el"]:
@@ -238,10 +238,10 @@ def interactive_xdmf_plotter(filename="Datastream.xdmf"):
         data_array.shape[1] == 2 else data_array
     else:
         grid.point_data[selected_field] = data_array
-        grid.point_data["Displacement"] = warp_array
+        #grid.point_data["Displacement"] = warp_array
 
     # 6. Plotting
-    p = pv.Plotter(window_size=[3840, 2160])
+    p = pv.Plotter(window_size=[2560,1440])
     p.add_text(f"Field: {selected_field} | Time: {t:.4f}s", font_size=6)
 
     # Auto-color logic

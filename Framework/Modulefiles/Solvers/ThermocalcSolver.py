@@ -6,6 +6,11 @@ from Framework.HelpFile import read_geninput
 from Framework.Datastream_file import getaxisvalues
 
 
+def get_databases():
+    db = "TCFE15"
+    kdb = "MOBFE9"
+    return db, kdb
+
 def rounding5(x, rnr=1):
     # Rounding to nearest 0.5
     base = .5/(10**rnr)
@@ -72,7 +77,7 @@ def getTTTcompositions():
 
 
 def TC_Cpot(ginput, minput):
-    database = "TCFE12"
+    database, _ = get_databases()
     dependentmat = ginput['Material']["Dependentmat"]
     composition = ginput['Material']["Composition"]
     phases = ["FCC_A1", "FCC_A1#2", "GAS", "GRAPHITE_A9"]
@@ -112,7 +117,7 @@ def TC_Cpot(ginput, minput):
         return activityC
 
 def TC_Mob(ginput, minput):
-    database = "TCFE12"
+    database = "TCFE15"
     dependentmat = ginput['Material']["Dependentmat"]
     composition = ginput['Material']["Composition"]
     phases = ["FCC_A1"]
@@ -156,7 +161,7 @@ def TCequalibrium(ginput,minput,type):
         dormantphases = ["C_S"]
         referencestates = {"C": "C_S", "N": "GAS"} # N should have a different reference state? uses amonium?
     elif type == "mat":
-        database = "TCFE12"
+        database = "TCFE15"
         dependentmat = ginput['Material']["Dependentmat"]
         composition = ginput['Material']["Composition"]
         phases = ["FCC_A1", "FCC_A1#2", "GAS", "GRAPHITE_A9"]
@@ -221,7 +226,7 @@ def TCDiffusionSolver(ginput, minput, compgrid):
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.ERROR)
         system = (session
-                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
+                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE15", "MOBFE9",
                                                                             [ginput['Material']["Dependentmat"]] + list(ginput['Material']["Composition"]))
                   .without_default_phases().select_phase("FCC_A1").select_phase("GAS")
                   .select_phase("FCC_A1#2").select_phase("CEMENTITE_D011").select_phase("GRAPHITE_A9")
@@ -348,7 +353,7 @@ def TCcarburizing_LPC(ginput, minput, activityair):
     with TCPython() as session:
         logging.getLogger("tc_python").setLevel(logging.INFO)
         system = (session
-                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE12", "MOBFE7",
+                  .select_thermodynamic_and_kinetic_databases_with_elements("TCFE15", "MOBFE7",
                                                                             [data['Material']["Dependentmat"]] + list(
                                                                                 data['Material']["Composition"]))
                   .without_default_phases().select_phase("FCC_A1").select_phase("GAS").select_phase(
@@ -462,7 +467,7 @@ def setmaterial(ginput,minput,type):
 def calculatePearlite(temperatures, composition):
     print("Pearlite model")
     ginput = read_geninput()
-    database = "TCFE12"
+    database = "TCFE15"
     kindatabase = "MOBFE7"
     dependentmat = ginput['Material']["Dependentmat"]
     phases = ["FCC_A1"]
@@ -545,38 +550,35 @@ def calculateBainite(temperatures, composition):
 def calculateMartensite(composition):
     print("Martensite model")
     ginput = read_geninput()
-    database = "TCFE12"
-    kindatabase = "MOBFE7"
+    database = "TCFE15"
+    kindatabase = "MOBFE9"
     dependentmat = ginput['Material']["Dependentmat"]
-    # composition = data['Material']["Composition"]
-    phases = ["FCC_A1"]
-
-    with TCPython() as start:
-        calculation = (
-            start
-            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase,
-                                                                      [dependentmat] + list(composition))
+    elements = list(dict.fromkeys([dependentmat] + list(composition)))
+    with TCPython() as session:
+        system = (
+            session
+            .select_thermodynamic_and_kinetic_databases_with_elements(database, kindatabase, elements)
             .deselect_phase("*")
             .select_phase("FCC_A1")
             .select_phase("BCC_A2")
             .select_phase("CEMENTITE")
             .get_system()
-            .with_property_model_calculation("Martensite Temperatures").set_temperature(1000).set_composition_unit(
-                CompositionUnit.MASS_PERCENT)
-            # .set_argument()
         )
-        for element in composition:
-            calculation.set_composition(element, composition[element])
+        calculation = (
+            system.with_property_model_calculation("Martensite Temperatures")
+            .set_composition_unit(CompositionUnit.MASS_PERCENT)
+        )
+        for element, value in composition.items():
+            calculation.set_composition(element, value)
 
         #print("Available arguments: {}".format(calculation.get_arguments()))
-        calc_result = (calculation.calculate()  # Aktiverar beräkningen
-                       )
+        calc_result = (calculation.calculate())
         #print("Available result quantities: {}".format(calc_result.get_result_quantities()))
-        start = calc_result.get_value_of("Ms")
-        half = calc_result.get_value_of("M50")
-        finish = calc_result.get_value_of("M99")
+        Ms = calc_result.get_value_of("Ms")
+        M50 = calc_result.get_value_of("M50")
+        M99 = calc_result.get_value_of("M99")
         #print([start, half, finish])
-    return start, half, finish
+    return Ms, M50, M99
 
 def calculateFerrite(temperatures, composition):
     print("Ferrite model")
@@ -740,3 +742,57 @@ def testTC():
             finishtime.append(calc_result.get_value_of("Ferrite finish"))
         print("Available result quantities: {}".format(calc_result.get_result_quantities()))
     return starttime, halftime, finishtime
+def TCTemperingSolver(ginput, minput, compgrid):
+    with TCPython() as start:
+
+        print("\nLoading Thermo-Calc databases...")
+
+        system = (
+            start
+            .select_thermodynamic_and_kinetic_databases_with_elements(
+                TCFE_DATABASE,
+                MOBFE_DATABASE,
+                list(COMPOSITION.keys()) + ["Fe"]
+            )
+            .get_system()
+        )
+
+        cementite = PrecipitatePhase(CEMENTITE_PHASE)
+
+        cementite.set_nucleation_at_grain_boundaries(wetting_angle=CEMENTITE_WETTING_ANGLE)
+
+        # Optional explicit interfacial energy.
+        if CEMENTITE_INTERFACIAL_ENERGY is not None:
+            cementite.set_interfacial_energy(CEMENTITE_INTERFACIAL_ENERGY)
+
+        # Select growth model.
+        cementite.with_growth_rate_model(GROWTH_MODEL)
+
+        # Cementite is normally treated as spherical by default.
+        cementite.set_precipitate_morphology(PrecipitateMorphology.SPHERE)
+
+        matrix = MatrixPhase(MATRIX_PHASE)
+
+        # Effective martensite grain size.
+        matrix.with_grain_growth_model(GrainGrowthModel.fixed_grain_size(MARTENSITE_GRAIN_RADIUS_M))
+
+        # High dislocation density characteristic of quenched martensite.
+        matrix.set_dislocation_density(DISLOCATION_DENSITY_M2)
+
+        # Add cementite to the matrix.
+        matrix.add_precipitate_phase(cementite)
+
+        calculation = (system.with_isothermal_precipitation_calculation())
+
+        calculation.set_composition_unit(CompositionUnit.MASS_PERCENT)
+
+        for element, value in COMPOSITION.items():
+            calculation.set_composition(element,value)
+        calculation.set_temperature(temperature_K)
+        calculation.set_simulation_time(SIMULATION_TIME_S)
+        calculation.with_matrix_phase(matrix)
+        print("\nStarting PRISMA calculation...")
+        print("This may take some time.\n")
+
+        result = calculation.calculate()
+    pass

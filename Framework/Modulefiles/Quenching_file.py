@@ -10,7 +10,7 @@ class Quenchingmodule(CalcModule):
         print(self.minput)
         outstr = ["\n---------------------------------------------------------------------\n",
                   "Quenching module: " + self.inputfile + "\n",
-                  "Material type: " + self.minput["Materialtype"],
+                  "Material type: " + self.minput["MaterialType"],
                   "Phase mixing model: " + self.minput["MixtureModel"],
                   "Quenching type: " + self.minput["quenchmedium"],
                   "Starting temp: ",
@@ -26,7 +26,8 @@ class Quenchingmodule(CalcModule):
             print(line)
 
         from Framework.Modulefiles.Solvers.ComsolSolver import runComsol
-        from Framework.Modulefiles.Solvers.FCSxSolver import FCSx4PB_Quench, Cylinder_2D_Quench
+        from Framework.Modulefiles.Solvers.FCSxSolver import FCSx4PB_Quench
+
 
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
@@ -50,6 +51,12 @@ class Quenchingmodule(CalcModule):
                 if self.ginput["Geometry"]["Type"] in ["4PointBend", "3PointBend"]:
                     FCSx4PB_Quench(self)
                 elif self.ginput["Geometry"]["Type"] == "Cylinder":
+                    if self.minput["MaterialType"] == "Elastic":
+                        from Framework.Modulefiles.Solvers.FCSxSolver import Cylinder_2D_Quench
+                    elif self.minput["MaterialType"] == "Plastic":
+                        from Framework.Modulefiles.Solvers.FCSxPlasticity import Cylinder_2D_Quench
+                    else:
+                        raise KeyError("Material type " + str(self.minput["MaterialType"]) + " not implemented in " + str(self.module) + " module")
                     Cylinder_2D_Quench(self)
                 else:
                     raise KeyError(str(self.program) + " not implemented in " + str(self.module) + " module")

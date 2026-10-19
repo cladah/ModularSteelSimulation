@@ -1,8 +1,8 @@
 {
-    "RerunAll": false,
-    "InputDirectory": "159_JParc",
+    "RerunAll": true,
+    "InputDirectory": "JParc_4PB",
     "Datastream": {
-        "Savedirect": "159_JParc_3.xdmf",
-        "Cachedirect": "Resultfiles/159_JParc.xdmf"
+        "Savedirect": "Test.xdmf",
+        "Cachedirect": "Resultfiles/JParc_4PB.xdmf"
     }
 }
