@@ -26,8 +26,6 @@ class Quenchingmodule(CalcModule):
             print(line)
 
         from Framework.Modulefiles.Solvers.ComsolSolver import runComsol
-        from Framework.Modulefiles.Solvers.FCSxSolver import FCSx4PB_Quench
-
 
         if not self.check_runcondition():
             print("Using precalculated " + str(self.module) + " simulation")
@@ -49,6 +47,7 @@ class Quenchingmodule(CalcModule):
             print('\nQuenching module')
             if self.program == 'FCSx':
                 if self.ginput["Geometry"]["Type"] in ["4PointBend", "3PointBend"]:
+                    from Framework.Modulefiles.Solvers.FCSxQuenching import FCSx4PB_Quench
                     FCSx4PB_Quench(self)
                 elif self.ginput["Geometry"]["Type"] == "Cylinder":
                     if self.minput["MaterialType"] == "Elastic":

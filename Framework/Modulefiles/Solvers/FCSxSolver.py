@@ -182,7 +182,6 @@ def sigma_TRIP(u, T, fM, minput, gdim):
     # 5. Hooke's Law (Lame Parameters)
     E, nu = 210e9, 0.3
     lmbda = E * nu / ((1 + nu) * (1 - 2 * nu))
-    lmbda = E * nu / (1 - nu**2)
     mu = E / (2 * (1 + nu))
 
     return lmbda * ufl.tr(epsilon_el) * I + 2 * mu * epsilon_el
@@ -241,17 +240,12 @@ def MartensiteForm(domain, minput, V_fM, funcs):
     beta = load_field_to_function(domain, "Datastream.xdmf", "KM_b_Martensite")
     fMeq = 1.0
 
-    # Koistinen-Marburger Expression for current state
-    #fM_target = ufl.conditional(ufl.gt(Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)), T),
-    #                            fMeq * (1.0 - ufl.exp(-beta * (Ms + 1e-7*sigma_von_mises(u,minput)*lode_func(sigma(u,minput)) - T))),
-    #                            0.0)
     fM_target = ufl.conditional(ufl.gt(Ms, T),
                                 fMeq * (1.0 - ufl.exp(-beta * (
                                             Ms - T))),
                                 0.0)
     fM_expr = fem.Expression(fM_target, V_fM.element.interpolation_points)
 
-    # Residual: Standard L2 Projection of the algebraic KM equation
     fM_res = (fM - fM_target) * dfM * ufl.dx
 
     return fM_res, fM_expr
@@ -266,7 +260,6 @@ def DisplacementForm(domain, minput, V_u, funcs):
     T = funcs["T"]
     T_old = funcs["T_old"]
     dT = funcs["dT"]
-    #s = sigma(u, minput)
     gdim = domain.geometry.dim
     s = sigma_TRIP(u, T, fM, minput, gdim)
     disp_res = ufl.inner(s, eps(du)) * ufl.dx
@@ -431,10 +424,6 @@ def FCSx4PB_Force(parent):
 
     # 4. History and Constants
     u_old = fem.Function(V_u)
-    #T_old = fem.Function(V_T)
-    #T_old.x.array[:] = 1113.15
-    #T_old.x.array[:] = 273.15 + 20
-    #fM_old = fem.Function(V_fM)
     T_old = load_field_to_function(domain, "Datastream.xdmf", "Temperature")
     fM_old = load_field_to_function(domain, "Datastream.xdmf", "Martensite")
 
@@ -568,6 +557,9 @@ def FCSx4PB_Quench(parent):
     minput = parent.minput
     ginput = parent.ginput
     T0 = 1113.15
+    length = ginput["Geometry"]["width"]
+    height = ginput["Geometry"]["height"]
+    thickness = ginput["Geometry"]["thickness"]
 
     # 1. Load Mesh
     domain = load_datastream_to_fenicsx("Datastream.xdmf")
@@ -629,14 +621,13 @@ def FCSx4PB_Quench(parent):
     funcs = {"u": u, "du": du, "u_old": u_old, "T": T, "dT": dT,
              "T_old": T_old, "fM": fM, "dfM": dfM, "fM_old": fM_old, "dtime": dtime}
 
-    # 5. Boundary Conditions (4-Point Bending)
-    def b1_BC(x):
-        return np.logical_and(np.isclose(x[0], 0.0), np.isclose(x[1], 0.0))
+    def b1_BC(x): # locking in x, y
+        return np.logical_and(np.isclose(x[0], 0.0), np.isclose(x[1], height/2))
 
-    def sym_x_BC(x):
-        return np.isclose(x[0], ginput["Geometry"]["width"]/2)
+    def sym_x_BC(x): # Symmetry in x (length)
+        return np.isclose(x[0], 0.0)
 
-    def sym_z_BC(x):
+    def sym_z_BC(x): # Symmetry in z (thickness)
         return np.isclose(x[2], 0.00)
 
     # Dirichlet setup
@@ -660,7 +651,7 @@ def FCSx4PB_Quench(parent):
     fM_dummy = (fM - fM_old) * dfM * ufl.dx
     u_res = DisplacementForm(domain, minput, V_u, funcs)
 
-    Res = u_res + T_res + fM_res
+    Res = u_res + T_res + fM_dummy
     Jac = ufl.derivative(Res, U, dU)
     petsc_options = {
         "snes_type": "newtonls",

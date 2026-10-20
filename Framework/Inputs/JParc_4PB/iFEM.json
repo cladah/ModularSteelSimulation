@@ -451,8 +451,8 @@
     },
     "model": "JMAK"
   },
-  "quenchtime": 100,
-  "quench_steps": 10,
+  "quenchtime": 200,
+  "quench_steps": 2,
   "quenchmedium": "oil",
   "quenchtemp": 293.15,
   "PlaneStrain": false,

@@ -196,7 +196,7 @@ def main():
                 MSS.optimization()
             case 10:
                 from NewGUI import XDMFViewerWindow
-                from PyQt6.QtWidgets import QApplication
+                from PyQt5.QtWidgets import QApplication
                 app = QApplication(sys.argv)
                 viewer = XDMFViewerWindow()
                 viewer.show()
