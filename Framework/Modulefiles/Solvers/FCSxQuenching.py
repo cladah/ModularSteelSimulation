@@ -234,7 +234,6 @@ def MartensiteForm(domain, minput, V_fM, funcs):
 
 def _function_values_at_points(function, target_points, gdim):
     """Return Function values in target point order using nearest coordinates.
-
     The function must be scalar or blocked-vector P1. This is used only for
     exporting nodal fields; it does not transfer fields for solving.
     """
@@ -276,6 +275,9 @@ def FCSx4PB_Quench(parent):
 
     minput = parent.minput
     ginput = parent.ginput
+    width = ginput["Geometry"]["width"]
+    thickness = ginput["Geometry"]["thickness"]
+    height = ginput["Geometry"]["height"]
     nsteps = int(minput["quench_steps"])
     if nsteps <= 0:
         raise ValueError("minput['quench_steps'] must be a positive integer.")
@@ -336,10 +338,10 @@ def FCSx4PB_Quench(parent):
 
     # Boundary conditions: retain the constraints from the supplied model.
     def b1_BC(x):
-        return np.logical_and(np.isclose(x[0], 0.0), np.isclose(x[1], 0.0))
+        return np.logical_and(np.isclose(x[0], width/2), np.isclose(x[1], 0.0))
 
     def sym_x_BC(x):
-        return np.isclose(x[0], 0.0)
+        return np.isclose(x[0], width/2)
     def sym_thickness(x):
         return np.isclose(x[2], 0.0)
 
@@ -354,7 +356,7 @@ def FCSx4PB_Quench(parent):
     dofs_x = fem.locate_dofs_geometrical((V.sub(0).sub(0), V_ux), sym_x_BC)
     dofs_z = fem.locate_dofs_geometrical((V.sub(0).sub(2), V_uz), sym_thickness)
     bcs = [
-        fem.dirichletbc(uy_value, dofs_y, V.sub(0).sub(1)),
+        #fem.dirichletbc(uy_value, dofs_y, V.sub(0).sub(1)),
         fem.dirichletbc(ux_value, dofs_x, V.sub(0).sub(0)),
         fem.dirichletbc(uz_value, dofs_z, V.sub(0).sub(2)),
     ]
@@ -397,70 +399,129 @@ def FCSx4PB_Quench(parent):
     if MPI.COMM_WORLD.rank == 0:
         print(">>> Starting solve...")
 
+    # Output spaces
+    V_out_scalar = fem.functionspace(domain, ("Lagrange", 1))
+    V_out_vector = fem.functionspace(domain, ("Lagrange", 1, (gdim,)))
+    V_out_tensor = fem.functionspace(
+        domain, ("Lagrange", 1, (3 if gdim == 2 else 6,))
+    )
+
+    # Output functions
+    u_out = fem.Function(V_out_vector, name="Displacement")
+    T_out = fem.Function(V_out_scalar, name="Temperature")
+    fM_out = fem.Function(V_out_scalar, name="Martensite")
+    strain_out = fem.Function(V_out_tensor, name="Strain")
+    stress_out = fem.Function(V_out_tensor, name="Stress")
+
+    # Store results for every timestep
+    history = []
+
     for step in range(nsteps):
         if MPI.COMM_WORLD.rank == 0:
             print(f"Step {step + 1}/{nsteps}")
 
         problem.solve()
         U.x.scatter_forward()
+
         reason = problem.solver.getConvergedReason()
         if reason <= 0:
             raise RuntimeError(
-                f"Nonlinear solver failed at step {step + 1}; PETSc SNES reason={reason}."
+                f"Nonlinear solver failed at step {step + 1}; "
+                f"PETSc SNES reason={reason}."
             )
 
-        # Update history fields from the converged mixed solution.
+        # Update history fields from the converged mixed solution
         u_old.interpolate(U.sub(0))
         T_old.interpolate(U.sub(1))
         fM_old.interpolate(U.sub(2))
         s_old.interpolate(s_expr)
+
         u_old.x.scatter_forward()
         T_old.x.scatter_forward()
         fM_old.x.scatter_forward()
         s_old.x.scatter_forward()
 
-    # Collapse mixed fields and interpolate displacement from P2 to P1 for output.
-    u_final = U.sub(0).collapse()
-    T_final = U.sub(1).collapse()
-    fM_final = U.sub(2).collapse()
+        # Collapse the converged fields
+        u_final = U.sub(0).collapse()
+        T_final = U.sub(1).collapse()
+        fM_final = U.sub(2).collapse()
 
-    V_out_scalar = fem.functionspace(domain, ("Lagrange", 1))
-    V_out_vector = fem.functionspace(domain, ("Lagrange", 1, (gdim,)))
-    V_out_stress = fem.functionspace(
-        domain, ("Lagrange", 1, (3 if gdim == 2 else 6,))
-    )
+        # Interpolate fields into output spaces
+        u_out.interpolate(u_final)
+        T_out.interpolate(T_final)
+        fM_out.interpolate(fM_final)
 
-    u_out = fem.Function(V_out_vector, name="Displacement")
-    u_out.interpolate(u_final)
-    T_out = fem.Function(V_out_scalar, name="Temperature")
-    T_out.interpolate(T_final)
-    fM_out = fem.Function(V_out_scalar, name="Martensite")
-    fM_out.interpolate(fM_final)
+        # Small-strain tensor: epsilon = sym(grad(u))
+        eps_ufl = 0.5 * (
+                ufl.grad(U.sub(0)) + ufl.grad(U.sub(0)).T
+        )
+        strain_voigt_ufl = tensor_to_voigt(eps_ufl, dim=gdim)
+        strain_expr = fem.Expression(
+            strain_voigt_ufl, _interp_points(V_out_tensor)
+        )
+        strain_out.interpolate(strain_expr)
+        strain_out.x.scatter_forward()
 
-    stress_ufl = sigma_TRIP(U.sub(0), U.sub(1), U.sub(2), minput, gdim)
-    stress_voigt_ufl = tensor_to_voigt(stress_ufl, dim=gdim)
-    stress_expr = fem.Expression(stress_voigt_ufl, _interp_points(V_out_stress))
-    stress_out = fem.Function(V_out_stress, name="Stress")
-    stress_out.interpolate(stress_expr)
-    stress_out.x.scatter_forward()
+        # Stress
+        stress_ufl = sigma_TRIP(
+            U.sub(0), U.sub(1), U.sub(2), minput, gdim
+        )
+        stress_voigt_ufl = tensor_to_voigt(stress_ufl, dim=gdim)
+        stress_expr = fem.Expression(
+            stress_voigt_ufl, _interp_points(V_out_tensor)
+        )
+        stress_out.interpolate(stress_expr)
+        stress_out.x.scatter_forward()
 
-    # Map each output function by its own DOF coordinates, not by assuming
-    # finite-element DOFs have the same ordering as geometry nodes.
-    displacement_values = _function_values_at_points(u_out, xdmf_nodes, gdim)
-    temperature_values = _function_values_at_points(T_out, xdmf_nodes, gdim)
-    martensite_values = _function_values_at_points(fM_out, xdmf_nodes, gdim)
-    stress_values = _function_values_at_points(stress_out, xdmf_nodes, gdim)
+        # Extract values at the mesh nodes
+        displacement_values = _function_values_at_points(
+            u_out, xdmf_nodes, gdim
+        )
+        temperature_values = _function_values_at_points(
+            T_out, xdmf_nodes, gdim
+        )
+        martensite_values = _function_values_at_points(
+            fM_out, xdmf_nodes, gdim
+        )
+        strain_values = _function_values_at_points(
+            strain_out, xdmf_nodes, gdim
+        )
+        stress_values = _function_values_at_points(
+            stress_out, xdmf_nodes, gdim
+        )
 
-    result_dict = {
-        "Displacement": displacement_values,
-        "Temperature": temperature_values,
-        "Martensite": martensite_values,
-        "Austenite": 1.0 - martensite_values,
-        "Stress": np.real(stress_values),
-    }
-    adjustdatastream(result_dict, datapos="nodes", t_data=float(minput["quenchtime"]))
+        # Collect this timestep's results
+        result_dict = {
+            "Displacement": np.real(displacement_values),
+            "Temperature": np.real(temperature_values),
+            "Martensite": np.real(martensite_values),
+            "Austenite": np.real(1.0 - martensite_values),
+            "Strain": np.real(strain_values),
+            "Stress": np.real(stress_values),
+        }
+
+        # Record the current time
+        # Replace this with your actual time-stepping expression if needed.
+        t_current = float(minput["quenchtime"]) * (step + 1) / nsteps
+
+        # Export every timestep
+        adjustdatastream(
+            result_dict,
+            datapos="nodes",
+            t_data=t_current,
+        )
+
+        # Keep an in-memory copy of every timestep's results
+        history.append({
+            "step": step + 1,
+            "time": t_current,
+            **{
+                name: values.copy()
+                for name, values in result_dict.items()
+            },
+        })
 
     if MPI.COMM_WORLD.rank == 0:
-        print(">>> Quenching solve completed and results exported.")
+        print(">>> Quenching solve completed; all timesteps exported.")
 
     return result_dict

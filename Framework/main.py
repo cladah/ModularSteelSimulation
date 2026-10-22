@@ -167,7 +167,8 @@ def main():
             case 1:
                 done = MSS.run_simulation()
                 if done:
-                    interactive_xdmf_plotter()
+                    while True:
+                        interactive_xdmf_plotter()
             case 2:
                 GUI()
             case 3:

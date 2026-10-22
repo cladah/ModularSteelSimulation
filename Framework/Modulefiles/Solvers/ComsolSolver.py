@@ -7,51 +7,6 @@ import numpy as np
 from Framework.HelpFile import readresultfile, read_modinput, read_geninput
 from Framework.Datastream_file import readdatastream, adjustdatastream, getaxisvalues
 def modeldatatoComsolfiles():
-    # print("Adjusting phase transformation data to Comsol specifics")
-    # xyz = readdatastream("nodes")
-    # phases = ["Ferrite", "Pearlite", "Bainite", "Martensite"]
-    # for phase in phases:
-    #     if phase != "Martensite":
-    #         tmpT = readresultfile("Modeldata", phase + "/JMAK/T")
-    #         tmp1 = readresultfile("Modeldata", phase + "/JMAK/tau")
-    #         tmp2 = readresultfile("Modeldata", phase + "/JMAK/n")
-    #         tmpnames = ["tau", "n"]
-    #     else:
-    #         tmp1 = readresultfile("Modeldata", phase + "/KM/Ms")
-    #         tmp2 = readresultfile("Modeldata", phase + "/KM/beta")
-    #         tmpnames = ["Ms", "beta"]
-    #     # print(len(tmpT))
-    #     # print(len(tmp1))
-    #     # print(len(tmp2))
-    #     for i in [0, 1]:
-    #         with open("Resultfiles/" + phase + "_" + tmpnames[i] + ".csv", 'w') as file:
-    #             writer = csv.writer(file)
-    #             r = [np.sqrt(xyz[j][0]**2 + xyz[j][1]**2) for j in range(len(xyz) - 1)]
-    #             if phase in ["Ferrite", "Pearlite", "Bainite"]:
-    #                 if not tmp1.all():
-    #                     break
-    #                 if i == 0:
-    #                     for j in range(len(tmp1) - 1):
-    #                         for k in range(len(tmpT) - 1):
-    #                             writer.writerow([r[j], tmpT[k], tmp1[j][k]])
-    #                 else:
-    #                     for j in range(len(tmp2) - 1):
-    #                         for k in range(len(tmpT) - 1):
-    #                             writer.writerow([r[j], tmpT[k], tmp2[j][k]])
-    #             else:
-    #
-    #                 if i == 0:
-    #                     for j in range(len(tmp1) - 1):
-    #                         writer.writerow([r[j], tmp1[j][0]])
-    #                 else:
-    #                     for j in range(len(tmp2) - 1):
-    #                         writer.writerow([r[j], tmp2[j][0]])
-    #     print(str(phase) + " data written to csv files")
-    # pass
-
-
-
-
     print("Adjusting phase transformation data to Comsol specifics")
     r = getaxisvalues("nodes")[:,0]
     phases = ["Ferrite", "Pearlite", "Bainite", "Martensite"]
@@ -881,15 +836,5 @@ def runComsol(parent):
     Comsolexport(model)
 
     client.clear()
-    #resultconverter()
     parent.updateprogress(1.0)
     print("Comsol multiphysics closed")
-
-
-    #client = mph.start()
-    #pymodel = client.load("Resultfiles/Comsolmodel.mph")
-    #model = pymodel.java
-
-    #model.save('Resultfiles/Comsolmodel')
-
-    #setupComsolSolver()

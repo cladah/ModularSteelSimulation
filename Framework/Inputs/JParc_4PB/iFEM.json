@@ -1,5 +1,5 @@
 {
-  "MaterialType": "Elastic",
+  "MaterialType": "elastic",
   "MixtureModel": "RuleofMix",
   "Austenite": {
     "nu": 0.3,
@@ -451,8 +451,8 @@
     },
     "model": "JMAK"
   },
-  "quenchtime": 200,
-  "quench_steps": 2,
+  "quenchtime": 600,
+  "quench_steps": 10,
   "quenchmedium": "oil",
   "quenchtemp": 293.15,
   "PlaneStrain": false,
